@@ -573,6 +573,7 @@ class App(Tk):
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
                          current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
                          card_generator=self.cd)
+        self.saved_cards_data = SavedDataDeck()
         self.refresh()
 
     def create_new_file(self):

@@ -161,7 +161,8 @@ class Deck(PointerList):
         res: list[Card] = self._card_generator.get(query, **kwargs)
 
         self._data = self[:self._pointer_position] + res + self[self._pointer_position:]
-        self._pointer_position = self._pointer_position - 1
+        if res:
+            self._pointer_position = self._pointer_position - 1
 
         self._cards_left += len(res)
         return len(res)

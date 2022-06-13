@@ -5,7 +5,7 @@ import re
 import bs4
 import requests
 
-from parsers.return_types import ImageGenerator
+from plugins.parsers.return_types import ImageGenerator
 
 
 FILE_PATH = os.path.dirname(__file__)

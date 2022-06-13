@@ -6,25 +6,25 @@ from typing import Callable
 from typing import ClassVar
 from typing import TypeVar, Generic
 
-import parsers.image_parsers
-import parsers.local_audio_getters
-import parsers.sentence_parsers
-import parsers.word_parsers.local
-import parsers.word_parsers.web
-import saving.card_processors
-import saving.format_processors
-import themes
+import plugins.parsers.image_parsers
+import plugins.parsers.local_audio_getters
+import plugins.parsers.sentence_parsers
+import plugins.parsers.word_parsers.local
+import plugins.parsers.word_parsers.web
+import plugins.saving.card_processors
+import plugins.saving.format_processors
+import plugins.themes
 from consts.paths import LOCAL_MEDIA_DIR
-from plugins.containers import CardProcessorContainer
-from plugins.containers import DeckSavingFormatContainer
-from plugins.containers import ImageParserContainer
-from plugins.containers import LocalAudioGetterContainer
-from plugins.containers import LocalWordParserContainer
-from plugins.containers import ThemeContainer
-from plugins.containers import WebSentenceParserContainer
-from plugins.containers import WebWordParserContainer
-from plugins.exceptions import LoaderError
-from plugins.exceptions import UnknownPluginName
+from plugins_management.containers import CardProcessorContainer
+from plugins_management.containers import DeckSavingFormatContainer
+from plugins_management.containers import ImageParserContainer
+from plugins_management.containers import LocalAudioGetterContainer
+from plugins_management.containers import LocalWordParserContainer
+from plugins_management.containers import ThemeContainer
+from plugins_management.containers import WebSentenceParserContainer
+from plugins_management.containers import WebWordParserContainer
+from plugins_management.exceptions import LoaderError
+from plugins_management.exceptions import UnknownPluginName
 from utils.cards import WebCardGenerator, LocalCardGenerator
 from utils.storages import FrozenDict
 
@@ -105,28 +105,28 @@ class PluginFactory:
         PluginFactory._is_initialized = True
 
         super().__setattr__("themes",              PluginLoader(plugin_type="theme",
-                                                                module=themes,
+                                                                module=plugins.themes,
                                                                 container_type=ThemeContainer))
         super().__setattr__("web_word_parsers",    PluginLoader(plugin_type="web word parser",
-                                                                module=parsers.word_parsers.web,
+                                                                module=plugins.parsers.word_parsers.web,
                                                                 container_type=WebWordParserContainer))
         super().__setattr__("local_word_parsers",  PluginLoader(plugin_type="local word parser",
-                                                                module=parsers.word_parsers.local,
+                                                                module=plugins.parsers.word_parsers.local,
                                                                 container_type=LocalWordParserContainer))
         super().__setattr__("web_sent_parsers",    PluginLoader(plugin_type="web sentence parser",
-                                                                module=parsers.sentence_parsers,
+                                                                module=plugins.parsers.sentence_parsers,
                                                                 container_type=WebSentenceParserContainer))
         super().__setattr__("image_parsers",       PluginLoader(plugin_type="web image parser",
-                                                                module=parsers.image_parsers,
+                                                                module=plugins.parsers.image_parsers,
                                                                 container_type=ImageParserContainer))
         super().__setattr__("card_processors",     PluginLoader(plugin_type="card processor",
-                                                                module=saving.card_processors,
+                                                                module=plugins.saving.card_processors,
                                                                 container_type=CardProcessorContainer))
-        super().__setattr__("deck_saving_formats", PluginLoader(plugin_type="deck saving format",
-                                                                module=saving.format_processors,
+        super().__setattr__("deck_saving_formats", PluginLoader(plugin_type="deck plugins.saving format",
+                                                                module=plugins.saving.format_processors,
                                                                 container_type=DeckSavingFormatContainer))
         super().__setattr__("local_audio_getters", PluginLoader(plugin_type="local audio getter",
-                                                                module=parsers.local_audio_getters,
+                                                                module=plugins.parsers.local_audio_getters,
                                                                 container_type=LocalAudioGetterContainer))
 
     def get_theme(self, name: str) -> ThemeContainer:
@@ -163,7 +163,7 @@ class PluginFactory:
     
     def get_deck_saving_formats(self, name: str) -> DeckSavingFormatContainer:
         if (saving_format := self.deck_saving_formats.get(name)) is None:
-            raise UnknownPluginName(f"Unknown deck saving format: {name}")
+            raise UnknownPluginName(f"Unknown deck plugins.saving format: {name}")
         return saving_format
     
     def get_local_audio_getter(self, name: str) -> LocalAudioGetterContainer:
@@ -173,4 +173,4 @@ class PluginFactory:
     
         
     
-plugins = PluginFactory()
+loaded_plugins = PluginFactory()

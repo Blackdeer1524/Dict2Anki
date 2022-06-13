@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from parsers.return_types import SentenceGenerator, ImageGenerator
-from plugins.interfaces import ThemeInterface
-from plugins.interfaces import CardProcessorInterface
-from plugins.interfaces import DeckSavingFormatInterface
-from plugins.interfaces import ImageParserInterface
-from plugins.interfaces import LocalAudioGetterInterface
-from plugins.interfaces import LocalWordParserInterface
-from plugins.interfaces import WebSentenceParserInterface
-from plugins.interfaces import WebWordParserInterface
+from plugins.parsers.return_types import SentenceGenerator, ImageGenerator
+from plugins_management.interfaces import ThemeInterface
+from plugins_management.interfaces import CardProcessorInterface
+from plugins_management.interfaces import DeckSavingFormatInterface
+from plugins_management.interfaces import ImageParserInterface
+from plugins_management.interfaces import LocalAudioGetterInterface
+from plugins_management.interfaces import LocalWordParserInterface
+from plugins_management.interfaces import WebSentenceParserInterface
+from plugins_management.interfaces import WebWordParserInterface
 from utils.cards import CardStatus
 from utils.cards import SavedDataDeck
 

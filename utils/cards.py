@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Callable, Union, Any
 
 from consts.card_fields import FIELDS
-from parsers.return_types import SentenceGenerator
+from plugins.parsers.return_types import SentenceGenerator
 from utils.storages import FrozenDictJSONEncoder
 from utils.storages import PointerList, FrozenDict
 from pathlib import Path

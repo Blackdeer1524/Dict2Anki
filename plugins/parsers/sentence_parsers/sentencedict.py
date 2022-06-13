@@ -4,7 +4,7 @@ import re
 import bs4
 import requests
 
-from parsers.return_types import SentenceGenerator
+from plugins.parsers.return_types import SentenceGenerator
 
 FILE_PATH = os.path.dirname(__file__)
 

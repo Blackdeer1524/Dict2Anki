@@ -18,7 +18,7 @@ from tkinterdnd2 import Tk
 
 from consts.card_fields import FIELDS
 from consts.paths import *
-from plugins.factory import plugins
+from plugins_management.factory import loaded_plugins
 from utils.audio_utils import AudioDownloader
 from utils.cards import Card
 from utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
@@ -71,7 +71,7 @@ class App(Tk):
         if not self.history.get(self.configurations["directories"]["last_open_file"]):
             self.history[self.configurations["directories"]["last_open_file"]] = 0
 
-        self.theme = plugins.get_theme(self.configurations["app"]["theme"])
+        self.theme = loaded_plugins.get_theme(self.configurations["app"]["theme"])
         self.configure(**self.theme.root_cfg)
         self.Label    = partial(Label,    **self.theme.label_cfg)
         self.Button   = partial(Button,   **self.theme.button_cfg)
@@ -85,9 +85,9 @@ class App(Tk):
 
         wp_name = self.configurations["scrappers"]["word_parser_name"]
         if (wp_type := self.configurations["scrappers"]["word_parser_type"]) == "web":
-            self.cd = plugins.get_web_card_generator(wp_name)
+            self.cd = loaded_plugins.get_web_card_generator(wp_name)
         elif wp_type == "local":
-            self.cd = plugins.get_local_card_generator(wp_name)
+            self.cd = loaded_plugins.get_local_card_generator(wp_name)
         else:
             raise NotImplemented("Unknown word_parser_type: {}!".format(self.configurations["scrappers"]["word_parser_type"]))
         self.typed_word_parser_name = f"[{wp_type}] {wp_name}"
@@ -96,24 +96,24 @@ class App(Tk):
                          current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
                          card_generator=self.cd)
 
-        self.card_processor = plugins.get_card_processor("Anki")
+        self.card_processor = loaded_plugins.get_card_processor("Anki")
         self.dict_card_data: dict = {}
         self.sentence_batch_size = 5
-        self.sentence_parser = plugins.get_sentence_parser(self.configurations["scrappers"]["base_sentence_parser"])
+        self.sentence_parser = loaded_plugins.get_sentence_parser(self.configurations["scrappers"]["base_sentence_parser"])
         self.sentence_fetcher = SentenceFetcher(sent_fetcher=self.sentence_parser.get_sentence_batch,
                                                 sentence_batch_size=self.sentence_batch_size)
 
-        self.image_parser = plugins.get_image_parser(self.configurations["scrappers"]["base_image_parser"])
+        self.image_parser = loaded_plugins.get_image_parser(self.configurations["scrappers"]["base_image_parser"])
 
         if (local_audio_getter_name := self.configurations["scrappers"]["local_audio"]):
-            self.local_audio_getter = plugins.get_local_audio_getter(local_audio_getter_name)
+            self.local_audio_getter = loaded_plugins.get_local_audio_getter(local_audio_getter_name)
         else:
             self.local_audio_getter = None
 
         self.saved_cards_data = SavedDataDeck()
-        self.deck_saver = plugins.get_deck_saving_formats(self.configurations["deck_saving_format"])
-        self.audio_saver = plugins.get_deck_saving_formats("json_deck_audio")
-        self.buried_saver = plugins.get_deck_saving_formats("json_deck_cards")
+        self.deck_saver = loaded_plugins.get_deck_saving_formats(self.configurations["deck_saving_format"])
+        self.audio_saver = loaded_plugins.get_deck_saving_formats("json_deck_audio")
+        self.buried_saver = loaded_plugins.get_deck_saving_formats("json_deck_cards")
 
         main_menu = Menu(self)
         filemenu = Menu(main_menu, tearoff=0)
@@ -139,7 +139,7 @@ class App(Tk):
         self.browse_button = self.Button(self, text="Найти в браузере", command=self.web_search_command)
         self.configurations_word_parser_button = self.Button(self, text="Настроить словарь", command=self.configure_dictionary)
         self.find_image_button = self.Button(self, text="Добавить изображение", command=self.start_image_search)
-        self.image_word_parsers_names = plugins.image_parsers.loaded
+        self.image_word_parsers_names = loaded_plugins.image_parsers.loaded
 
         self.image_parser_option_menu = self.get_option_menu(self,
                                                         init_text=self.image_parser.name,
@@ -152,7 +152,7 @@ class App(Tk):
 
         self.sentence_parser_option_menu = self.get_option_menu(self,
                                                                init_text=self.sentence_parser.name,
-                                                               values=plugins.web_sent_parsers.loaded,
+                                                               values=loaded_plugins.web_sent_parsers.loaded,
                                                                command=lambda parser_name:
                                                                self.change_sentence_parser(parser_name))
 
@@ -306,18 +306,18 @@ class App(Tk):
 
         theme_toplevel = self.Toplevel(self)
         theme_toplevel.grid_columnconfigure(0, weight=1)
-        for i, theme_name in enumerate(plugins.themes.loaded):
+        for i, theme_name in enumerate(loaded_plugins.themes.loaded):
             b = self.Button(theme_toplevel, text=theme_name, command=lambda x=theme_name: pick(x))
             b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
         theme_toplevel.bind("<Escape>", lambda event: theme_toplevel.destroy())
         spawn_toplevel_in_center(self, theme_toplevel)
 
     def change_image_parser(self, given_image_parser_name: str):
-        self.image_parser = plugins.get_image_parser(given_image_parser_name)
+        self.image_parser = loaded_plugins.get_image_parser(given_image_parser_name)
         self.configurations["scrappers"]["base_image_parser"] = given_image_parser_name
 
     def change_sentence_parser(self, given_sentence_parser_name: str):
-        self.sentence_parser = plugins.get_sentence_parser(given_sentence_parser_name)
+        self.sentence_parser = loaded_plugins.get_sentence_parser(given_sentence_parser_name)
         self.sentence_fetcher = SentenceFetcher(sent_fetcher=self.sentence_parser.get_sentence_batch,
                                                 sentence_batch_size=self.sentence_batch_size)
         self.configurations["scrappers"]["base_sentence_parser"] = given_sentence_parser_name
@@ -330,11 +330,11 @@ class App(Tk):
         def pick_parser(name: str):
             if name.startswith(WEB_PREF):
                 res_name = name[len(WEB_PREF) + 1:]
-                self.cd = plugins.get_web_card_generator(name[len(WEB_PREF) + 1:])
+                self.cd = loaded_plugins.get_web_card_generator(name[len(WEB_PREF) + 1:])
                 self.configurations["scrappers"]["word_parser_type"] = "web"
             else:
                 res_name = name[len(LOCAL_PREF) + 1:]
-                self.cd = plugins.get_local_card_generator(name[len(LOCAL_PREF) + 1:])
+                self.cd = loaded_plugins.get_local_card_generator(name[len(LOCAL_PREF) + 1:])
                 self.configurations["scrappers"]["word_parser_type"] = "local"
             self.configurations["scrappers"]["word_parser_name"] = res_name
             self.typed_word_parser_name = name
@@ -350,8 +350,8 @@ class App(Tk):
 
         choose_wp_option = self.get_option_menu(dict_configuration_toplevel,
                                            init_text=self.typed_word_parser_name,
-                                           values=[f"{WEB_PREF} {item}" for item in plugins.web_word_parsers.loaded] +
-                                                  [f"{LOCAL_PREF} {item}" for item in plugins.local_word_parsers.loaded],
+                                           values=[f"{WEB_PREF} {item}" for item in loaded_plugins.web_word_parsers.loaded] +
+                                                  [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_word_parsers.loaded],
                                            command=lambda parser: pick_parser(parser))
         choose_wp_option.grid(row=0, column=1, sticky="news")
 
@@ -365,12 +365,12 @@ class App(Tk):
                 self.configurations["scrappers"]["local_audio"] = ""
                 return
             self.configurations["scrappers"]["local_audio"] = name
-            self.local_audio_getter = plugins.get_local_audio_getter(name)
+            self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
 
         choose_audio_option = self.get_option_menu(dict_configuration_toplevel,
                                               init_text=DEFAULT_AUDIO_SRC if self.local_audio_getter is None
                                                                           else self.local_audio_getter.name,
-                                              values=list(plugins.local_audio_getters.loaded) + [DEFAULT_AUDIO_SRC],
+                                              values=list(loaded_plugins.local_audio_getters.loaded) + [DEFAULT_AUDIO_SRC],
                                               command=lambda getter: pick_audio_getter(getter))
         choose_audio_option.grid(row=1, column=1, sticky="news")
 
@@ -380,11 +380,11 @@ class App(Tk):
 
         def choose_card_processor(name: str):
             self.configurations["card_processor"] = name
-            self.card_processor = plugins.get_card_processor(name)
+            self.card_processor = loaded_plugins.get_card_processor(name)
 
         card_processor_option = self.get_option_menu(dict_configuration_toplevel,
                                                 init_text=self.card_processor.name,
-                                                values=plugins.card_processors.loaded,
+                                                values=loaded_plugins.card_processors.loaded,
                                                 command=lambda processor: choose_card_processor(processor))
         card_processor_option.grid(row=2, column=1, sticky="news")
 
@@ -394,11 +394,11 @@ class App(Tk):
 
         def choose_format_processor(name: str):
             self.configurations["deck_saving_format"] = name
-            self.deck_saver = plugins.get_deck_saving_formats(name)
+            self.deck_saver = loaded_plugins.get_deck_saving_formats(name)
 
         format_processor_option = self.get_option_menu(dict_configuration_toplevel,
                                                   init_text=self.deck_saver.name,
-                                                  values=plugins.deck_saving_formats.loaded,
+                                                  values=loaded_plugins.deck_saving_formats.loaded,
                                                   command=lambda format: choose_format_processor(format))
         format_processor_option.grid(row=3, column=1, sticky="news")
 

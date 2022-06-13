@@ -11,6 +11,8 @@ from utils.storages import PointerList, FrozenDict
 
 
 class Card(FrozenDict):
+    __slots__ = ()
+
     def __init__(self, card_fields: dict[str, Any] = None):
         if card_fields is None:
             super(Card, self).__init__(data={})
@@ -115,6 +117,8 @@ class WebCardGenerator(CardGenerator):
 
 
 class Deck(PointerList):
+    __slots__ = "deck_path", "_card_generator", "_cards_left"
+
     def __init__(self, deck_path: str,
                  current_deck_pointer: int,
                  card_generator: CardGenerator):
@@ -203,6 +207,8 @@ class SavedDataDeck(PointerList):
 
     AUDIO_SRC_TYPE_LOCAL = "local"
     AUDIO_SRC_TYPE_WEB   = "web"
+
+    __slots__ = "_statistics"
 
     def __init__(self):
         super(SavedDataDeck, self).__init__()

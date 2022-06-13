@@ -4,6 +4,8 @@ from typing import Any, TypeVar, Mapping, Generic
 
 
 class _FrozenDictNode(Mapping):
+    __slots__ = "_data"
+
     def __init__(self, data: dict[Any, Any]):
         self._data = data
 
@@ -27,6 +29,8 @@ class _FrozenDictNode(Mapping):
 
 
 class FrozenDict(_FrozenDictNode):
+    __slots__ = ()
+
     def __init__(self, data: dict[Any, Any]):
         def _convert_to_frozen_node(master: dict, master_key: Any, proc_unit: Any):
             if isinstance(proc_unit, dict):
@@ -64,12 +68,13 @@ class FrozenDictJSONEncoder(JSONEncoder):
 
 _T = TypeVar("_T")
 class PointerList(Generic[_T]):
+    __slots__ = "_data", "_starting_position", "_pointer_position", "_default_return_value"
+
     def __init__(self, data: list[_T] = None,
                  starting_position: int = 0,
                  default_return_value: Any = None):
         self._data: list[_T] = data if data is not None else []
         self._starting_position = min(len(self._data), starting_position)
-        self._starting_position: int = self._starting_position
         self._pointer_position: int = self._starting_position
         self._default_return_value: Any = default_return_value
 

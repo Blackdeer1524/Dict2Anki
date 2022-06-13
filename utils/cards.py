@@ -254,10 +254,15 @@ class SavedDataDeck(PointerList):
         self._statistics[status.value] += 1
 
     def move(self, n: int) -> None:
-        super(SavedDataDeck, self).move(n)
-        for i in range(self.get_pointer_position(), len(self)):
-            self._statistics[self[i][SavedDataDeck.CARD_STATUS].value] -= 1
-        del self._data[self.get_pointer_position():]
+        if n < 0:
+            super(SavedDataDeck, self).move(n)
+            for i in range(self.get_pointer_position(), len(self)):
+                self._statistics[self[i][SavedDataDeck.CARD_STATUS].value] -= 1
+            del self._data[self.get_pointer_position():]
+            return
+        self._data.extend((FrozenDict({SavedDataDeck.CARD_STATUS: CardStatus.DELETE}) for _ in range(n)))
+        self._pointer_position = len(self)
+        self._statistics[CardStatus.DELETE.value] += n
 
     def get_audio_data(self, saving_card_status: CardStatus) -> list[FrozenDict]:
         saving_object = []

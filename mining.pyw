@@ -452,8 +452,8 @@ class App(Tk):
         return history_json
 
     def replace_decks_pointers(self, n: int):
+        self.saved_cards_data.move(min(n, self.deck.get_n_cards_left()))
         self.deck.move(n - 1)
-        self.saved_cards_data.move(n)
         self.refresh()
 
     @error_handler(show_errors)
@@ -615,6 +615,7 @@ class App(Tk):
             self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
                              current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
                              card_generator=self.cd)
+            self.saved_cards_data = SavedDataDeck()
             self.refresh()
 
         new_file_dir = askdirectory(title="Выберете директорию для файла со словами", initialdir="./")
@@ -908,7 +909,7 @@ class App(Tk):
         statistics_window.withdraw()
 
         statistics_window.title("Статистика")
-        text_list = (('Добавлено', 'Пропущено', 'Удалено', 'Осталось', "Файл", "Директория сохранения", "Медиа"),
+        text_list = (('Добавлено', 'Отложено', 'Пропущено', 'Осталось', "Файл", "Директория сохранения", "Медиа"),
                      (self.saved_cards_data.get_n_added(), self.saved_cards_data.get_n_buried(), self.saved_cards_data.get_n_deleted(),
                       self.deck.get_n_cards_left(), self.deck.deck_path,
                       self.configurations["directories"]["last_save_dir"],

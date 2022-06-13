@@ -561,7 +561,12 @@ class App(Tk):
         if not new_file:
             return
 
+        new_save_dir = askdirectory(title="Выберете директорию сохранения", initialdir="./")
+        if not new_save_dir:
+            return
+
         self.save_files()
+        self.configurations["directories"]["last_save_dir"] = new_save_dir
         self.configurations["directories"]["last_open_file"] = new_file
         if not self.history.get(self.configurations["directories"]["last_open_file"]):
             self.history[self.configurations["directories"]["last_open_file"]] = 0
@@ -606,7 +611,7 @@ class App(Tk):
                     json.dump([], new_file)
 
             new_save_dir = askdirectory(title="Выберете директорию сохранения", initialdir="./")
-            if len(new_save_dir) == 0:
+            if not new_save_dir:
                 return
 
             self.save_files()
@@ -619,7 +624,7 @@ class App(Tk):
             self.refresh()
 
         new_file_dir = askdirectory(title="Выберете директорию для файла со словами", initialdir="./")
-        if len(new_file_dir) == 0:
+        if not new_file_dir:
             return
         create_file_win = self.Toplevel()
         create_file_win.withdraw()
@@ -1067,7 +1072,7 @@ class App(Tk):
             messagebox.showerror(message="Ошибка получения звука\nЛокальный файл не найден")
             return
 
-        if (audio_file_urls := self.dict_card_data.get(FIELDS.audio_links)) is None or len(audio_file_urls) == 0:
+        if (audio_file_urls := self.dict_card_data.get(FIELDS.audio_links)) is None or not audio_file_urls:
             messagebox.showerror(message="Ошибка получения звука\nНе откуда брать аудио!")
             return
 

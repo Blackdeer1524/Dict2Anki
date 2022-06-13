@@ -1,10 +1,10 @@
 **
-!/plugins/**
 !/consts/**
-!/parsers/**
+!/plugins/**
+!/plugins_management/**
 !/utils/**
 !/.gitignore
-!refactored_mining.pyw
+!mining.pyw
 !requirements.txt
 !linux_installation_gudie.txt
-!/saving/**
+**/__pycache__/

@@ -23,6 +23,8 @@ from utils.audio_utils import AudioDownloader
 from utils.cards import Card
 from utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
 from utils.error_handling import create_exception_message
+from utils.error_handling import error_handler
+from utils.global_bindings import Binder
 from utils.image_utils import ImageSearch
 from utils.search_checker import ParsingException
 from utils.search_checker import get_card_filter
@@ -33,8 +35,6 @@ from utils.widgets import ScrolledFrame
 from utils.widgets import TextWithPlaceholder as Text
 from utils.window_utils import get_option_menu
 from utils.window_utils import spawn_toplevel_in_center
-from utils.error_handling import error_handler
-from utils.global_bindings import Binder
 
 
 class App(Tk):

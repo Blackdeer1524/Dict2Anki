@@ -1,7 +1,6 @@
-from pathlib import Path
 import os
+from pathlib import Path
 from platform import system
-
 
 CURRENT_WORKING_DIR = Path(os.getcwd())
 LOCAL_MEDIA_DIR = CURRENT_WORKING_DIR / "media"

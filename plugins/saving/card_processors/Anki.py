@@ -2,7 +2,6 @@ import os.path
 
 from utils.string_utils import remove_special_chars
 
-
 SCHEME_PREFIX = os.path.basename(__file__).rstrip(".py")
 
 

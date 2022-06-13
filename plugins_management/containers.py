@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from typing import Callable
 
 from plugins.parsers.return_types import SentenceGenerator, ImageGenerator
-from plugins_management.interfaces import ThemeInterface
 from plugins_management.interfaces import CardProcessorInterface
 from plugins_management.interfaces import DeckSavingFormatInterface
 from plugins_management.interfaces import ImageParserInterface
 from plugins_management.interfaces import LocalAudioGetterInterface
 from plugins_management.interfaces import LocalWordParserInterface
+from plugins_management.interfaces import ThemeInterface
 from plugins_management.interfaces import WebSentenceParserInterface
 from plugins_management.interfaces import WebWordParserInterface
 from utils.cards import CardStatus

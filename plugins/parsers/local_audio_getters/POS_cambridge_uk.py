@@ -1,7 +1,7 @@
 import os
-from utils.string_utils import remove_special_chars
-from consts.paths import LOCAL_MEDIA_DIR
 
+from consts.paths import LOCAL_MEDIA_DIR
+from utils.string_utils import remove_special_chars
 
 LETTERS = frozenset("abcdefghijklmnopqrstuvwxyz")
 AUDIO_NAME_SPEC_CHARS = '/\\:*?\"<>| '

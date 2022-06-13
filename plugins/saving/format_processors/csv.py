@@ -1,9 +1,9 @@
 import csv
 from typing import Callable
 
-from utils.cards import SavedDataDeck
-from utils.cards import CardStatus
 from consts.card_fields import FIELDS
+from utils.cards import CardStatus
+from utils.cards import SavedDataDeck
 from utils.string_utils import remove_special_chars
 
 

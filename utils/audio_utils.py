@@ -4,7 +4,6 @@ from enum import IntEnum
 from tkinter import Button, Checkbutton, Label, Toplevel, BooleanVar
 from tkinter import messagebox
 from tkinter import ttk
-from typing import Iterator
 
 import requests
 

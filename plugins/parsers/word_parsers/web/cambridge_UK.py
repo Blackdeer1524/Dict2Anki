@@ -1,8 +1,8 @@
-import requests
 import bs4
+import requests
+
 from consts.card_fields import FIELDS
 from utils.preprocessing import remove_empty_keys
-
 
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'
 headers = {'User-Agent': user_agent}

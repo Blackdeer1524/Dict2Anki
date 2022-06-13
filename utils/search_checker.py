@@ -1,6 +1,9 @@
 import copy
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from functools import partial
 from functools import reduce
 from re import Pattern, search, compile
 from typing import Callable, Sized, ClassVar
@@ -10,9 +13,6 @@ from typing import Optional, Any, Union
 from consts.card_fields import FIELDS
 from utils.cards import Card
 from utils.storages import FrozenDict
-from functools import partial
-from abc import ABC, abstractmethod
-from collections.abc import Mapping
 
 
 class ParsingException(Exception):

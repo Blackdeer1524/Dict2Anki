@@ -1,4 +1,5 @@
 from typing import Protocol, Callable
+
 from plugins.parsers.return_types import SentenceGenerator, ImageGenerator
 from utils.cards import SavedDataDeck, CardStatus
 

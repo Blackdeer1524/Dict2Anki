@@ -1,3 +1,6 @@
+from consts.card_fields import FIELDS
+from utils.preprocessing import remove_empty_keys
+
 DICTIONARY_PATH = "wordset"
 
 
@@ -10,7 +13,7 @@ def translate(word: str, word_dict: dict):
             if word_dict[pos].get(name) is None:
                 word_dict[pos][name] = []
             while len(word_dict[pos]["definitions"]) > len(word_dict[pos][name]):
-                word_dict[pos][name].append([""])
+                word_dict[pos][name].append([])
 
         for definition, examples, domain, labels_and_codes, level, \
             region, usage in zip(word_dict[pos]["definitions"],
@@ -20,9 +23,16 @@ def translate(word: str, word_dict: dict):
                                  word_dict[pos]["level"],
                                  word_dict[pos]["region"],
                                  word_dict[pos]["usage"]):
-
-            # {"word": слово_n, "meaning": значение_n, "Sen_Ex": [пример_1, ..., пример_n]}
-            word_list.append({"word": word, "meaning": definition,
-                              "Sen_Ex": examples, "domain": domain, "level": level, "region": region,
-                              "usage": usage, "pos": pos})
+            current_word_dict = {FIELDS.word: word.strip(),
+                                 FIELDS.definition: definition,
+                                 FIELDS.sentences: examples,
+                                 FIELDS.dict_tags: {"domain": domain,
+                                                    "level": level,
+                                                    "region": region,
+                                                    "usage": usage,
+                                                    "pos": pos
+                                                    }
+                                 }
+            remove_empty_keys(current_word_dict)
+            word_list.append(current_word_dict)
     return word_list

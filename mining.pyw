@@ -863,8 +863,7 @@ class App(Tk):
                     left["state"] = "disabled" if not move_list.get_pointer_position() else "normal"
                     right["state"] = "disabled" if move_list.get_pointer_position() == len(move_list) else "normal"
 
-                    self.deck.move(current_offset - 1)
-                    self.saved_cards_data.move(current_offset)
+                    self.replace_decks_pointers(current_offset)
                     self.refresh()
 
                 find_frame.destroy()

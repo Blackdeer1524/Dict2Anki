@@ -12,6 +12,9 @@ def save(deck: SavedDataDeck,
          saving_path: str,
          image_names_wrapper: Callable[[str], str],
          audio_names_wrapper: Callable[[str], str]):
+    if not deck:
+        return
+
     csv_file = open(saving_path + ".csv", 'w', encoding="UTF-8")
     cards_writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 

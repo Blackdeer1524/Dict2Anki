@@ -151,10 +151,10 @@ class App(Tk):
                                            command=self.replace_sentences)
 
         self.sentence_parser_option_menu = self.get_option_menu(self,
-                                                           init_text=self.sentence_parser.name,
-                                                           values=plugins.web_sent_parsers.loaded,
-                                                           command=lambda parser_name:
-                                                           self.change_sentence_parser(parser_name))
+                                                               init_text=self.sentence_parser.name,
+                                                               values=plugins.web_sent_parsers.loaded,
+                                                               command=lambda parser_name:
+                                                               self.change_sentence_parser(parser_name))
 
         self.word_text = self.Text(self, placeholder="Слово", height=2)
         self.alt_terms_field = self.Text(self, relief="ridge", state="disabled", height=1)

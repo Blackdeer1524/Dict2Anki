@@ -59,7 +59,6 @@ class PluginLoader(Generic[PluginContainer]):
                  plugin_type: str,
                  module: ModuleType,
                  container_type: PluginContainer,
-                 plugin_name_prefix: str = "",
                  error_callback: Callable[[Exception, str], None] = lambda *_: None):
         if (module_name := module.__name__) in PluginLoader._already_initialized:
             raise LoaderError(f"{module_name} loader was created earlier!")
@@ -70,8 +69,7 @@ class PluginLoader(Generic[PluginContainer]):
         not_loaded = []
         for name, module in parse_namespace(module).items():
             try:
-                plugin_name = f"{plugin_name_prefix}{name}"
-                _loaded_plugin_data[name] = container_type(plugin_name, module)
+                _loaded_plugin_data[name] = container_type(name, module)
             except AttributeError as e:
                 error_callback(e, name)
                 not_loaded.append(name)
@@ -111,16 +109,13 @@ class PluginFactory:
                                                                 container_type=ThemeContainer))
         super().__setattr__("web_word_parsers",    PluginLoader(plugin_type="web word parser",
                                                                 module=parsers.word_parsers.web,
-                                                                container_type=WebWordParserContainer,
-                                                                plugin_name_prefix="web_"))
+                                                                container_type=WebWordParserContainer))
         super().__setattr__("local_word_parsers",  PluginLoader(plugin_type="local word parser",
                                                                 module=parsers.word_parsers.local,
-                                                                container_type=LocalWordParserContainer,
-                                                                plugin_name_prefix="local_"))
+                                                                container_type=LocalWordParserContainer))
         super().__setattr__("web_sent_parsers",    PluginLoader(plugin_type="web sentence parser",
                                                                 module=parsers.sentence_parsers,
-                                                                container_type=WebSentenceParserContainer,
-                                                                plugin_name_prefix="web_"))
+                                                                container_type=WebSentenceParserContainer))
         super().__setattr__("image_parsers",       PluginLoader(plugin_type="web image parser",
                                                                 module=parsers.image_parsers,
                                                                 container_type=ImageParserContainer))

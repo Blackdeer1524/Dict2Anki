@@ -865,12 +865,10 @@ class App(Tk):
                         move_list.move(n)
                         current_offset = -move_list.get_pointed_item()
 
-
                     left["state"] = "disabled" if not move_list.get_pointer_position() else "normal"
                     right["state"] = "disabled" if move_list.get_pointer_position() == len(move_list) else "normal"
 
                     self.replace_decks_pointers(current_offset)
-                    self.refresh()
 
                 find_frame.destroy()
 

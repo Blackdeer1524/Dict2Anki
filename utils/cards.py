@@ -155,7 +155,6 @@ class Deck(PointerList):
             if searching_func(self[current_index]):
                 move_list.append(current_index - last_found)
                 last_found = current_index
-
         return PointerList(data=move_list)
 
     def add_card_to_deck(self, query: str, **kwargs) -> int:
@@ -173,7 +172,7 @@ class Deck(PointerList):
 
     def get_card(self) -> Card:
         self.move(1)
-        return self[self._pointer_position]
+        return self.get_pointed_item()
 
     def get_deck(self) -> list[Card]:
         return self._data

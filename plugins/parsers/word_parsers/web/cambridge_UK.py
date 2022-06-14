@@ -366,4 +366,4 @@ def define(word, dictionary_index=0, headers=headers):
 
 if __name__ == "__main__":
     from pprint import pprint
-    pprint(define("take"))
+    pprint(define("insult"))

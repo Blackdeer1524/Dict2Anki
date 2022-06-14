@@ -7,7 +7,7 @@ from functools import partial
 from functools import reduce
 import re
 from typing import Callable, Sized, ClassVar
-from typing import Iterable
+from typing import Iterable, Iterator
 from typing import Optional, Any, Union
 
 from consts.card_fields import FIELDS
@@ -54,24 +54,42 @@ BIN_LOGIC_SET  = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
 def logic_factory(operator: str) -> Union[Callable[[bool], bool],
                                           Callable[[bool, bool], bool]]:
+    standard_type_set = (bool, int, float, str)
+
+    def u_op_template(x, op):
+        if isinstance(x, standard_type_set):
+            return op(x)
+        return any(op(item) for item in x)
+
+    def bin_op_template(x, y, op):
+        x_is_standard = isinstance(x, standard_type_set)
+        y_is_standard = isinstance(y, standard_type_set)
+        if x_is_standard and y_is_standard:
+            return op(x, y)
+        elif x_is_standard:
+            return any(op(x, item) for item in y)
+        elif y_is_standard:
+            return any(op(item, y) for item in x)
+        return any(op(item_x, item_y) for item_x in x for item_y in y)
+
     if operator == "not":
-        return lambda x: not x
+        return partial(u_op_template, op=lambda x: not x)
     elif operator == "and":
-        return lambda x, y: x and y
+        return partial(bin_op_template, op=lambda x, y: x and y)
     elif operator == "or":
-        return lambda x, y: x or y
+        return partial(bin_op_template, op=lambda x, y: x or y)
     elif operator == "<":
-        return lambda x, y: x < y
+        return partial(bin_op_template, op=lambda x, y: x < y)
     elif operator == "<=":
-        return lambda x, y: x <= y
+        return partial(bin_op_template, op=lambda x, y: x <= y)
     elif operator == ">":
-        return lambda x, y: x > y
+        return partial(bin_op_template, op=lambda x, y: x > y)
     elif operator == ">=":
-        return lambda x, y: x >= y
+        return partial(bin_op_template, op=lambda x, y: x >= y)
     elif operator == "==":
-        return lambda x, y: x == y
+        return partial(bin_op_template, op=lambda x, y: x == y)
     elif operator == "!=":
-        return lambda x, y: x != y
+        return partial(bin_op_template, op=lambda x, y: x != y)
     raise LogicOperatorError(f"Unknown operator: {operator}")
     
 
@@ -90,7 +108,7 @@ def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     if keyword_name == "in":
         def field_contains(collection: Iterable, search_pattern: re.Pattern):
             try:
-                return any((re.search(search_pattern, str(item)) for item in collection))
+                return any((re.search(search_pattern, str(item)) is not None for item in collection))
             except TypeError:
                 return False
         return field_contains
@@ -270,6 +288,8 @@ class Tokenizer:
 
 @dataclass(frozen=True, init=False)
 class _CardFieldData:
+    ANY_FIELD: ClassVar[str] = "$ANY"
+
     query_chain: list[str] = field(init=False, repr=True)
     
     def __init__(self, path: str):
@@ -293,7 +313,7 @@ class _CardFieldData:
             chain.append(path[start:last_closed_bracket])
 
         super().__setattr__("query_chain", chain)
-    
+
     @staticmethod
     def _check_nested_path(path) -> None:
         bracket_stack = 0
@@ -312,18 +332,29 @@ class _CardFieldData:
             for i in range(last_closing_bracket + 1, len(path)):
                 if not path[i].isspace():
                     raise QuerySyntaxError("Wrong bracket sequence in field query!")
-    
-    def get_field_data(self, card: Card) -> Any:
+
+    def get_field_data(self, card: Card) -> list[Any]:
         """query_chain: chain of keys"""
-        current_entry = card
-        for key in self.query_chain:
-            if not isinstance(current_entry, Mapping):
+        result = []
+
+        def traverse_recursively(entry: Union[Mapping, Any], chain_index: int = 0) -> None:
+            nonlocal result
+            if chain_index == len(self.query_chain):
+                result.append(entry)
+
+            if not isinstance(entry, Mapping):
                 return None
 
-            current_entry = current_entry.get(key)
-            if current_entry is None:
-                return None
-        return current_entry
+            if self.query_chain[chain_index] == _CardFieldData.ANY_FIELD:
+                for key in entry:
+                    if (val := entry.get(key)) is not None:
+                        traverse_recursively(val, chain_index + 1)
+            else:
+                if (val := entry.get(self.query_chain[chain_index])) is not None:
+                    traverse_recursively(val, chain_index + 1)
+
+        traverse_recursively(card)
+        return result
 
 
 @dataclass(frozen=True)
@@ -337,22 +368,26 @@ class FieldCheck(FieldExpression):
     compiled_query: re.Pattern = field(init=False, repr=False)
     
     def __post_init__(self):
-        super().__setattr__("compiled_query", compile(self.query))
+        super().__setattr__("compiled_query", re.compile(self.query))
     
     def compute(self, card: Card) -> bool:
         field_data = self.card_field_data.get_field_data(card)
-        if not isinstance(field_data, str):
+        if not field_data:
             return False
-        return re.search(self.compiled_query, field_data) is not None
+        return any((re.search(self.compiled_query, str(item)) is not None for item in field_data))
 
 
 @dataclass(frozen=True)
 class Method(FieldExpression):
     method: Callable[[Any], int]
-    
-    def compute(self, card: Card) -> int:
+    aggregation: Optional[Callable[[Iterable], int]] = None
+
+    def compute(self, card: Card) -> Union[Iterator[int], int]:
         field_data = self.card_field_data.get_field_data(card)
-        return self.method(self.card_field_data.get_field_data(card)) if field_data is not None else 0
+        if not field_data:
+            return self.aggregation(()) if self.aggregation is not None else False
+        res = (self.method(item) for item in field_data)
+        return self.aggregation(res) if self.aggregation is not None else res
 
 
 class TokenParser:
@@ -380,7 +415,8 @@ class TokenParser:
            self._tokens[index + 2].type == Token_T.QUERY_STRING:
             return Method(_CardFieldData(self._tokens[index + 2].value),
                           partial(keyword_factory(self._tokens[index + 1].value),
-                                  search_pattern=re.compile(self._tokens[index].value))), 2
+                                  search_pattern=re.compile(self._tokens[index].value)),
+                          aggregation=any), 2
         return None, 0
         
     def _promote_to_expressions(self):
@@ -426,9 +462,9 @@ class EvalNode(Expression):
 
     def compute(self, card: Card) -> bool:
         if self.left is not None and self.right is not None:
-            return self.operation(self.left.compute(card), self.right.compute(card))
+            return bool(self.operation(self.left.compute(card), self.right.compute(card)))
         elif self.left is not None:
-            return self.operation(self.left.compute(card))
+            return bool(self.operation(self.left.compute(card)))
         raise TreeBuildingError("Empty node!")
 
 
@@ -513,26 +549,46 @@ def main():
                 "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-
     # for query in queries:
     #     get_card_filter(query)
 
     # query = "1 == len(Sen_Ex)"
-    query = "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2"
+    query = "\"(B|C)\d\" in $ANY[$ANY][level]"
     card_filter = get_card_filter(query)
-    test_card = {
-        "word": "test",
-        "meaning": "to do something in order to discover if something is safe, works correctly, etc., or if something is present",
-        "Sen_Ex": [
-            "The manufacturers are currently testing the new engine.",
-            "They tested her blood for signs of the infection."
-        ],
-        "level": [
-            "B2"
-        ],
-        "pos": "verb",
-        "audio_link": "https://dictionary.cambridge.org//media/english/us_pron/t/tes/test_/test.mp3"
-    }
+    test_card = {'insult':
+                  {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],
+                            'UK_audio_link': 'https://dictionary.cambridge.org//media/english/uk_pron/u/uki/ukins/ukinstr024.mp3',
+                            'US_IPA': ['/ˈɪn.sʌlt/'],
+                            'US_audio_link': 'https://dictionary.cambridge.org//media/english/us_pron/i/ins/insul/insult_01_01.mp3',
+                            'alt_terms': [[]],
+                            'definitions': ['an offensive remark or action'],
+                            'domain': [[]],
+                            'examples': [['She made several insults about my appearance.',
+                                          "The steelworkers' leader rejected the two percent "
+                                          'pay rise saying it was an insult to the profession.',
+                                          'The instructions are so easy they are an insult to '
+                                          'your intelligence (= they seem to suggest you are '
+                                          'not clever if you need to use them).']],
+                            'image_links': [''],
+                            'labels_and_codes': [['[ C ]']],
+                            'level': ['C2'],
+                            'region': [[]],
+                            'usage': [[]]},
+                   'verb': {'UK_IPA': ['/ɪnˈsʌlt/'],
+                            'UK_audio_link': 'https://dictionary.cambridge.org//media/english/uk_pron/u/uki/ukins/ukinstr025.mp3',
+                            'US_IPA': ['/ɪnˈsʌlt/'],
+                            'US_audio_link': 'https://dictionary.cambridge.org//media/english/us_pron/i/ins/insul/insult_01_00.mp3',
+                            'alt_terms': [[]],
+                            'definitions': ['to say or do something to someone that is rude or '
+                                            'offensive'],
+                            'domain': [[]],
+                            'examples': [['First he drank all my wine and then he insulted all '
+                                          'my friends.']],
+                            'image_links': [''],
+                            'labels_and_codes': [['[ T ]']],
+                            'level': ['C1'],
+                            'region': [[]],
+                            'usage': [[]]}}}
     result = card_filter(test_card)
     print(result)
 

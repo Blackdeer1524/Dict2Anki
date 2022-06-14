@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import partial
 from functools import reduce
-from re import Pattern, search, compile
+import re
 from typing import Callable, Sized, ClassVar
 from typing import Iterable
 from typing import Optional, Any, Union
@@ -88,9 +88,9 @@ def method_factory(method_name: str) -> Callable[[Any], int]:
 
 def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     if keyword_name == "in":
-        def field_contains(collection: Iterable, item: Any):
+        def field_contains(collection: Iterable, search_pattern: re.Pattern):
             try:
-                return item in collection
+                return any((re.search(search_pattern, str(item)) for item in collection))
             except TypeError:
                 return False
         return field_contains
@@ -209,15 +209,6 @@ class Token(Expression):
 
 
 class Tokenizer:
-    all_token_types = frozenset((t_type for t_type in Token_T))
-    
-    next_expected = FrozenDict({Token_T.START: all_token_types,
-                                Token_T.END: frozenset(),
-                                Token_T.SEP: frozenset((Token_T.QUERY_STRING, )),
-                                Token_T.QUERY_STRING: frozenset((Token_T.BIN_LOGIC_OP, Token_T.LOGIC_RP, Token_T.END)),
-                                Token_T.STRING: frozenset((Token_T.METHOD_LP, Token_T.METHOD_RP, Token_T.BIN_LOGIC_OP, Token_T.SEP, Token_T.END)),
-                                })
-    
     def __init__(self, exp: str):
         self.exp = exp
 
@@ -343,7 +334,7 @@ class FieldExpression(Expression):
 @dataclass(frozen=True)
 class FieldCheck(FieldExpression):
     query: str
-    compiled_query: Pattern = field(init=False, repr=False)
+    compiled_query: re.Pattern = field(init=False, repr=False)
     
     def __post_init__(self):
         super().__setattr__("compiled_query", compile(self.query))
@@ -352,7 +343,7 @@ class FieldCheck(FieldExpression):
         field_data = self.card_field_data.get_field_data(card)
         if not isinstance(field_data, str):
             return False
-        return search(self.compiled_query, field_data) is not None         
+        return re.search(self.compiled_query, field_data) is not None
 
 
 @dataclass(frozen=True)
@@ -388,7 +379,8 @@ class TokenParser:
         if self._tokens[index + 1].type == Token_T.KEYWORD and \
            self._tokens[index + 2].type == Token_T.QUERY_STRING:
             return Method(_CardFieldData(self._tokens[index + 2].value),
-                          partial(keyword_factory(self._tokens[index + 1].value), item=self._tokens[index].value)), 2
+                          partial(keyword_factory(self._tokens[index + 1].value),
+                                  search_pattern=re.compile(self._tokens[index].value))), 2
         return None, 0
         
     def _promote_to_expressions(self):

@@ -341,6 +341,7 @@ class _CardFieldData:
             nonlocal result
             if chain_index == len(self.query_chain):
                 result.append(entry)
+                return
 
             if not isinstance(entry, Mapping):
                 return None
@@ -549,10 +550,10 @@ def main():
                 "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-    # for query in queries:
-    #     get_card_filter(query)
+    for query in queries:
+        get_card_filter(query)
 
-    # query = "1 == len(Sen_Ex)"
+    query = "1 == len(Sen_Ex)"
     query = "\"(B|C)\d\" in $ANY[$ANY][level]"
     card_filter = get_card_filter(query)
     test_card = {'insult':

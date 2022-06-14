@@ -363,7 +363,9 @@ class App(Tk):
             if name == DEFAULT_AUDIO_SRC:
                 self.local_audio_getter = None
                 self.configurations["scrappers"]["local_audio"] = ""
+                self.sound_button["state"] = "normal" if self.dict_card_data.get(FIELDS.audio_links, []) else "disabled"
                 return
+            self.sound_button["state"] = "normal"
             self.configurations["scrappers"]["local_audio"] = name
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
 

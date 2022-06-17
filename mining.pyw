@@ -66,7 +66,7 @@ class App(Tk):
 
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'}
         self.session_start = datetime.now()
-        self.srt_session_start = self.session_start.strftime("%d-%m-%Y-%H-%M-%S")
+        self.str_session_start = self.session_start.strftime("%d-%m-%Y-%H-%M-%S")
 
         if not self.history.get(self.configurations["directories"]["last_open_file"]):
             self.history[self.configurations["directories"]["last_open_file"]] = 0
@@ -568,6 +568,8 @@ class App(Tk):
             return
 
         self.save_files()
+        self.session_start = datetime.now()
+        self.str_session_start = self.session_start.strftime("%d-%m-%Y-%H-%M-%S")
         self.configurations["directories"]["last_save_dir"] = new_save_dir
         self.configurations["directories"]["last_open_file"] = new_file
         if not self.history.get(self.configurations["directories"]["last_open_file"]):
@@ -618,6 +620,8 @@ class App(Tk):
                 return
 
             self.save_files()
+            self.session_start = datetime.now()
+            self.str_session_start = self.session_start.strftime("%d-%m-%Y-%H-%M-%S")
             self.configurations["directories"]["last_save_dir"] = new_save_dir
             self.configurations["directories"]["last_open_file"] = new_file_path
             self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
@@ -655,17 +659,17 @@ class App(Tk):
         deck_name = os.path.basename(self.configurations["directories"]["last_open_file"]).split(sep=".")[0]
         saving_path = "{}/{}".format(self.configurations["directories"]["last_save_dir"], deck_name)
         self.deck_saver.save(self.saved_cards_data, CardStatus.ADD,
-                             f"{saving_path}_{self.srt_session_start}",
+                             f"{saving_path}_{self.str_session_start}",
                              self.card_processor.get_card_image_name,
                              self.card_processor.get_card_audio_name)
 
         self.audio_saver.save(self.saved_cards_data, CardStatus.ADD,
-                               f"{saving_path}_{self.srt_session_start}_audios",
+                               f"{saving_path}_{self.str_session_start}_audios",
                                self.card_processor.get_card_image_name,
                                self.card_processor.get_card_audio_name)
 
         self.buried_saver.save(self.saved_cards_data, CardStatus.BURY,
-                               f"{saving_path}_{self.srt_session_start}_buried",
+                               f"{saving_path}_{self.str_session_start}_buried",
                                self.card_processor.get_card_image_name,
                                self.card_processor.get_card_audio_name)
 

@@ -26,6 +26,8 @@ from utils.error_handling import create_exception_message
 from utils.error_handling import error_handler
 from utils.global_bindings import Binder
 from utils.image_utils import ImageSearch
+
+import utils.search_checker
 from utils.search_checker import ParsingException
 from utils.search_checker import get_card_filter
 from utils.storages import validate_json
@@ -121,7 +123,12 @@ class App(Tk):
         filemenu.add_command(label="Открыть", command=self.change_file)
         filemenu.add_command(label="Сохранить", command=self.save_button)
         filemenu.add_separator()
-        filemenu.add_command(label="Справка", command=self.help_command)
+
+        help_menu = Menu(filemenu, tearoff=0)
+        help_menu.add_command(label="Кнопки/Горячие клавиши", command=self.help_command)
+        help_menu.add_command(label="Язык запросов", command=self.get_query_language_help)
+        filemenu.add_cascade(label="Справка", menu=help_menu)
+
         filemenu.add_separator()
         filemenu.add_command(label="Скачать аудио", command=partial(self.download_audio, choose_file=True))
         filemenu.add_separator()
@@ -278,25 +285,26 @@ class App(Tk):
         self.geometry(self.configurations["app"]["main_window_geometry"])
         self.configure()
 
-    def show_errors(self, *args, **kwargs):
-        error_log = create_exception_message()
-
-        error_handler_toplevel = self.Toplevel(self)
-        error_handler_toplevel.title("Ошибка")
-        sf = ScrolledFrame(error_handler_toplevel, scrollbars="both")
+    def show_window(self, title: str, text: str):
+        text_toplevel = self.Toplevel(self)
+        text_toplevel.title(title)
+        sf = ScrolledFrame(text_toplevel, scrollbars="both")
         sf.pack(side="top", expand=1, fill="both")
-        sf.bind_scroll_wheel(error_handler_toplevel)
+        sf.bind_scroll_wheel(text_toplevel)
         inner_frame = sf.display_widget(self.Frame)
-        label = self.Label(inner_frame, text=error_log, justify="left")
+        label = self.Label(inner_frame, text=text, justify="left")
         label.pack()
         label.update()
         sf.config(width=min(1000, label.winfo_width()), height=min(500, label.winfo_height()))
-        error_handler_toplevel.resizable(False, False)
-        error_handler_toplevel.bind("<Escape>", lambda event: error_handler_toplevel.destroy())
-        error_handler_toplevel.grab_set()
+        text_toplevel.resizable(False, False)
+        text_toplevel.bind("<Escape>", lambda event: text_toplevel.destroy())
+        text_toplevel.grab_set()
 
+    def show_errors(self, *args, **kwargs) -> None:
+        error_log = create_exception_message()
         self.clipboard_clear()
         self.clipboard_append(error_log)
+        self.show_window("Ошибка", error_log)
 
     def switch_theme(self):
         def pick(name: str):
@@ -416,8 +424,7 @@ class App(Tk):
         sentence_search_query = search_term + " sentence examples"
         webbrowser.open_new_tab(f"https://www.google.com/search?q={sentence_search_query}")
 
-    @staticmethod
-    def help_command():
+    def help_command(self):
         mes = """
 Программа для быстрого создания карточек
 
@@ -443,7 +450,11 @@ class App(Tk):
 Горячие клавиши (глобальные):
 * Ctrl + c + space: добавить выделенного слова в колоду
 """
-        messagebox.showinfo("Справка", message=mes)
+        self.show_window("Справка", mes)
+
+    def get_query_language_help(self):
+        mes = utils.search_checker.__doc__
+        self.show_window("Справка", mes)
 
     def skip_command(self):
         if self.deck.get_n_cards_left():

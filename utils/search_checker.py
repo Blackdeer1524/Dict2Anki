@@ -1,3 +1,77 @@
+"""
+Language query help
+
+Get field value:
+<field>: <query>
+
+Unary operators:
+* logic operators:
+    not
+
+Binary operators:
+* logic operators
+    and, or
+* arithmetics operators:
+    <, <=, >, >=, ==, !=
+
+Field query:
+    field : query
+    Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
+    Example:
+        {
+            field: [val_1, .., val_n]}
+        }
+        field: thing
+        Returns True if thing is in [val_1, .., val_n]
+    Equivalent to in keyword
+
+Methods:
+    len
+        Measures length of iterable object
+        Example:
+            {
+                field: [1, 2, 3]
+            }
+            len(field) will return 3
+
+Keywords:
+    in
+        Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
+        Example:
+            {
+                field: [val_1, .., val_n]}
+            }
+
+            thing in field
+            Returns True if thing is in [val_1, .., val_n]
+        Equivalent to field query
+
+
+Special fields start with $ prefix
+* ANY
+    Gets result from the whole hierarchy level
+    Example:
+        {
+        pos: {
+            noun: {
+                data: value_1
+            }
+            verb : {
+                data: value_2
+            }
+        }
+    }
+    pos[$ANY][data]:value_1 will return True
+
+Evaluation precedence:
+1) expressions in parentheses
+2) field queries
+2) keywords
+3) unary operators
+4) binary operators
+"""
+
+
 import copy
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
@@ -396,11 +470,14 @@ class TokenParser:
         self._tokens: list[Token] = tokens
         self._expressions: list[Union[Expression, Token]] = []
 
-    def get_field_check(self, index: int) -> tuple[Union[FieldCheck, None], int]:
+    def get_field_check(self, index: int) -> tuple[Union[Method, None], int]:
         """index: STRING token index"""
         if self._tokens[index + 1].type == Token_T.SEP and \
            self._tokens[index + 2].type == Token_T.QUERY_STRING:
-            return FieldCheck(_CardFieldData(self._tokens[index].value), self._tokens[index + 2].value), 2
+            return Method(_CardFieldData(self._tokens[index].value),
+                          partial(keyword_factory("in"),
+                                  search_pattern=re.compile(self._tokens[index + 2].value)),
+                          aggregation=any), 2
         return None, 0
 
     def get_method(self, index: int) -> tuple[Union[Method, None], int]:
@@ -550,11 +627,10 @@ def main():
                 "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-    for query in queries:
-        get_card_filter(query)
+    # for query in queries:
+    #     get_card_filter(query)
 
-    query = "1 == len(Sen_Ex)"
-    query = "\"(B|C)\d\" in $ANY[$ANY][level]"
+    query = "$ANY[$ANY][level]: \"(B|C)\d\""
     card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],

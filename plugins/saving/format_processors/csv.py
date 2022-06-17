@@ -12,7 +12,7 @@ def save(deck: SavedDataDeck,
          saving_path: str,
          image_names_wrapper: Callable[[str], str],
          audio_names_wrapper: Callable[[str], str]):
-    if not deck:
+    if not deck.get_card_status_stats(saving_card_status):
         return
 
     csv_file = open(saving_path + ".csv", 'w', encoding="UTF-8")

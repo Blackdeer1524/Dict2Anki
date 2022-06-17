@@ -171,7 +171,7 @@ class App(Tk):
                                                 command=lambda x=i: self.choose_sentence(x),
                                                 width=button_width))
 
-        self.delete_button = self.Button(self, text="Del", command=self.delete_command, width=button_width)
+        self.skip_button = self.Button(self, text="Skip", command=self.skip_command, width=button_width)
         self.prev_button = self.Button(self, text="Prev", command=lambda x=-1: self.replace_decks_pointers(x),
                                   state="disabled", width=button_width)
         self.sound_button = self.Button(self, text="Play", command=self.play_sound, width=button_width)
@@ -211,7 +211,7 @@ class App(Tk):
             self.sent_text_list[i].grid(row=6 + i, column=0, columnspan=6, padx=Text_padx, pady=c_pady, sticky="news")
             self.sent_button_list[i].grid(row=6 + i, column=6, padx=0, pady=c_pady, sticky="ns")
 
-        self.delete_button.grid(row=6, column=7, padx=Text_padx, pady=0, sticky="ns")
+        self.skip_button.grid(row=6, column=7, padx=Text_padx, pady=0, sticky="ns")
         self.prev_button.grid(row=7, column=7, padx=Text_padx, pady=Text_pady, sticky="ns")
         self.sound_button.grid(row=8, column=7, padx=Text_padx, pady=0, sticky="ns")
         self.anki_button.grid(row=9, column=7, padx=Text_padx, pady=Text_pady, sticky="ns")
@@ -242,7 +242,7 @@ class App(Tk):
 
         self.new_order = [self.browse_button, self.word_text, self.find_image_button, self.definition_text,
                           self.add_sentences_button] + self.sent_text_list + \
-                         [self.user_tags_field] + self.sent_button_list + [self.delete_button, self.prev_button,
+                         [self.user_tags_field] + self.sent_button_list + [self.skip_button, self.prev_button,
                                                                        self.anki_button, self.bury_button,
                                                                        self.tag_prefix_field]
 
@@ -253,7 +253,7 @@ class App(Tk):
 
         self.bind("<Escape>", lambda event: self.on_closing())
         self.bind("<Control-Key-0>", lambda event: self.geometry("+0+0"))
-        self.bind("<Control-d>", lambda event: self.delete_command())
+        self.bind("<Control-d>", lambda event: self.skip_command())
         self.bind("<Control-q>", lambda event: self.bury_command())
         self.bind("<Control-s>", lambda event: self.save_button())
         self.bind("<Control-f>", lambda event: self.find_dialog())
@@ -435,9 +435,9 @@ class App(Tk):
               " Ctrl + 0: возврат прилодения на середину экрана\n(если оно застряло)"
         messagebox.showinfo("Справка", message=mes)
 
-    def delete_command(self):
+    def skip_command(self):
         if self.deck.get_n_cards_left():
-            self.saved_cards_data.append(CardStatus.DELETE)
+            self.saved_cards_data.append(CardStatus.SKIP)
         self.refresh()
 
     def bury_command(self):
@@ -919,7 +919,9 @@ class App(Tk):
 
         statistics_window.title("Статистика")
         text_list = (('Добавлено', 'Отложено', 'Пропущено', 'Осталось', "Файл", "Директория сохранения", "Медиа"),
-                     (self.saved_cards_data.get_n_added(), self.saved_cards_data.get_n_buried(), self.saved_cards_data.get_n_deleted(),
+                     (self.saved_cards_data.get_card_status_stats(CardStatus.ADD),
+                      self.saved_cards_data.get_card_status_stats(CardStatus.BURY),
+                      self.saved_cards_data.get_card_status_stats(CardStatus.SKIP),
                       self.deck.get_n_cards_left(), self.deck.deck_path,
                       self.configurations["directories"]["last_save_dir"],
                       self.configurations["directories"]["media_dir"]))

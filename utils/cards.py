@@ -189,7 +189,7 @@ class Deck(PointerList):
     
 class CardStatus(Enum):
     ADD = 0
-    DELETE = 1
+    SKIP = 1
     BURY = 2
 
 
@@ -214,21 +214,15 @@ class SavedDataDeck(PointerList):
         super(SavedDataDeck, self).__init__()
         self._statistics = [0, 0, 0]
 
-    def get_n_added(self):
-        return self._statistics[CardStatus.ADD.value]
-
-    def get_n_deleted(self):
-        return self._statistics[CardStatus.DELETE.value]
-
-    def get_n_buried(self):
-        return self._statistics[CardStatus.BURY.value]
+    def get_card_status_stats(self, status: CardStatus):
+        return self._statistics[status.value]
 
     def append(self, status: CardStatus, card_data: dict[str, Union[str, list[str]]] = None):
         if card_data is None:
             card_data = {}
 
         res = {SavedDataDeck.CARD_STATUS: status}
-        if status != CardStatus.DELETE:
+        if status != CardStatus.SKIP:
             saving_card = Card(card_data)
             res[SavedDataDeck.CARD_DATA] = saving_card
 
@@ -264,11 +258,14 @@ class SavedDataDeck(PointerList):
                 self._statistics[self[i][SavedDataDeck.CARD_STATUS].value] -= 1
             del self._data[self.get_pointer_position():]
             return
-        self._data.extend((FrozenDict({SavedDataDeck.CARD_STATUS: CardStatus.DELETE}) for _ in range(n)))
+        self._data.extend((FrozenDict({SavedDataDeck.CARD_STATUS: CardStatus.SKIP}) for _ in range(n)))
         self._pointer_position = len(self)
-        self._statistics[CardStatus.DELETE.value] += n
+        self._statistics[CardStatus.SKIP.value] += n
 
     def get_audio_data(self, saving_card_status: CardStatus) -> list[FrozenDict]:
+        if not self.get_card_status_stats(saving_card_status):
+            return []
+
         saving_object = []
         for card_page in self:
             if card_page[SavedDataDeck.CARD_STATUS] != saving_card_status:
@@ -279,6 +276,9 @@ class SavedDataDeck(PointerList):
         return saving_object
 
     def get_card_data(self, saving_card_status: CardStatus) -> list[FrozenDict]:
+        if not self.get_card_status_stats(saving_card_status):
+            return []
+
         saving_object = []
         for card_page in self:
             if card_page[SavedDataDeck.CARD_STATUS] != saving_card_status:

@@ -453,8 +453,18 @@ class App(Tk):
         self.show_window("Справка", mes)
 
     def get_query_language_help(self):
-        mes = utils.search_checker.__doc__
-        self.show_window("Справка", mes)
+        standard_fields = f"""
+{FIELDS.word}: слово
+{FIELDS.alt_terms}: альтернативные использования
+{FIELDS.definition}: определение
+{FIELDS.sentences}: предложения
+{FIELDS.img_links}: ссылки на изображения
+{FIELDS.audio_links}: ссылки на аудио
+{FIELDS.dict_tags}: тэги
+"""
+        lang_docs = utils.search_checker.__doc__
+
+        self.show_window("Справка", f"{standard_fields}\n{lang_docs}")
 
     def skip_command(self):
         if self.deck.get_n_cards_left():

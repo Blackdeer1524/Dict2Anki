@@ -1,9 +1,6 @@
 """
 Language query help
 
-Get field value:
-<field>: <query>
-
 Unary operators:
 * logic operators:
     not

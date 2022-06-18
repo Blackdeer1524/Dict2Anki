@@ -82,7 +82,6 @@ from typing import Iterable, Iterator
 from typing import Optional, Any, Union
 
 from consts.card_fields import FIELDS
-from utils.cards import Card
 from utils.storages import FrozenDict
 
 
@@ -125,42 +124,45 @@ BIN_LOGIC_SET  = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
 def logic_factory(operator: str) -> Union[Callable[[bool], bool],
                                           Callable[[bool, bool], bool]]:
-    standard_type_set = (bool, int, float, str)
+    def u_op_template(x: Union[Iterable[Computable], Computable],
+                      mapping: Mapping,
+                      _op: Callable[[Computable, Mapping], Any]):
+        if isinstance(x, Iterable):
+            return any(_op(item, mapping) for item in x)
+        return _op(x, mapping)
 
-    def u_op_template(x, op):
-        if isinstance(x, standard_type_set):
-            return op(x)
-        return any(op(item) for item in x)
-
-    def bin_op_template(x, y, op):
-        x_is_standard = isinstance(x, standard_type_set)
-        y_is_standard = isinstance(y, standard_type_set)
-        if x_is_standard and y_is_standard:
-            return op(x, y)
-        elif x_is_standard:
-            return any(op(x, item) for item in y)
-        elif y_is_standard:
-            return any(op(item, y) for item in x)
-        return any(op(item_x, item_y) for item_x in x for item_y in y)
+    def bin_op_template(x: Union[Iterable[Computable], Computable],
+                        y: Union[Iterable[Computable], Computable],
+                        mapping: Mapping,
+                        _op: Callable[[Computable, Computable, Mapping], Any]):
+        x_is_iter = isinstance(x, Iterable)
+        y_is_iter = isinstance(y, Iterable)
+        if x_is_iter and y_is_iter:
+            return any(_op(item_x, item_y, mapping) for item_x in x for item_y in y)
+        elif x_is_iter:
+            return any(_op(item, y, mapping) for item in x)
+        elif y_is_iter:
+            return any(_op(x, item, mapping) for item in y)
+        return _op(x, y, mapping)
 
     if operator == "not":
-        return partial(u_op_template, op=lambda x: not x)
+        return partial(u_op_template, _op=lambda x, mapping: not x.compute(mapping))
     elif operator == "and":
-        return partial(bin_op_template, op=lambda x, y: x and y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) and y.compute(mapping))
     elif operator == "or":
-        return partial(bin_op_template, op=lambda x, y: x or y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) or y.compute(mapping))
     elif operator == "<":
-        return partial(bin_op_template, op=lambda x, y: x < y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) < y.compute(mapping))
     elif operator == "<=":
-        return partial(bin_op_template, op=lambda x, y: x <= y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) <= y.compute(mapping))
     elif operator == ">":
-        return partial(bin_op_template, op=lambda x, y: x > y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) > y.compute(mapping))
     elif operator == ">=":
-        return partial(bin_op_template, op=lambda x, y: x >= y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) >= y.compute(mapping))
     elif operator == "==":
-        return partial(bin_op_template, op=lambda x, y: x == y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) == y.compute(mapping))
     elif operator == "!=":
-        return partial(bin_op_template, op=lambda x, y: x != y)
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) != y.compute(mapping))
     raise LogicOperatorError(f"Unknown operator: {operator}")
     
 
@@ -209,14 +211,14 @@ STRING_PLACEHOLDER = "*"
 END_PLACEHOLDER = "END"
 
 
-class Expression(ABC):
+class Computable(ABC):
     @abstractmethod
-    def compute(self, card: Card):
+    def compute(self, mapping: Mapping):
         pass
 
 
 @dataclass(frozen=True)
-class Token(Expression):
+class Token(Computable):
     un_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.UN_LOGIC_OP for logic_operator in UNARY_LOGIC})
     bin_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.BIN_LOGIC_OP for logic_operator in BIN_LOGIC_SET})
     keyword_deduction: ClassVar[FrozenDict] = FrozenDict({keyword_name: Token_T.KEYWORD for keyword_name in KEYWORDS})
@@ -289,7 +291,7 @@ class Token(Expression):
             return
         super().__setattr__("type", deduced_type)
 
-    def compute(self, card: Card):
+    def compute(self, mapping: Mapping):
         if self.type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
         if not self.value.isdecimal():
@@ -404,7 +406,7 @@ class _CardFieldData:
                 if not path[i].isspace():
                     raise QuerySyntaxError("Wrong bracket sequence in field query!")
 
-    def get_field_data(self, card: Card) -> list[Any]:
+    def get_field_data(self, mapping: Mapping) -> list[Any]:
         """query_chain: chain of keys"""
         result = []
 
@@ -425,12 +427,12 @@ class _CardFieldData:
                 if (val := entry.get(self.query_chain[chain_index])) is not None:
                     traverse_recursively(val, chain_index + 1)
 
-        traverse_recursively(card)
+        traverse_recursively(mapping)
         return result
 
 
 @dataclass(frozen=True)
-class FieldExpression(Expression):
+class FieldExpression(Computable):
     card_field_data: _CardFieldData
 
 
@@ -442,8 +444,8 @@ class FieldCheck(FieldExpression):
     def __post_init__(self):
         super().__setattr__("compiled_query", re.compile(self.query))
     
-    def compute(self, card: Card) -> bool:
-        field_data = self.card_field_data.get_field_data(card)
+    def compute(self, mapping: Mapping) -> bool:
+        field_data = self.card_field_data.get_field_data(mapping)
         if not field_data:
             return False
         return any((re.search(self.compiled_query, str(item)) is not None for item in field_data))
@@ -454,8 +456,8 @@ class Method(FieldExpression):
     method: Callable[[Any], int]
     aggregation: Optional[Callable[[Iterable], int]] = None
 
-    def compute(self, card: Card) -> Union[Iterator[int], int]:
-        field_data = self.card_field_data.get_field_data(card)
+    def compute(self, mapping: Mapping) -> Union[Iterator[int], int]:
+        field_data = self.card_field_data.get_field_data(mapping)
         if not field_data:
             return self.aggregation(()) if self.aggregation is not None else False
         res = (self.method(item) for item in field_data)
@@ -465,7 +467,7 @@ class Method(FieldExpression):
 class TokenParser:
     def __init__(self, tokens: list[Token]):
         self._tokens: list[Token] = tokens
-        self._expressions: list[Union[Expression, Token]] = []
+        self._expressions: list[Union[Computable, Token]] = []
 
     def get_field_check(self, index: int) -> tuple[Union[Method, None], int]:
         """index: STRING token index"""
@@ -517,29 +519,29 @@ class TokenParser:
                 self._expressions.append(self._tokens[i])
             i += 1
 
-    def tokens2expressions(self) -> list[Union[Expression, Token]]:
+    def tokens2expressions(self) -> list[Union[Computable, Token]]:
         self._promote_to_expressions()
         return self._expressions
 
 
 @dataclass(frozen=True)
-class EvalNode(Expression):
+class EvalNode(Computable):
     operator: str
-    left: Optional[Union[Expression, Token]] = None
-    right: Optional[Union[Expression, Token]] = None
-    operation: Union[Callable[[Any],      bool],
-                     Callable[[Any, Any], bool]] = field(init=False, repr=False)
+    left: Optional[Union[Computable, Token]] = None
+    right: Optional[Union[Computable, Token]] = None
+    operation: Union[Callable[[Computable, Mapping],             Any],
+                     Callable[[Computable, Computable, Mapping], Any]] = field(init=False, repr=False)
 
     def __post_init__(self):
         if isinstance(self.left, Token) and isinstance(self.right, Token):
             raise TreeBuildingError("Two STRING's in one node!")
         super().__setattr__("operation", logic_factory(self.operator))
 
-    def compute(self, card: Card) -> bool:
+    def compute(self, mapping: Mapping) -> bool:
         if self.left is not None and self.right is not None:
-            return bool(self.operation(self.left.compute(card), self.right.compute(card)))
+            return bool(self.operation(self.left, self.right, mapping))
         elif self.left is not None:
-            return bool(self.operation(self.left.compute(card)))
+            return bool(self.operation(self.left, mapping))
         raise TreeBuildingError("Empty node!")
 
 
@@ -604,7 +606,7 @@ class LogicTree:
         return self._expressions[0]
 
 
-def get_card_filter(expression: str) -> Callable[[Card], bool]:
+def get_card_filter(expression: str) -> Callable[[Mapping], bool]:
     _tokenizer = Tokenizer(expression)
     tokens = _tokenizer.get_tokens()
     if tokens[0].type == Token_T.END:
@@ -624,10 +626,10 @@ def main():
                 "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-    # for query in queries:
-    #     get_card_filter(query)
+    for query in queries:
+        get_card_filter(query)
 
-    query = "$ANY[$ANY][level]: \"(B|C)\d\""
+    query = "(\"(B|C)\\d\" in $ANY[$ANY][level]) and 0"
     card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],

@@ -113,6 +113,12 @@ class TreeBuildingError(ParsingException):
     pass
 
 
+class Computable(ABC):
+    @abstractmethod
+    def compute(self, mapping: Mapping):
+        pass
+
+
 KEYWORDS = frozenset(("in", ))
 UNARY_LOGIC = frozenset(("not", ))
 BIN_LOGIC_HIGH = frozenset(("<", "<=", ">", ">=", "==", "!="))
@@ -122,11 +128,14 @@ BIN_LOGIC_PRECEDENCE = (BIN_LOGIC_HIGH, BIN_LOGIC_MID, BIN_LOGIC_LOW)
 BIN_LOGIC_SET  = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
 
-def logic_factory(operator: str) -> Union[Callable[[bool], bool],
-                                          Callable[[bool, bool], bool]]:
+def logic_factory(operator: str) -> Union[partial[[Union[Iterable[Computable], Computable],
+                                                   Mapping], bool],
+                                          partial[[Union[Iterable[Computable], Computable],
+                                                   Union[Iterable[Computable], Computable],
+                                                   Mapping], bool]]:
     def u_op_template(x: Union[Iterable[Computable], Computable],
                       mapping: Mapping,
-                      _op: Callable[[Computable, Mapping], Any]):
+                      _op: Callable[[Computable, Mapping], bool]):
         if isinstance(x, Iterable):
             return any(_op(item, mapping) for item in x)
         return _op(x, mapping)
@@ -134,7 +143,7 @@ def logic_factory(operator: str) -> Union[Callable[[bool], bool],
     def bin_op_template(x: Union[Iterable[Computable], Computable],
                         y: Union[Iterable[Computable], Computable],
                         mapping: Mapping,
-                        _op: Callable[[Computable, Computable, Mapping], Any]):
+                        _op: Callable[[Computable, Computable, Mapping], bool]):
         x_is_iter = isinstance(x, Iterable)
         y_is_iter = isinstance(y, Iterable)
         if x_is_iter and y_is_iter:
@@ -209,12 +218,6 @@ class Token_T(Enum):
 
 STRING_PLACEHOLDER = "*"
 END_PLACEHOLDER = "END"
-
-
-class Computable(ABC):
-    @abstractmethod
-    def compute(self, mapping: Mapping):
-        pass
 
 
 @dataclass(frozen=True)

@@ -426,8 +426,6 @@ class App(Tk):
 
     def help_command(self):
         mes = """
-Программа для быстрого создания карточек
-
 Назначения кнопок:
 * 1-5: кнопки выбора соответствующих предложений
 * Skip: пропуск карточки
@@ -454,13 +452,13 @@ class App(Tk):
 
     def get_query_language_help(self):
         standard_fields = f"""
-{FIELDS.word}: слово
-{FIELDS.alt_terms}: альтернативные использования
-{FIELDS.definition}: определение
-{FIELDS.sentences}: предложения
-{FIELDS.img_links}: ссылки на изображения
-{FIELDS.audio_links}: ссылки на аудио
-{FIELDS.dict_tags}: тэги
+{FIELDS.word}: слово (строка)
+{FIELDS.alt_terms}: альтернативные использования (список)
+{FIELDS.definition}: определение (строка)
+{FIELDS.sentences}: предложения (список)
+{FIELDS.img_links}: ссылки на изображения (список)
+{FIELDS.audio_links}: ссылки на аудио (список)
+{FIELDS.dict_tags}: тэги (словарь)
 """
         lang_docs = utils.search_checker.__doc__
 

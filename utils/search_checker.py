@@ -128,9 +128,9 @@ BIN_LOGIC_PRECEDENCE = (BIN_LOGIC_HIGH, BIN_LOGIC_MID, BIN_LOGIC_LOW)
 BIN_LOGIC_SET  = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
 
-def logic_factory(operator: str) -> Union[partial[[Union[Iterable[Computable], Computable],
+def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], Computable],
                                                    Mapping], bool],
-                                          partial[[Union[Iterable[Computable], Computable],
+                                          Callable[[Union[Iterable[Computable], Computable],
                                                    Union[Iterable[Computable], Computable],
                                                    Mapping], bool]]:
     def u_op_template(x: Union[Iterable[Computable], Computable],
@@ -155,23 +155,23 @@ def logic_factory(operator: str) -> Union[partial[[Union[Iterable[Computable], C
         return _op(x, y, mapping)
 
     if operator == "not":
-        return partial(u_op_template, _op=lambda x, mapping: not x.compute(mapping))
+        return partial(u_op_template, _op=lambda x, mapping: not x.compute(mapping))  # type: ignore
     elif operator == "and":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) and y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) and y.compute(mapping))  # type: ignore
     elif operator == "or":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) or y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) or y.compute(mapping))  # type: ignore
     elif operator == "<":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) < y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) < y.compute(mapping))  # type: ignore
     elif operator == "<=":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) <= y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) <= y.compute(mapping)) # type: ignore
     elif operator == ">":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) > y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) > y.compute(mapping))  # type: ignore
     elif operator == ">=":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) >= y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) >= y.compute(mapping))  # type: ignore
     elif operator == "==":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) == y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) == y.compute(mapping))  # type: ignore
     elif operator == "!=":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) != y.compute(mapping))
+        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) != y.compute(mapping))  # type: ignore
     raise LogicOperatorError(f"Unknown operator: {operator}")
     
 
@@ -454,6 +454,16 @@ class TokenParser:
         self._tokens: list[Token] = tokens
         self._expressions: list[Union[Computable, Token]] = []
 
+    def get_field_check(self, index: int) -> tuple[Union[Method, None], int]:
+        """index: STRING token index"""
+        if self._tokens[index + 1].type == Token_T.SEP and \
+           self._tokens[index + 2].type == Token_T.QUERY_STRING:
+            return Method(_CardFieldData(self._tokens[index].value),
+                          partial(keyword_factory("in"),
+                                  search_pattern=re.compile(self._tokens[index + 2].value)),
+                          aggregation=any), 2
+        return None, 0
+
     def get_method(self, index: int) -> tuple[Union[Method, None], int]:
         """index: STRING token index"""
         if self._tokens[index + 1].type == Token_T.METHOD_LP and \
@@ -475,7 +485,9 @@ class TokenParser:
         i = 0
         while i < len(self._tokens):
             if self._tokens[i].type == Token_T.STRING:
-                res, offset = self.get_method(i)
+                res, offset = self.get_field_check(i)
+                if res is None:
+                    res, offset = self.get_method(i)
 
                 if res is None:
                     res, offset = self.get_keyword(i)

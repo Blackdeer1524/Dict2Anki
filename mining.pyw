@@ -792,7 +792,7 @@ class App(Tk):
             self.sent_text_list[i].remove_placeholder()
             self.sent_text_list[i].insert(1.0, sent_batch[i])
         if error_message:
-            messagebox.showerror(title="Replace sentences", message=error_message)
+            messagebox.showerror(title="Ошибка получения предложений", message=error_message)
         self.add_sentences_button["text"] = self.sentence_button_text if local_flag else self.sentence_button_text + " +"
 
     @error_handler(show_errors)

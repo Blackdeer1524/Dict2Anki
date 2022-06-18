@@ -5,7 +5,7 @@ import requests
 
 from plugins.parsers.return_types import ImageGenerator
 
-FILE_PATH = os.path.dirname(__file__)
+FILE_PATH = os.path.basename(__file__)
 
 
 def get_image_links(word: str) -> ImageGenerator:

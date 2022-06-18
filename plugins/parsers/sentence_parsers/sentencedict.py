@@ -6,14 +6,18 @@ import requests
 
 from plugins.parsers.return_types import SentenceGenerator
 
-FILE_PATH = os.path.dirname(__file__)
+FILE_PATH = os.path.basename(__file__)
 
 
 def get_sentence_batch(word: str, size: int = 5) -> SentenceGenerator:
     re_pattern = re.compile("^(.?\d+.? )")
-    page = requests.get(f"https://sentencedict.com/{word}.html")
-    if page.status_code != 200:
-        yield [], f"{FILE_PATH} couldn't get a web page!"
+
+    try:
+        page = requests.get(f"https://sentencedict.com/{word}.html",
+                            timeout=5)
+        page.raise_for_status()
+    except requests.RequestException as e:
+        yield [], f"{FILE_PATH} couldn't get a web page: {e}"
         return
 
     soup = bs4.BeautifulSoup(page.content, "html.parser")

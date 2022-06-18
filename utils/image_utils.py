@@ -170,14 +170,15 @@ class ImageSearch(Toplevel):
                                            2 * self._button_pady
 
     def _start_url_generator(self) -> None:
-        if self._image_url_gen is not None:
-            try:
-                next(self._image_url_gen)
-            except StopIteration as exception:
-                messagebox.showerror(exception.value[1])
-                self._scrapper_stop_flag = True
-        self._scrapper_stop_flag = False
-    
+        if self._image_url_gen is None:
+            self._scrapper_stop_flag = False
+            return
+        try:
+            next(self._image_url_gen)
+        except StopIteration as exception:
+            messagebox.showerror(message=exception.value[1])
+            self._scrapper_stop_flag = True
+
     def _generate_urls(self, batch_size):
         if self._image_url_gen is not None and not self._scrapper_stop_flag:
             try:
@@ -185,10 +186,10 @@ class ImageSearch(Toplevel):
             except StopIteration as exception:
                 url_batch, error_message = exception.value
                 self._scrapper_stop_flag = True
+            self._img_urls.extend(url_batch)
             if error_message:
                 messagebox.showerror(error_message)
-            self._img_urls.extend(url_batch)
-        
+
     def start(self):
         if SYSTEM == "Linux":
             self._cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
@@ -201,8 +202,9 @@ class ImageSearch(Toplevel):
             self.working_state[-1] = True
             self.button_list[-1]["bg"] = self._choose_color
 
-        self._scrapper_stop_flag = self._start_url_generator()
-        next(self._show_more_gen)
+        self._start_url_generator()
+        if not self._scrapper_stop_flag:
+            next(self._show_more_gen)
         self._resize_window()
 
     def _restart_search(self):
@@ -211,6 +213,7 @@ class ImageSearch(Toplevel):
             messagebox.showerror(message="Empty search query")
             return
 
+        self._scrapper_stop_flag = False
         self._image_url_gen = self._url_scrapper(self.search_term) if self._url_scrapper is not None else None
         self._start_url_generator()
         self._inner_frame = self._sf.display_widget(partial(Frame, **self._frame_params))

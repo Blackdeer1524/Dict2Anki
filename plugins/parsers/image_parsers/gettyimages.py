@@ -1,4 +1,5 @@
 import os
+import re
 
 import bs4
 import requests
@@ -9,7 +10,8 @@ FILE_PATH = os.path.basename(__file__)
 
 
 def get_image_links(word: str) -> ImageGenerator:
-    user_agent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'
+    user_agent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " \
+                 "Chrome/70.0.3538.67 Safari/537.36"
     headers = {'User-Agent': user_agent}
     link = "https://www.gettyimages.com/photos/{}".format(word)
     try:
@@ -19,16 +21,16 @@ def get_image_links(word: str) -> ImageGenerator:
         return [], f"{FILE_PATH} couldn't get a web page!"
 
     soup = bs4.BeautifulSoup(r.content, "html.parser")
-    gallery = soup.find("div", {"class": "GalleryItems-module__searchContent___3eEaB"})
+    gallery = soup.find("div", {"class": re.compile("GalleryItems-module__searchContent")})
     if gallery is None:
         return [], f"{FILE_PATH} couldn't parse a web page!"
 
     images = [] if gallery is None else gallery.find_all("div",
-                                                         {"class": "MosaicAsset-module__galleryMosaicAsset___3lcaf"})
+                                                         {"class": re.compile("MosaicAsset-module__galleryMosaicAsset")})
     batch_size = yield
     results = []
     for ind, image_block in enumerate(images):
-        found = image_block.find("a", {"class": "MosaicAsset-module__link___15w9c"})
+        found = image_block.find("a", {"class": re.compile("MosaicAsset-module__link")})
         if found is not None:
             preview_image_link = found.get("href")
             if preview_image_link is not None:

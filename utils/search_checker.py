@@ -59,6 +59,7 @@ Special fields start with $ prefix
         }
     }
     pos[$ANY][data]:value_1 will return True
+    $ANY[$ANY][data]:value_1 also will return True
 
 Evaluation precedence:
 1) expressions in parentheses

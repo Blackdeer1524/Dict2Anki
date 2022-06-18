@@ -435,27 +435,9 @@ class _CardFieldData:
 
 
 @dataclass(frozen=True)
-class FieldExpression(Computable):
+class Method(Computable):
     card_field_data: _CardFieldData
 
-
-@dataclass(frozen=True)
-class FieldCheck(FieldExpression):
-    query: str
-    compiled_query: re.Pattern = field(init=False, repr=False)
-    
-    def __post_init__(self):
-        super().__setattr__("compiled_query", re.compile(self.query))
-    
-    def compute(self, mapping: Mapping) -> bool:
-        field_data = self.card_field_data.get_field_data(mapping)
-        if not field_data:
-            return False
-        return any((re.search(self.compiled_query, str(item)) is not None for item in field_data))
-
-
-@dataclass(frozen=True)
-class Method(FieldExpression):
     method: Callable[[Any], int]
     aggregation: Optional[Callable[[Iterable], int]] = None
 

@@ -454,16 +454,6 @@ class TokenParser:
         self._tokens: list[Token] = tokens
         self._expressions: list[Union[Computable, Token]] = []
 
-    def get_field_check(self, index: int) -> tuple[Union[Method, None], int]:
-        """index: STRING token index"""
-        if self._tokens[index + 1].type == Token_T.SEP and \
-           self._tokens[index + 2].type == Token_T.QUERY_STRING:
-            return Method(_CardFieldData(self._tokens[index].value),
-                          partial(keyword_factory("in"),
-                                  search_pattern=re.compile(self._tokens[index + 2].value)),
-                          aggregation=any), 2
-        return None, 0
-
     def get_method(self, index: int) -> tuple[Union[Method, None], int]:
         """index: STRING token index"""
         if self._tokens[index + 1].type == Token_T.METHOD_LP and \
@@ -485,9 +475,7 @@ class TokenParser:
         i = 0
         while i < len(self._tokens):
             if self._tokens[i].type == Token_T.STRING:
-                res, offset = self.get_field_check(i)
-                if res is None:
-                    res, offset = self.get_method(i)
+                res, offset = self.get_method(i)
 
                 if res is None:
                     res, offset = self.get_keyword(i)

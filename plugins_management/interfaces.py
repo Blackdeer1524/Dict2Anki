@@ -49,7 +49,10 @@ class ImageParserInterface(Protocol):
 
 class CardProcessorInterface(Protocol):
     @staticmethod
-    def get_save_image_name(word: str, image_source: str, image_parser_name: str, dict_tags: dict) -> str:
+    def get_save_image_name(word: str,
+                            image_source: str,
+                            image_parser_name: str,
+                            dict_tags: dict) -> str:
         ...
 
     @staticmethod
@@ -57,7 +60,9 @@ class CardProcessorInterface(Protocol):
         ...
 
     @staticmethod
-    def get_save_audio_name(word: str, audio_provider: str, multiple_postfix: str,
+    def get_save_audio_name(word: str,
+                            audio_provider: str,
+                            multiple_postfix: str,
                             dict_tags: dict) -> str:
         ...
 
@@ -72,7 +77,9 @@ class CardProcessorInterface(Protocol):
 
 class DeckSavingFormatInterface(Protocol):
     @staticmethod
-    def save(deck: SavedDataDeck, saving_card_status: CardStatus, saving_path: str,
+    def save(deck: SavedDataDeck,
+             saving_card_status: CardStatus,
+             saving_path: str,
              image_names_wrapper: Callable[[str], str],
              audio_names_wrapper: Callable[[str], str]):
         ...

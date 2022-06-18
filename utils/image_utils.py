@@ -413,7 +413,7 @@ class ImageSearch(Toplevel):
 
 if __name__ == "__main__":
     from tkinterdnd2 import Tk
-    from parsers.image_parsers.google import get_image_links
+    from plugins.parsers.image_parsers.google import get_image_links
     from pprint import pprint
 
     def start_image_search(word, master, **kwargs):
@@ -437,7 +437,7 @@ if __name__ == "__main__":
         res = []
         for i in range(len(instance.working_state)):
             if instance.working_state[i]:
-                res.append(instance.saved_urls[i])
+                res.append(instance.images_source[i])
         assert len(res) == sum(instance.working_state)
         pprint(res)
 

@@ -62,11 +62,11 @@ Special fields start with $ prefix
     $ANY[$ANY][data]:value_1 also will return True
 
 Evaluation precedence:
-1) expressions in parentheses
-2) field queries
+1) field queries
 2) keywords
-3) unary operators
-4) binary operators
+3) expressions in parentheses
+4) unary operators
+5) binary operators
 """
 
 
@@ -615,7 +615,7 @@ def main():
     for query in queries:
         get_card_filter(query)
 
-    query = "(\"(B|C)\\d\" in $ANY[$ANY][level]) and 0"
+    query = "(\"(B|C)\\d\" in $ANY[$ANY][level])"
     card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],

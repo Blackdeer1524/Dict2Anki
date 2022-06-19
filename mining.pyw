@@ -285,7 +285,7 @@ class App(Tk):
         self.geometry(self.configurations["app"]["main_window_geometry"])
         self.configure()
 
-    def show_window(self, title: str, text: str):
+    def show_window(self, title: str, text: str) -> Toplevel:
         text_toplevel = self.Toplevel(self)
         text_toplevel.title(title)
         sf = ScrolledFrame(text_toplevel, scrollbars="both")
@@ -298,13 +298,14 @@ class App(Tk):
         sf.config(width=min(1000, label.winfo_width()), height=min(500, label.winfo_height()))
         text_toplevel.resizable(False, False)
         text_toplevel.bind("<Escape>", lambda event: text_toplevel.destroy())
-        text_toplevel.grab_set()
+        return text_toplevel
 
     def show_errors(self, *args, **kwargs) -> None:
         error_log = create_exception_message()
         self.clipboard_clear()
         self.clipboard_append(error_log)
-        self.show_window("Ошибка", error_log)
+        error_toplevel = self.show_window("Ошибка", error_log)
+        error_toplevel.grab_set()
 
     @error_handler(show_errors)
     def switch_theme(self):

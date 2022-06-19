@@ -19,7 +19,7 @@ class _PluginContainer:
     name: str
     
     def __init__(self, name: str):
-        super().__setattr__("name", name)
+        object.__setattr__(self, "name", name)
 
 
 class ThemeContainer(_PluginContainer):
@@ -36,16 +36,16 @@ class ThemeContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: ThemeInterface):
         super(ThemeContainer, self).__init__(name)
-        super().__setattr__("label_cfg",           source_module.label_cfg)
-        super().__setattr__("button_cfg",          source_module.button_cfg)
-        super().__setattr__("text_cfg",            source_module.text_cfg)
-        super().__setattr__("entry_cfg",           source_module.entry_cfg)
-        super().__setattr__("checkbutton_cfg",     source_module.checkbutton_cfg)
-        super().__setattr__("toplevel_cfg",        source_module.toplevel_cfg)
-        super().__setattr__("root_cfg",            source_module.root_cfg)
-        super().__setattr__("frame_cfg",           source_module.frame_cfg)
-        super().__setattr__("option_menu_cfg",     source_module.option_menu_cfg)
-        super().__setattr__("option_submenus_cfg", source_module.option_submenus_cfg)
+        object.__setattr__(self, "label_cfg",           source_module.label_cfg)
+        object.__setattr__(self, "button_cfg",          source_module.button_cfg)
+        object.__setattr__(self, "text_cfg",            source_module.text_cfg)
+        object.__setattr__(self, "entry_cfg",           source_module.entry_cfg)
+        object.__setattr__(self, "checkbutton_cfg",     source_module.checkbutton_cfg)
+        object.__setattr__(self, "toplevel_cfg",        source_module.toplevel_cfg)
+        object.__setattr__(self, "root_cfg",            source_module.root_cfg)
+        object.__setattr__(self, "frame_cfg",           source_module.frame_cfg)
+        object.__setattr__(self, "option_menu_cfg",     source_module.option_menu_cfg)
+        object.__setattr__(self, "option_submenus_cfg", source_module.option_submenus_cfg)
 
 
 class WebWordParserContainer(_PluginContainer):
@@ -54,8 +54,8 @@ class WebWordParserContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: WebWordParserInterface):
         super(WebWordParserContainer, self).__init__(name)
-        super().__setattr__("define", source_module.define)
-        super().__setattr__("translate", source_module.translate)
+        object.__setattr__(self, "define", source_module.define)
+        object.__setattr__(self, "translate", source_module.translate)
 
 
 class LocalWordParserContainer(_PluginContainer):
@@ -64,8 +64,8 @@ class LocalWordParserContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: LocalWordParserInterface):
         super(LocalWordParserContainer, self).__init__(name)
-        super().__setattr__("local_dict_name", source_module.DICTIONARY_PATH)
-        super().__setattr__("translate", source_module.translate)
+        object.__setattr__(self, "local_dict_name", source_module.DICTIONARY_PATH)
+        object.__setattr__(self, "translate", source_module.translate)
 
 
 class WebSentenceParserContainer(_PluginContainer):
@@ -73,7 +73,7 @@ class WebSentenceParserContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: WebSentenceParserInterface):
         super(WebSentenceParserContainer, self).__init__(name)
-        super().__setattr__("get_sentence_batch", source_module.get_sentence_batch)
+        object.__setattr__(self, "get_sentence_batch", source_module.get_sentence_batch)
 
 
 class ImageParserContainer(_PluginContainer):
@@ -81,7 +81,7 @@ class ImageParserContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: ImageParserInterface):
         super(ImageParserContainer, self).__init__(name)
-        super().__setattr__("get_image_links", source_module.get_image_links)
+        object.__setattr__(self, "get_image_links", source_module.get_image_links)
 
 
 class CardProcessorContainer(_PluginContainer):
@@ -93,11 +93,11 @@ class CardProcessorContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: CardProcessorInterface):
         super(CardProcessorContainer, self).__init__(name)
-        super().__setattr__("get_save_image_name", source_module.get_save_image_name)
-        super().__setattr__("get_card_image_name", source_module.get_card_image_name)
-        super().__setattr__("get_save_audio_name", source_module.get_save_audio_name)
-        super().__setattr__("get_card_audio_name", source_module.get_card_audio_name)
-        super().__setattr__("process_card",        source_module.process_card)
+        object.__setattr__(self, "get_save_image_name", source_module.get_save_image_name)
+        object.__setattr__(self, "get_card_image_name", source_module.get_card_image_name)
+        object.__setattr__(self, "get_save_audio_name", source_module.get_save_audio_name)
+        object.__setattr__(self, "get_card_audio_name", source_module.get_card_audio_name)
+        object.__setattr__(self, "process_card",        source_module.process_card)
 
 
 class DeckSavingFormatContainer(_PluginContainer):
@@ -105,7 +105,7 @@ class DeckSavingFormatContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: DeckSavingFormatInterface):
         super(DeckSavingFormatContainer, self).__init__(name)
-        super().__setattr__("save", source_module.save)
+        object.__setattr__(self, "save", source_module.save)
 
 
 class LocalAudioGetterContainer(_PluginContainer):
@@ -113,4 +113,4 @@ class LocalAudioGetterContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: LocalAudioGetterInterface):
         super(LocalAudioGetterContainer, self).__init__(name)
-        super().__setattr__("get_local_audios", source_module.get_local_audios)
+        object.__setattr__(self, "get_local_audios", source_module.get_local_audios)

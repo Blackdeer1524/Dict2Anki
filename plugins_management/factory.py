@@ -47,7 +47,7 @@ def parse_namespace(namespace) -> dict:
 PluginContainer = TypeVar("PluginContainer")
 
 
-@dataclass(init=False, frozen=True)
+@dataclass(slots=True, init=False, frozen=True)
 class PluginLoader(Generic[PluginContainer]):
     plugin_type: str
     _loaded_plugin_data: FrozenDict[str, PluginContainer]
@@ -63,7 +63,7 @@ class PluginLoader(Generic[PluginContainer]):
         if (module_name := module.__name__) in PluginLoader._already_initialized:
             raise LoaderError(f"{module_name} loader was created earlier!")
         PluginLoader._already_initialized.add(module_name)
-        super().__setattr__("plugin_type", plugin_type)
+        object.__setattr__(self, "plugin_type", plugin_type)
 
         _loaded_plugin_data = {}
         not_loaded = []
@@ -73,8 +73,8 @@ class PluginLoader(Generic[PluginContainer]):
             except AttributeError as e:
                 error_callback(e, name)
                 not_loaded.append(name)
-        super().__setattr__("_loaded_plugin_data", FrozenDict(_loaded_plugin_data))
-        super().__setattr__("not_loaded", tuple(not_loaded))
+        object.__setattr__(self, "_loaded_plugin_data", FrozenDict(_loaded_plugin_data))
+        object.__setattr__(self, "not_loaded", tuple(not_loaded))
 
     @property
     def loaded(self):
@@ -86,7 +86,7 @@ class PluginLoader(Generic[PluginContainer]):
         raise UnknownPluginName(f"Unknown {self.plugin_type}: {name}")
 
 
-@dataclass(init=False, frozen=True, repr=False)
+@dataclass(slots=True, init=False, frozen=True, repr=False)
 class PluginFactory:
     _is_initialized:     ClassVar[bool] = False
 
@@ -104,30 +104,30 @@ class PluginFactory:
             raise LoaderError(f"{self.__class__.__name__} already exists!")
         PluginFactory._is_initialized = True
 
-        super().__setattr__("themes",              PluginLoader(plugin_type="theme",
-                                                                module=plugins.themes,
-                                                                container_type=ThemeContainer))
-        super().__setattr__("web_word_parsers",    PluginLoader(plugin_type="web word parser",
-                                                                module=plugins.parsers.word_parsers.web,
-                                                                container_type=WebWordParserContainer))
-        super().__setattr__("local_word_parsers",  PluginLoader(plugin_type="local word parser",
-                                                                module=plugins.parsers.word_parsers.local,
-                                                                container_type=LocalWordParserContainer))
-        super().__setattr__("web_sent_parsers",    PluginLoader(plugin_type="web sentence parser",
-                                                                module=plugins.parsers.sentence_parsers,
-                                                                container_type=WebSentenceParserContainer))
-        super().__setattr__("image_parsers",       PluginLoader(plugin_type="web image parser",
-                                                                module=plugins.parsers.image_parsers,
-                                                                container_type=ImageParserContainer))
-        super().__setattr__("card_processors",     PluginLoader(plugin_type="card processor",
-                                                                module=plugins.saving.card_processors,
-                                                                container_type=CardProcessorContainer))
-        super().__setattr__("deck_saving_formats", PluginLoader(plugin_type="deck plugins.saving format",
-                                                                module=plugins.saving.format_processors,
-                                                                container_type=DeckSavingFormatContainer))
-        super().__setattr__("local_audio_getters", PluginLoader(plugin_type="local audio getter",
-                                                                module=plugins.parsers.local_audio_getters,
-                                                                container_type=LocalAudioGetterContainer))
+        object.__setattr__(self, "themes",              PluginLoader(plugin_type="theme",
+                                                                     module=plugins.themes,
+                                                                     container_type=ThemeContainer))
+        object.__setattr__(self, "web_word_parsers",    PluginLoader(plugin_type="web word parser",
+                                                                     module=plugins.parsers.word_parsers.web,
+                                                                     container_type=WebWordParserContainer))
+        object.__setattr__(self, "local_word_parsers",  PluginLoader(plugin_type="local word parser",
+                                                                     module=plugins.parsers.word_parsers.local,
+                                                                     container_type=LocalWordParserContainer))
+        object.__setattr__(self, "web_sent_parsers",    PluginLoader(plugin_type="web sentence parser",
+                                                                     module=plugins.parsers.sentence_parsers,
+                                                                     container_type=WebSentenceParserContainer))
+        object.__setattr__(self, "image_parsers",       PluginLoader(plugin_type="web image parser",
+                                                                     module=plugins.parsers.image_parsers,
+                                                                     container_type=ImageParserContainer))
+        object.__setattr__(self, "card_processors",     PluginLoader(plugin_type="card processor",
+                                                                     module=plugins.saving.card_processors,
+                                                                     container_type=CardProcessorContainer))
+        object.__setattr__(self, "deck_saving_formats", PluginLoader(plugin_type="deck plugins.saving format",
+                                                                     module=plugins.saving.format_processors,
+                                                                     container_type=DeckSavingFormatContainer))
+        object.__setattr__(self, "local_audio_getters", PluginLoader(plugin_type="local audio getter",
+                                                                     module=plugins.parsers.local_audio_getters,
+                                                                     container_type=LocalAudioGetterContainer))
 
     def get_theme(self, name: str) -> ThemeContainer:
         if (theme := self.themes.get(name)) is None:

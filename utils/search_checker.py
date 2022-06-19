@@ -221,7 +221,7 @@ STRING_PLACEHOLDER = "*"
 END_PLACEHOLDER = "END"
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class Token(Computable):
     un_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.UN_LOGIC_OP for logic_operator in UNARY_LOGIC})
     bin_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.BIN_LOGIC_OP for logic_operator in BIN_LOGIC_SET})
@@ -268,7 +268,7 @@ class Token(Computable):
     
     value: str
     prev_token_type: Token_T = field(repr=False)
-    type: Optional[Token_T] = None
+    t_type: Optional[Token_T] = None
     
     def __post_init__(self):
         def get_expected_keys() -> str:
@@ -280,10 +280,10 @@ class Token(Computable):
             return f"[{' '.join([token.name for token in expected_types.values()])}] were expected!"
 
         expected_types: FrozenDict[str, Token_T] = Token.next_expected[self.prev_token_type]
-        if self.type is not None:
-            if (self.type == Token_T.STRING and expected_types.get(STRING_PLACEHOLDER)) is None or \
+        if self.t_type is not None:
+            if (self.t_type == Token_T.STRING and expected_types.get(STRING_PLACEHOLDER)) is None or \
                 expected_types.get(self.value) is None:
-                raise WrongTokenError(f"Unexpected forced token! \"{self.type}\" was forced when "
+                raise WrongTokenError(f"Unexpected forced token! \"{self.t_type}\" was forced when "
                                       f"{get_expected_values()}")
             return
 
@@ -291,12 +291,12 @@ class Token(Computable):
             if (str_type := expected_types.get(STRING_PLACEHOLDER)) is None:
                 raise WrongTokenError(f"Unexpected token! \"{self.value}\" was given when "
                                       f"{get_expected_keys()}")
-            super().__setattr__("type", str_type)
+            object.__setattr__(self, "t_type", str_type)
             return
-        super().__setattr__("type", deduced_type)
+        object.__setattr__(self, "t_type", deduced_type)
 
     def compute(self, mapping: Mapping):
-        if self.type != Token_T.STRING:
+        if self.t_type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
         if not self.value.isdecimal():
             raise WrongTokenError("Can't compute non-decimal STRING token!")
@@ -317,7 +317,7 @@ class Tokenizer:
         if self.exp[start_ind] == FIELD_VAL_SEP:
             return Token(value=self.exp[start_ind],
                          prev_token_type=prev_token_type,
-                         type=Token_T.SEP), start_ind + 1
+                         t_type=Token_T.SEP), start_ind + 1
 
         if self.exp[start_ind] in "()":
             return Token(self.exp[start_ind], prev_token_type), start_ind + 1
@@ -357,13 +357,13 @@ class Tokenizer:
                 parenthesis_counter -= 1
                 if parenthesis_counter < 0:
                     raise QuerySyntaxError("Too many closing parentheses!")
-            current_token_type = cur_token.type
+            current_token_type = cur_token.t_type
         if parenthesis_counter:
             raise QuerySyntaxError("Too many opening parentheses!")
         return res
 
 
-@dataclass(frozen=True, init=False)
+@dataclass(slots=True, frozen=True, init=False)
 class _CardFieldData:
     ANY_FIELD: ClassVar[str] = "$ANY"
 
@@ -389,7 +389,7 @@ class _CardFieldData:
         if start != current_index:
             chain.append(path[start:last_closed_bracket])
 
-        super().__setattr__("query_chain", chain)
+        object.__setattr__(self, "query_chain", chain)
 
     @staticmethod
     def _check_nested_path(path) -> None:
@@ -435,7 +435,7 @@ class _CardFieldData:
         return result
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class Method(Computable):
     card_field_data: _CardFieldData
 
@@ -457,8 +457,8 @@ class TokenParser:
 
     def get_field_check(self, index: int) -> tuple[Union[Method, None], int]:
         """index: STRING token index"""
-        if self._tokens[index + 1].type == Token_T.SEP and \
-           self._tokens[index + 2].type == Token_T.QUERY_STRING:
+        if self._tokens[index + 1].t_type == Token_T.SEP and \
+           self._tokens[index + 2].t_type == Token_T.QUERY_STRING:
             return Method(_CardFieldData(self._tokens[index].value),
                           partial(keyword_factory("in"),
                                   search_pattern=re.compile(self._tokens[index + 2].value)),
@@ -467,15 +467,15 @@ class TokenParser:
 
     def get_method(self, index: int) -> tuple[Union[Method, None], int]:
         """index: STRING token index"""
-        if self._tokens[index + 1].type == Token_T.METHOD_LP and \
-           self._tokens[index + 2].type == Token_T.METHOD_STRING and \
-           self._tokens[index + 3].type == Token_T.METHOD_RP:
+        if self._tokens[index + 1].t_type == Token_T.METHOD_LP and \
+           self._tokens[index + 2].t_type == Token_T.METHOD_STRING and \
+           self._tokens[index + 3].t_type == Token_T.METHOD_RP:
             return Method(_CardFieldData(self._tokens[index + 2].value), method_factory(self._tokens[index].value)), 3
         return None, 0
     
     def get_keyword(self, index: int):
-        if self._tokens[index + 1].type == Token_T.KEYWORD and \
-           self._tokens[index + 2].type == Token_T.QUERY_STRING:
+        if self._tokens[index + 1].t_type == Token_T.KEYWORD and \
+           self._tokens[index + 2].t_type == Token_T.QUERY_STRING:
             return Method(_CardFieldData(self._tokens[index + 2].value),
                           partial(keyword_factory(self._tokens[index + 1].value),
                                   search_pattern=re.compile(self._tokens[index].value)),
@@ -485,7 +485,7 @@ class TokenParser:
     def _promote_to_expressions(self):
         i = 0
         while i < len(self._tokens):
-            if self._tokens[i].type == Token_T.STRING:
+            if self._tokens[i].t_type == Token_T.STRING:
                 res, offset = self.get_field_check(i)
                 if res is None:
                     res, offset = self.get_method(i)
@@ -510,7 +510,7 @@ class TokenParser:
         return self._expressions
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class EvalNode(Computable):
     operator: str
     left: Optional[Union[Computable, Token]] = None
@@ -521,7 +521,7 @@ class EvalNode(Computable):
     def __post_init__(self):
         if isinstance(self.left, Token) and isinstance(self.right, Token):
             raise TreeBuildingError("Two STRING's in one node!")
-        super().__setattr__("operation", logic_factory(self.operator))
+        object.__setattr__(self, "operation", logic_factory(self.operator))
 
     def compute(self, mapping: Mapping) -> bool:
         if self.left is not None and self.right is not None:
@@ -545,12 +545,12 @@ class LogicTree:
                 current_index += 1
                 continue
 
-            if operator.type == Token_T.LOGIC_LP:
+            if operator.t_type == Token_T.LOGIC_LP:
                 self._expressions.pop(current_index)
                 self.construct(current_index)
                 current_index += 1
                 continue
-            elif operator.type == Token_T.LOGIC_RP:
+            elif operator.t_type == Token_T.LOGIC_RP:
                 break
 
             if operator.value not in UNARY_LOGIC:
@@ -559,10 +559,10 @@ class LogicTree:
 
             operand = self._expressions[current_index + 1]
             if isinstance(operand, Token):
-                if operand.type == Token_T.LOGIC_LP:
+                if operand.t_type == Token_T.LOGIC_LP:
                     self._expressions.pop(current_index + 1)
                     self.construct(current_index + 1)
-                elif operator.type == Token_T.END:
+                elif operator.t_type == Token_T.END:
                     break
 
             self._expressions.pop(current_index)
@@ -573,7 +573,7 @@ class LogicTree:
             current_index = start
             while current_index < len(self._expressions) - 1:
                 operator = self._expressions[current_index + 1]
-                if operator.type in (Token_T.LOGIC_RP, Token_T.END):
+                if operator.t_type in (Token_T.LOGIC_RP, Token_T.END):
                     break
 
                 if operator.value in current_logic_set:
@@ -595,7 +595,7 @@ class LogicTree:
 def get_card_filter(expression: str) -> Callable[[Mapping], bool]:
     _tokenizer = Tokenizer(expression)
     tokens = _tokenizer.get_tokens()
-    if tokens[0].type == Token_T.END:
+    if tokens[0].t_type == Token_T.END:
         return lambda x: True
 
     _token_parser = TokenParser(tokens=tokens)

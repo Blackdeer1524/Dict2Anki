@@ -1,3 +1,56 @@
+"""
+Language query help
+
+Unary operators:
+* logic operators:
+    not
+
+Binary operators:
+* logic operators
+    and, or
+* arithmetics operators:
+    <, <=, >, >=, ==, !=
+
+Field query:
+    field : query
+    Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
+    Example:
+        {
+            field: value}
+        }
+        field: thing
+        Returns True if thing is in value
+
+Methods:
+    len
+        Measures length of iterable object
+        Example:
+            {
+                field: [1, 2, 3]
+            }
+            len(field) will return 3
+
+Keywords:
+    in
+        Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
+        Example:
+            {
+                field: [val_1, .., val_n]}
+            }
+
+            thing in field
+            Returns True if thing is in [val_1, .., val_n]
+
+
+Evaluation precedence:
+1) field queries
+2) keywords
+3) expressions in parentheses
+4) unary operators
+5) binary operators
+"""
+
+
 import copy
 from abc import ABC, abstractmethod
 from collections.abc import Mapping

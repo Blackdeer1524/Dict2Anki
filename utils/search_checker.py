@@ -390,7 +390,7 @@ class FieldCheck(FieldExpression):
     compiled_query: re.Pattern = field(init=False, repr=False)
     
     def __post_init__(self):
-        super().__setattr__("compiled_query", compile(self.query))
+        super().__setattr__("compiled_query", re.compile(self.query))
     
     def compute(self, card: Card) -> bool:
         field_data = self.card_field_data.get_field_data(card)

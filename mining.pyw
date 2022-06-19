@@ -341,17 +341,17 @@ class App(Tk):
         DEFAULT_AUDIO_SRC = "default"
 
         @error_handler(self.show_errors)
-        def pick_parser(name: str):
-            if name.startswith(WEB_PREF):
-                res_name = name[len(WEB_PREF) + 1:]
-                self.cd = loaded_plugins.get_web_card_generator(name[len(WEB_PREF) + 1:])
+        def pick_parser(typed_parser: str):
+            if typed_parser.startswith(WEB_PREF):
+                raw_name = typed_parser[len(WEB_PREF) + 1:]
+                self.cd = loaded_plugins.get_web_card_generator(typed_parser[len(WEB_PREF) + 1:])
                 self.configurations["scrappers"]["word_parser_type"] = "web"
             else:
-                res_name = name[len(LOCAL_PREF) + 1:]
-                self.cd = loaded_plugins.get_local_card_generator(name[len(LOCAL_PREF) + 1:])
+                raw_name = typed_parser[len(LOCAL_PREF) + 1:]
+                self.cd = loaded_plugins.get_local_card_generator(typed_parser[len(LOCAL_PREF) + 1:])
                 self.configurations["scrappers"]["word_parser_type"] = "local"
-            self.configurations["scrappers"]["word_parser_name"] = res_name
-            self.typed_word_parser_name = name
+            self.configurations["scrappers"]["word_parser_name"] = raw_name
+            self.typed_word_parser_name = typed_parser
             self.deck.update_card_generator(self.cd)
 
         # dict
@@ -366,7 +366,7 @@ class App(Tk):
                                            init_text=self.typed_word_parser_name,
                                            values=[f"{WEB_PREF} {item}" for item in loaded_plugins.web_word_parsers.loaded] +
                                                   [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_word_parsers.loaded],
-                                           command=lambda parser: pick_parser(parser))
+                                           command=lambda typed_parser: pick_parser(typed_parser))
         choose_wp_option.grid(row=0, column=1, sticky="news")
 
         # audio_getter

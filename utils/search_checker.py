@@ -178,11 +178,10 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
 
 def method_factory(method_name: str) -> Callable[[Any], int]:
     if method_name == "len":
-        def field_length(x: Sized):
-            try:
+        def field_length(x):
+            if isinstance(x, str):
                 return len(x)
-            except TypeError:
-                return False
+            return (len(str(item_x)) for item_x in x)
         return field_length
     raise WrongMethodError(f"Unknown method name: {method_name}")
 
@@ -190,10 +189,9 @@ def method_factory(method_name: str) -> Callable[[Any], int]:
 def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     if keyword_name == "in":
         def field_contains(collection: Iterable, search_pattern: re.Pattern):
-            try:
-                return any((re.search(search_pattern, str(item)) is not None for item in collection))
-            except TypeError:
-                return False
+            if isinstance(collection, str):
+                return re.search(search_pattern, collection) is not None
+            return any((re.search(search_pattern, str(item)) is not None for item in collection))
         return field_contains
     raise WrongKeywordError(f"Unknown keyword: {keyword_name}")
 
@@ -204,17 +202,17 @@ FIELD_NAMES_SET = frozenset(FIELDS)
 
 class Token_T(Enum):
     START = auto()
+    L_PARENTHESIS = auto()
+    R_PARENTHESIS = auto()
+
     STRING = auto()
-    KEYWORD = auto()
     SEP = auto()
     QUERY_STRING = auto()
+
     UN_LOGIC_OP = auto()
     BIN_LOGIC_OP = auto()
-    METHOD_LP = auto()
-    METHOD_STRING = auto()
-    METHOD_RP = auto()
-    LOGIC_LP = auto()
-    LOGIC_RP = auto()
+
+    KEYWORD = auto()
     END = auto()
 
 STRING_PLACEHOLDER = "*"
@@ -228,40 +226,33 @@ class Token(Computable):
     keyword_deduction: ClassVar[FrozenDict] = FrozenDict({keyword_name: Token_T.KEYWORD for keyword_name in KEYWORDS})
     
     next_expected: ClassVar[FrozenDict] = FrozenDict(
-        {Token_T.START:         {"(": Token_T.LOGIC_LP,
+        {Token_T.START:         {"(": Token_T.L_PARENTHESIS,
                                  STRING_PLACEHOLDER: Token_T.STRING,
                                  END_PLACEHOLDER: Token_T.END} | un_logic_deduction.to_dict(),
 
          Token_T.STRING:        {FIELD_VAL_SEP: Token_T.SEP,
-                                 "(": Token_T.METHOD_LP,
-                                 ")": Token_T.LOGIC_RP,
+                                 "(": Token_T.L_PARENTHESIS,
+                                 ")": Token_T.R_PARENTHESIS,
                                  END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict() | keyword_deduction.to_dict(),
          
-         Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.QUERY_STRING},
+         Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.STRING},
         
          Token_T.SEP:           {STRING_PLACEHOLDER: Token_T.QUERY_STRING},
 
-         Token_T.QUERY_STRING:  {")": Token_T.LOGIC_RP,
+         Token_T.QUERY_STRING:  {")": Token_T.R_PARENTHESIS,
                                  END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict(),
 
          Token_T.UN_LOGIC_OP:   {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.LOGIC_LP},
+                                 "(": Token_T.L_PARENTHESIS},
 
          Token_T.BIN_LOGIC_OP:  {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.LOGIC_LP} | un_logic_deduction.to_dict(),
+                                 "(": Token_T.L_PARENTHESIS} | un_logic_deduction.to_dict(),
 
-         Token_T.METHOD_LP:     {STRING_PLACEHOLDER: Token_T.METHOD_STRING},
+         Token_T.L_PARENTHESIS: {STRING_PLACEHOLDER: Token_T.STRING,
+                                 "(": Token_T.L_PARENTHESIS} | un_logic_deduction.to_dict(),
 
-         Token_T.METHOD_STRING: {")": Token_T.METHOD_RP},
-
-         Token_T.METHOD_RP:     {")": Token_T.LOGIC_RP,
-                                 END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict(),
-
-         Token_T.LOGIC_LP:      {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.LOGIC_LP} | un_logic_deduction.to_dict(),
-
-         Token_T.LOGIC_RP:      {END_PLACEHOLDER: Token_T.END,
-                                 ")": Token_T.LOGIC_RP} | bin_logic_deduction.to_dict(),
+         Token_T.R_PARENTHESIS: {END_PLACEHOLDER: Token_T.END,
+                                 ")": Token_T.R_PARENTHESIS} | bin_logic_deduction.to_dict(),
 
          Token_T.END:           {}
          })
@@ -299,7 +290,7 @@ class Token(Computable):
         if self.t_type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
         if not self.value.isdecimal():
-            raise WrongTokenError("Can't compute non-decimal STRING token!")
+            return self.value
         return float(self.value)
 
 
@@ -364,7 +355,7 @@ class Tokenizer:
 
 
 @dataclass(slots=True, frozen=True, init=False)
-class _CardFieldData:
+class _CardFieldData(Computable):
     ANY_FIELD: ClassVar[str] = "$ANY"
 
     query_chain: list[str] = field(init=False, repr=True)
@@ -410,7 +401,7 @@ class _CardFieldData:
                 if not path[i].isspace():
                     raise QuerySyntaxError("Wrong bracket sequence in field query!")
 
-    def get_field_data(self, mapping: Mapping) -> list[Any]:
+    def compute(self, mapping: Mapping) -> list[Any]:
         """query_chain: chain of keys"""
         result = []
 
@@ -437,77 +428,13 @@ class _CardFieldData:
 
 @dataclass(slots=True, frozen=True)
 class Method(Computable):
-    card_field_data: _CardFieldData
+    operand: Computable
 
     method: Callable[[Any], int]
-    aggregation: Optional[Callable[[Iterable], int]] = None
 
     def compute(self, mapping: Mapping) -> Union[Iterator[int], int]:
-        field_data = self.card_field_data.get_field_data(mapping)
-        if not field_data:
-            return self.aggregation(()) if self.aggregation is not None else False
-        res = (self.method(item) for item in field_data)
-        return self.aggregation(res) if self.aggregation is not None else res
-
-
-class TokenParser:
-    def __init__(self, tokens: list[Token]):
-        self._tokens: list[Token] = tokens
-        self._expressions: list[Union[Computable, Token]] = []
-
-    def get_field_check(self, index: int) -> tuple[Union[Method, None], int]:
-        """index: STRING token index"""
-        if self._tokens[index + 1].t_type == Token_T.SEP and \
-           self._tokens[index + 2].t_type == Token_T.QUERY_STRING:
-            return Method(_CardFieldData(self._tokens[index].value),
-                          partial(keyword_factory("in"),
-                                  search_pattern=re.compile(self._tokens[index + 2].value)),
-                          aggregation=any), 2
-        return None, 0
-
-    def get_method(self, index: int) -> tuple[Union[Method, None], int]:
-        """index: STRING token index"""
-        if self._tokens[index + 1].t_type == Token_T.METHOD_LP and \
-           self._tokens[index + 2].t_type == Token_T.METHOD_STRING and \
-           self._tokens[index + 3].t_type == Token_T.METHOD_RP:
-            return Method(_CardFieldData(self._tokens[index + 2].value), method_factory(self._tokens[index].value)), 3
-        return None, 0
-    
-    def get_keyword(self, index: int):
-        if self._tokens[index + 1].t_type == Token_T.KEYWORD and \
-           self._tokens[index + 2].t_type == Token_T.QUERY_STRING:
-            return Method(_CardFieldData(self._tokens[index + 2].value),
-                          partial(keyword_factory(self._tokens[index + 1].value),
-                                  search_pattern=re.compile(self._tokens[index].value)),
-                          aggregation=any), 2
-        return None, 0
-        
-    def _promote_to_expressions(self):
-        i = 0
-        while i < len(self._tokens):
-            if self._tokens[i].t_type == Token_T.STRING:
-                res, offset = self.get_field_check(i)
-                if res is None:
-                    res, offset = self.get_method(i)
-
-                if res is None:
-                    res, offset = self.get_keyword(i)
-
-                if res is None:
-                    if not self._tokens[i].value.isdecimal():
-                        raise WrongTokenError(f"Decimal type expected, \"{self._tokens[i].value}\" was given!")
-
-                    self._expressions.append(self._tokens[i])
-                else:
-                    self._expressions.append(res)
-                i += offset
-            else:
-                self._expressions.append(self._tokens[i])
-            i += 1
-
-    def tokens2expressions(self) -> list[Union[Computable, Token]]:
-        self._promote_to_expressions()
-        return self._expressions
+        computed_operand = self.operand.compute(mapping)
+        return self.method(computed_operand)
 
 
 @dataclass(slots=True, frozen=True)
@@ -532,25 +459,58 @@ class EvalNode(Computable):
 
 
 class LogicTree:
-    def __init__(self, expressions):
-        if len(expressions) == 1:
+    def __init__(self, tokens):
+        if len(tokens) == 1:
             raise TreeBuildingError("Couldn't build from an empty query!")
-        self._expressions = copy.deepcopy(expressions)
+        self._expressions = copy.deepcopy(tokens)
 
     def construct(self, start: int = 0):
         current_index = start
-        while current_index < len(self._expressions) - 1:
+        while current_index < len(self._expressions) - 2:
+            if self._expressions[current_index].t_type != Token_T.STRING:
+                if self._expressions[current_index].t_type == Token_T.L_PARENTHESIS:
+                    self._expressions.pop(current_index)
+                    self.construct(current_index)
+                current_index += 1
+                continue
+
+            if self._expressions[current_index + 1].t_type == Token_T.SEP:
+                field_query = self._expressions.pop(current_index + 2).value
+                self._expressions.pop(current_index + 1)
+                field = self._expressions.pop(current_index).value
+                self._expressions.insert(current_index,
+                                         Method(_CardFieldData(field),
+                                                partial(keyword_factory("in"), search_pattern=re.compile(field_query))))
+
+            elif self._expressions[current_index + 1].t_type == Token_T.KEYWORD:
+                query = self._expressions.pop(current_index).value
+                keyword_name = self._expressions.pop(current_index).value
+                keyword_function = partial(keyword_factory(keyword_name), search_pattern=re.compile(query))
+                self.construct(current_index)
+                operand = self._expressions.pop(current_index)
+                self._expressions.insert(current_index, Method(operand, keyword_function))
+
+            elif self._expressions[current_index + 1].t_type == Token_T.L_PARENTHESIS:
+                method_name = self._expressions.pop(current_index).value
+                method_function = method_factory(method_name)
+                self._expressions.pop(current_index)  # parenthesis
+                self.construct(current_index)
+                operand = self._expressions.pop(current_index)
+                self._expressions.insert(current_index, Method(operand, method_function))
+
+            if self._expressions[current_index + 1].t_type in (Token_T.R_PARENTHESIS, Token_T.END):
+                break
+
+            current_index += 1
+
+        current_index = start
+        while current_index < len(self._expressions) - 2:
             operator = self._expressions[current_index]
             if not isinstance(operator, Token):
                 current_index += 1
                 continue
 
-            if operator.t_type == Token_T.LOGIC_LP:
-                self._expressions.pop(current_index)
-                self.construct(current_index)
-                current_index += 1
-                continue
-            elif operator.t_type == Token_T.LOGIC_RP:
+            elif operator.t_type == Token_T.R_PARENTHESIS:
                 break
 
             if operator.value not in UNARY_LOGIC:
@@ -558,11 +518,7 @@ class LogicTree:
                 continue
 
             operand = self._expressions[current_index + 1]
-            if isinstance(operand, Token):
-                if operand.t_type == Token_T.LOGIC_LP:
-                    self._expressions.pop(current_index + 1)
-                    self.construct(current_index + 1)
-                elif operator.t_type == Token_T.END:
+            if isinstance(operand, Token) and operator.t_type == Token_T.END:
                     break
 
             self._expressions.pop(current_index)
@@ -571,9 +527,9 @@ class LogicTree:
 
         for current_logic_set in BIN_LOGIC_PRECEDENCE:
             current_index = start
-            while current_index < len(self._expressions) - 1:
+            while current_index < len(self._expressions) - 2:
                 operator = self._expressions[current_index + 1]
-                if operator.t_type in (Token_T.LOGIC_RP, Token_T.END):
+                if operator.t_type in (Token_T.R_PARENTHESIS, Token_T.END):
                     break
 
                 if operator.value in current_logic_set:
@@ -584,10 +540,11 @@ class LogicTree:
                                                                      operator=operator.value))
                 else:
                     current_index += 2
-        self._expressions.pop(start + 1)
+        if self._expressions[start + 1].t_type == Token_T.R_PARENTHESIS:
+            self._expressions.pop(start + 1)
 
     def get_master_node(self):
-        if len(self._expressions) != 1:
+        if len(self._expressions) != 2:
             raise TreeBuildingError("Error creating a syntax tree!")
         return self._expressions[0]
 
@@ -598,22 +555,21 @@ def get_card_filter(expression: str) -> Callable[[Mapping], bool]:
     if tokens[0].t_type == Token_T.END:
         return lambda x: True
 
-    _token_parser = TokenParser(tokens=tokens)
-    expressions = _token_parser.tokens2expressions()
-    _logic_tree = LogicTree(expressions)
+    _logic_tree = LogicTree(tokens)
     _logic_tree.construct()
     return _logic_tree.get_master_node().compute
 
 
 def main():
-    queries = ("word: test and meaning:\"some meaning\" "
+    queries = ("field: query and len(inner_query in len(field))",
+               "word: test and meaning:\"some meaning\" "
                           "or alt_terms:alt and (sentences : \"some sentences\" or tags : some_tags and (tags[pos] : noun)) "
                           "and (len(sentences) < 5)",
                 "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-    for query in queries:
-        get_card_filter(query)
+    # for query in queries:
+    #     get_card_filter(query)
 
     query = "(\"(B|C)\\d\" in $ANY[$ANY][level])"
     card_filter = get_card_filter(query)

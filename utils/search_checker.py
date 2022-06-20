@@ -134,45 +134,94 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
                                           Callable[[Union[Iterable[Computable], Computable],
                                                    Union[Iterable[Computable], Computable],
                                                    Mapping], bool]]:
-    def u_op_template(x: Union[Iterable[Computable], Computable],
-                      mapping: Mapping,
-                      _op: Callable[[Computable, Mapping], bool]):
-        if isinstance(x, Iterable):
-            return any(_op(item, mapping) for item in x)
-        return _op(x, mapping)
+    def operator_not(x: Union[Iterable[Computable], Computable],
+                      mapping: Mapping):
+        x_computed = x.compute(mapping)
+        if isinstance(x_computed, Iterable):
+            return (not item for item in x)
+        return not x_computed
+
+    def operator_and(x: Union[Iterable[Computable], Computable],
+                     y: Union[Iterable[Computable], Computable],
+                     mapping: Mapping):
+        x_computed = x.compute(mapping)
+        y_computed = y.compute(mapping)
+
+        if isinstance(x_computed, Iterable):
+            if isinstance(y_computed, Iterable):
+                return (item_x and item_y for item_x in x_computed for item_y in y_computed)
+            if not y_computed:
+                return (False, )
+            return (item_x for item_x in x_computed)
+
+        if isinstance(y_computed, Iterable):
+            if not x_computed:
+                return (False,)
+            return (item_y for item_y in y_computed)
+
+        if not x_computed:
+            return False
+        return y_computed
+
+    def operator_or(x: Union[Iterable[Computable], Computable],
+                    y: Union[Iterable[Computable], Computable],
+                    mapping: Mapping):
+        x_computed = x.compute(mapping)
+        y_computed = y.compute(mapping)
+
+        if isinstance(x_computed, Iterable):
+            if isinstance(y_computed, Iterable):
+                return (item_x or item_y for item_x in x_computed for item_y in y_computed)
+            if y_computed:
+                return (True, )
+            return (item_x for item_x in x_computed)
+
+        if isinstance(y_computed, Iterable):
+            if x_computed:
+                return (True,)
+            return (item_y for item_y in y_computed)
+
+        if x_computed:
+            return True
+
+        return y_computed
+
 
     def bin_op_template(x: Union[Iterable[Computable], Computable],
                         y: Union[Iterable[Computable], Computable],
                         mapping: Mapping,
-                        _op: Callable[[Computable, Computable, Mapping], bool]):
-        x_is_iter = isinstance(x, Iterable)
-        y_is_iter = isinstance(y, Iterable)
-        if x_is_iter and y_is_iter:
-            return any(_op(item_x, item_y, mapping) for item_x in x for item_y in y)
-        elif x_is_iter:
-            return any(_op(item, y, mapping) for item in x)
-        elif y_is_iter:
-            return any(_op(x, item, mapping) for item in y)
-        return _op(x, y, mapping)
+                        _op: Callable[[Any, Any], bool]):
+        x_computed = x.compute(mapping)
+        y_computed = y.compute(mapping)
+
+        if isinstance(x_computed, Iterable):
+            if isinstance(y_computed, Iterable):
+                return (_op(item_x, item_y) for item_x in x_computed for item_y in y_computed)
+            return (_op(item_x, y_computed) for item_x in x_computed)
+
+        if isinstance(y_computed, Iterable):
+            return (_op(x_computed, item_y) for item_y in y_computed)
+
+        return _op(x_computed, y_computed)
 
     if operator == "not":
-        return partial(u_op_template, _op=lambda x, mapping: not x.compute(mapping))  # type: ignore
+        return operator_not
     elif operator == "and":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) and y.compute(mapping))  # type: ignore
+        return operator_and
     elif operator == "or":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) or y.compute(mapping))  # type: ignore
+        return operator_or
     elif operator == "<":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) < y.compute(mapping))  # type: ignore
+        return partial(bin_op_template, _op=lambda x, y: x < y)  # type: ignore
     elif operator == "<=":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) <= y.compute(mapping)) # type: ignore
+        return partial(bin_op_template, _op=lambda x, y: x <= y) # type: ignore
     elif operator == ">":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) > y.compute(mapping))  # type: ignore
+        return partial(bin_op_template, _op=lambda x, y: x > y)  # type: ignore
     elif operator == ">=":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) >= y.compute(mapping))  # type: ignore
+        return partial(bin_op_template, _op=lambda x, y: x >= y)  # type: ignore
     elif operator == "==":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) == y.compute(mapping))  # type: ignore
+        return partial(bin_op_template, _op=lambda x, y: x == y)  # type: ignore
     elif operator == "!=":
-        return partial(bin_op_template, _op=lambda x, y, mapping: x.compute(mapping) != y.compute(mapping))  # type: ignore
+        return partial(bin_op_template, _op=lambda x, y: x != y)  # type: ignore
     raise LogicOperatorError(f"Unknown operator: {operator}")
     
 
@@ -183,6 +232,10 @@ def method_factory(method_name: str) -> Callable[[Any], int]:
                 return len(x)
             return (len(str(item_x)) for item_x in x)
         return field_length
+    elif method_name == "any":
+        return lambda x: any(x) if isinstance(x, Iterable) else x
+    elif method_name == "all":
+        return lambda x: all(x) if isinstance(x, Iterable) else x
     raise WrongMethodError(f"Unknown method name: {method_name}")
 
 
@@ -202,17 +255,14 @@ FIELD_NAMES_SET = frozenset(FIELDS)
 
 class Token_T(Enum):
     START = auto()
-    L_PARENTHESIS = auto()
-    R_PARENTHESIS = auto()
-
+    KEYWORD = auto()
     STRING = auto()
     SEP = auto()
     QUERY_STRING = auto()
-
     UN_LOGIC_OP = auto()
     BIN_LOGIC_OP = auto()
-
-    KEYWORD = auto()
+    L_PARENTHESIS = auto()
+    R_PARENTHESIS = auto()
     END = auto()
 
 STRING_PLACEHOLDER = "*"
@@ -290,7 +340,7 @@ class Token(Computable):
         if self.t_type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
         if not self.value.isdecimal():
-            return self.value
+            raise WrongTokenError("Can't compute non-decimal STRING token!")
         return float(self.value)
 
 

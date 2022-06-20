@@ -310,7 +310,7 @@ class Token(Computable):
     value: str
     prev_token_type: Token_T = field(repr=False)
     t_type: Optional[Token_T] = None
-    
+
     def __post_init__(self):
         def get_expected_keys() -> str:
             nonlocal expected_types
@@ -339,7 +339,7 @@ class Token(Computable):
     def compute(self, mapping: Mapping):
         if self.t_type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
-        if not self.value.isdecimal():
+        if not self.value.lstrip("-").isdecimal():
             raise WrongTokenError("Can't compute non-decimal STRING token!")
         return float(self.value)
 
@@ -550,7 +550,6 @@ class LogicTree:
 
             if self._expressions[current_index + 1].t_type in (Token_T.R_PARENTHESIS, Token_T.END):
                 break
-
             current_index += 1
 
         current_index = start
@@ -569,7 +568,7 @@ class LogicTree:
 
             operand = self._expressions[current_index + 1]
             if isinstance(operand, Token) and operator.t_type == Token_T.END:
-                    break
+                break
 
             self._expressions.pop(current_index)
             operand = self._expressions.pop(current_index)

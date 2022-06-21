@@ -20,7 +20,7 @@ Field query:
         }
         field: thing
         Returns True if thing is in [val_1, .., val_n]
-    Equivalent to in keyword
+
 
 Methods:
     len
@@ -78,7 +78,7 @@ from enum import Enum, auto
 from functools import partial
 from functools import reduce
 import re
-from typing import Callable, Sized, ClassVar, Sequence
+from typing import Callable, Sized, ClassVar
 from typing import Iterable, Iterator
 from typing import Optional, Any, Union
 
@@ -125,9 +125,9 @@ KEYWORDS = frozenset(("in", ))
 UNARY_LOGIC = frozenset(("not", ))
 BIN_LOGIC_HIGH = frozenset(("<", "<=", ">", ">=", "==", "!="))
 BIN_LOGIC_MID = frozenset(("and", ))
-BIN_LOGIC_LOW  = frozenset(("or", ))
+BIN_LOGIC_LOW = frozenset(("or", ))
 BIN_LOGIC_PRECEDENCE = (BIN_LOGIC_HIGH, BIN_LOGIC_MID, BIN_LOGIC_LOW)
-BIN_LOGIC_SET  = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
+BIN_LOGIC_SET = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
 
 def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], Computable],
@@ -277,23 +277,21 @@ def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     raise WrongKeywordError(f"Unknown keyword: {keyword_name}")
 
 
-FIELD_VAL_SEP = ":"
 FIELD_NAMES_SET = frozenset(FIELDS)
 DIGIT_FORCE_PREFIX = "d_$"
 FIELD_FORCE_PREFIX = "f_$"
 
 
 class Token_T(Enum):
-    START = auto()
-    KEYWORD = auto()
-    STRING = auto()
-    SEP = auto()
-    QUERY_STRING = auto()
-    UN_LOGIC_OP = auto()
-    BIN_LOGIC_OP = auto()
-    L_PARENTHESIS = auto()
-    R_PARENTHESIS = auto()
-    END = auto()
+    START = auto()  # type: ignore
+    KEYWORD = auto()  # type: ignore
+    STRING = auto()  # type: ignore
+    QUERY_STRING = auto()  # type: ignore
+    UN_LOGIC_OP = auto()  # type: ignore
+    BIN_LOGIC_OP = auto()  # type: ignore
+    L_PARENTHESIS = auto()  # type: ignore
+    R_PARENTHESIS = auto()  # type: ignore
+    END = auto()  # type: ignore
 
 STRING_PLACEHOLDER = "*"
 END_PLACEHOLDER = "END"
@@ -301,39 +299,42 @@ END_PLACEHOLDER = "END"
 
 @dataclass(slots=True, frozen=True)
 class Token(Computable):
-    un_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.UN_LOGIC_OP for logic_operator in UNARY_LOGIC})
-    bin_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.BIN_LOGIC_OP for logic_operator in BIN_LOGIC_SET})
-    keyword_deduction: ClassVar[FrozenDict] = FrozenDict({keyword_name: Token_T.KEYWORD for keyword_name in KEYWORDS})
+    un_logic_deduction: ClassVar[FrozenDict] =  FrozenDict({logic_operator: Token_T.UN_LOGIC_OP for 
+                                                            logic_operator in UNARY_LOGIC})
+    bin_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.BIN_LOGIC_OP for 
+                                                            logic_operator in BIN_LOGIC_SET})
+    keyword_deduction: ClassVar[FrozenDict] =   FrozenDict({keyword_name: Token_T.KEYWORD for 
+                                                            keyword_name in KEYWORDS})
     
     next_expected: ClassVar[FrozenDict] = FrozenDict(
         {Token_T.START:         {"(": Token_T.L_PARENTHESIS,
                                  STRING_PLACEHOLDER: Token_T.STRING,
-                                 END_PLACEHOLDER: Token_T.END} | un_logic_deduction.to_dict(),
+                                 END_PLACEHOLDER: Token_T.END} 
+                                | un_logic_deduction.to_dict(),
 
-         Token_T.STRING:        {FIELD_VAL_SEP: Token_T.SEP,
-                                 "(": Token_T.L_PARENTHESIS,
+         Token_T.STRING:        {"(": Token_T.L_PARENTHESIS,
                                  ")": Token_T.R_PARENTHESIS,
-                                 END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict() | keyword_deduction.to_dict(),
+                                 END_PLACEHOLDER: Token_T.END} 
+                                | bin_logic_deduction.to_dict() 
+                                | keyword_deduction.to_dict(),
          
          Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.STRING,
                                  "(": Token_T.L_PARENTHESIS},
-        
-         Token_T.SEP:           {STRING_PLACEHOLDER: Token_T.QUERY_STRING},
-
-         Token_T.QUERY_STRING:  {")": Token_T.R_PARENTHESIS,
-                                 END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict(),
 
          Token_T.UN_LOGIC_OP:   {STRING_PLACEHOLDER: Token_T.STRING,
                                  "(": Token_T.L_PARENTHESIS},
 
          Token_T.BIN_LOGIC_OP:  {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.L_PARENTHESIS} | un_logic_deduction.to_dict(),
+                                 "(": Token_T.L_PARENTHESIS} 
+                                | un_logic_deduction.to_dict(),
 
          Token_T.L_PARENTHESIS: {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.L_PARENTHESIS} | un_logic_deduction.to_dict(),
+                                 "(": Token_T.L_PARENTHESIS} 
+                                | un_logic_deduction.to_dict(),
 
          Token_T.R_PARENTHESIS: {END_PLACEHOLDER: Token_T.END,
-                                 ")": Token_T.R_PARENTHESIS} | bin_logic_deduction.to_dict(),
+                                 ")": Token_T.R_PARENTHESIS} 
+                                | bin_logic_deduction.to_dict(),
 
          Token_T.END:           {}
          })
@@ -372,11 +373,11 @@ class Token(Computable):
             raise WrongTokenError("Can't compute non-STRING token!")
 
         if self.value.startswith(FIELD_FORCE_PREFIX):
-            return _CardFieldData(self.value[len(FIELD_FORCE_PREFIX):]).compute(mapping)
+            return FieldDataGetter(self.value[len(FIELD_FORCE_PREFIX):]).compute(mapping)
 
         if self.value.lstrip("-").isdecimal():
             return float(self.value)
-        return _CardFieldData(self.value).compute(mapping)
+        return FieldDataGetter(self.value).compute(mapping)
 
 
 class Tokenizer:
@@ -389,11 +390,6 @@ class Tokenizer:
 
         if start_ind == len(self.exp):
             return Token(END_PLACEHOLDER, prev_token_type), start_ind
-
-        if self.exp[start_ind] == FIELD_VAL_SEP:
-            return Token(value=self.exp[start_ind],
-                         prev_token_type=prev_token_type,
-                         t_type=Token_T.SEP), start_ind + 1
 
         if self.exp[start_ind] in "()":
             return Token(self.exp[start_ind], prev_token_type), start_ind + 1
@@ -411,7 +407,7 @@ class Tokenizer:
         while i < len(self.exp):
             if self.exp[i].isspace():
                 return Token(self.exp[start_ind:i], prev_token_type), i + 1
-            elif self.exp[i] in f"(){FIELD_VAL_SEP}":
+            elif self.exp[i] in f"()":
                 break
             i += 1
 
@@ -440,7 +436,7 @@ class Tokenizer:
 
 
 @dataclass(slots=True, frozen=True, init=False)
-class _CardFieldData(Computable):
+class FieldDataGetter(Computable):
     ANY_FIELD: ClassVar[str] = "$ANY"
 
     query_chain: list[str] = field(init=False, repr=True)
@@ -507,7 +503,7 @@ class _CardFieldData(Computable):
             if not isinstance(entry, Mapping):
                 return None
 
-            if current_key == _CardFieldData.ANY_FIELD:
+            if current_key == FieldDataGetter.ANY_FIELD:
                 for key in entry:
                     if (val := entry.get(key)) is not None:
                         traverse_recursively(val, chain_index + 1)
@@ -551,89 +547,94 @@ class EvalNode(Computable):
         raise TreeBuildingError("Empty node!")
 
 
-class LogicTree:
+class EvaluationTree:
     def __init__(self, tokens):
         if len(tokens) == 1:
             raise TreeBuildingError("Couldn't build from an empty query!")
         self._expressions = copy.deepcopy(tokens)
 
-    def construct(self, start: int = 0):
-        current_index = start
-        while current_index < len(self._expressions) - 2:
-            if self._expressions[current_index].t_type != Token_T.STRING:
-                if self._expressions[current_index].t_type == Token_T.L_PARENTHESIS:
-                    self._expressions.pop(current_index)
-                    self.construct(current_index)
-                current_index += 1
-                continue
+    def construct(self):
+        def build_expression(string_index: int):
+            next_item = self._expressions[string_index + 1]
 
-            if self._expressions[current_index + 1].t_type == Token_T.SEP:
-                field_query = self._expressions.pop(current_index + 2).value
-                self._expressions.pop(current_index + 1)
-                field = self._expressions.pop(current_index).value
-                self._expressions.insert(current_index,
-                                         Method(_CardFieldData(field),
-                                                partial(keyword_factory("in"), search_pattern=re.compile(field_query))))
-
-            elif self._expressions[current_index + 1].t_type == Token_T.KEYWORD:
-                query = self._expressions.pop(current_index).value
-                keyword_name = self._expressions.pop(current_index).value
+            if next_item.t_type == Token_T.KEYWORD:
+                query = self._expressions.pop(string_index).value
+                keyword_name = self._expressions.pop(string_index).value
                 keyword_function = partial(keyword_factory(keyword_name), search_pattern=re.compile(query))
-                self.construct(current_index)
-                operand = self._expressions.pop(current_index)
-                self._expressions.insert(current_index, Method(operand, keyword_function))
 
-            elif self._expressions[current_index + 1].t_type == Token_T.L_PARENTHESIS:
-                method_name = self._expressions.pop(current_index).value
+                if self._expressions[string_index].t_type == Token_T.L_PARENTHESIS:
+                    self._expressions.pop(string_index)
+                    build_expression(string_index)
+                    build_logic(string_index)
+                else:
+                    build_expression(string_index)
+
+                operand = self._expressions.pop(string_index)
+                self._expressions.insert(string_index, Method(operand, keyword_function))
+
+            elif next_item.t_type == Token_T.L_PARENTHESIS:
+                method_name = self._expressions.pop(string_index).value
                 method_function = method_factory(method_name)
-                self._expressions.pop(current_index)  # parenthesis
-                self.construct(current_index)
-                operand = self._expressions.pop(current_index)
-                self._expressions.insert(current_index, Method(operand, method_function))
+                self._expressions.pop(string_index)  # parenthesis
+                build_expression(string_index)
+                build_logic(string_index)
+                operand = self._expressions.pop(string_index)
+                self._expressions.insert(string_index, Method(operand, method_function))
 
-            if self._expressions[current_index + 1].t_type in (Token_T.R_PARENTHESIS, Token_T.END):
-                break
-            current_index += 1
+        def build_logic(start_index: int):
+            logic_start = start_index
+            while logic_start < len(self._expressions) - 2:
+                operator = self._expressions[logic_start]
+                if not isinstance(operator, Token):
+                    logic_start += 1
+                    continue
 
-        current_index = start
-        while current_index < len(self._expressions) - 2:
-            operator = self._expressions[current_index]
-            if not isinstance(operator, Token):
-                current_index += 1
-                continue
+                if operator.t_type == Token_T.L_PARENTHESIS:
+                    self._expressions.pop(logic_start)
+                    build_logic(logic_start)
+                    logic_start += 1
+                    continue
 
-            elif operator.t_type == Token_T.R_PARENTHESIS:
-                break
-
-            if operator.value not in UNARY_LOGIC:
-                current_index += 1
-                continue
-
-            operand = self._expressions[current_index + 1]
-            if isinstance(operand, Token) and operator.t_type == Token_T.END:
-                break
-
-            self._expressions.pop(current_index)
-            operand = self._expressions.pop(current_index)
-            self._expressions.insert(current_index, EvalNode(left=operand, operator=operator.value))
-
-        for current_logic_set in BIN_LOGIC_PRECEDENCE:
-            current_index = start
-            while current_index < len(self._expressions) - 2:
-                operator = self._expressions[current_index + 1]
-                if operator.t_type in (Token_T.R_PARENTHESIS, Token_T.END):
+                elif operator.t_type == Token_T.R_PARENTHESIS:
                     break
 
-                if operator.value in current_logic_set:
-                    left_operand = self._expressions.pop(current_index)
-                    self._expressions.pop(current_index)
-                    right_operand = self._expressions.pop(current_index)
-                    self._expressions.insert(current_index, EvalNode(left=left_operand, right=right_operand,
-                                                                     operator=operator.value))
-                else:
-                    current_index += 2
-        if self._expressions[start + 1].t_type == Token_T.R_PARENTHESIS:
-            self._expressions.pop(start + 1)
+                elif operator.t_type == Token_T.STRING:
+                    build_expression(logic_start)
+                    logic_start += 1
+                    continue
+
+                if operator.value not in UNARY_LOGIC:
+                    logic_start += 1
+                    continue
+
+                operand = self._expressions[logic_start + 1]
+                if isinstance(operand, Token) and operator.t_type == Token_T.END:
+                    break
+
+                self._expressions.pop(logic_start)
+                operand = self._expressions.pop(logic_start)
+                self._expressions.insert(logic_start, EvalNode(left=operand, operator=operator.value))
+
+            for current_logic_set in BIN_LOGIC_PRECEDENCE:
+                logic_start = start_index
+                while logic_start < len(self._expressions) - 2:
+                    operator = self._expressions[logic_start + 1]
+                    if operator.t_type in (Token_T.R_PARENTHESIS, Token_T.END):
+                        break
+
+                    if operator.value in current_logic_set:
+                        left_operand = self._expressions.pop(logic_start)
+                        self._expressions.pop(logic_start)  # operator
+                        right_operand = self._expressions.pop(logic_start)
+                        self._expressions.insert(logic_start, EvalNode(left=left_operand, right=right_operand,
+                                                                         operator=operator.value))
+                    else:
+                        logic_start += 2
+            if self._expressions[start_index + 1].t_type == Token_T.R_PARENTHESIS:
+                self._expressions.pop(start_index + 1)
+
+        build_logic(0)
+
 
     def get_master_node(self):
         if len(self._expressions) != 2:
@@ -653,17 +654,18 @@ def get_card_filter(expression: str) -> Callable[[Mapping], bool]:
 
 
 def main():
-    queries = ("field: query and len(inner_query in len(field))",
-               "word: test and meaning:\"some meaning\" "
-                          "or alt_terms:alt and (sentences : \"some sentences\" or tags : some_tags and (tags[pos] : noun)) "
-                          "and (len(sentences) < 5)",
-                "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
+    queries = ("query in field and len(inner_query in len(field))",
+               "test in word and \"some meaning\" in meaning "
+                   "or alt in alt_terms and (\"some sentences\" in sentences "
+                   "or some_tags in tags and (noun in tags[pos])) "
+                   "and (len(sentences) < 5)",
+               "\"test value\" in \"test tag\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-    # for query in queries:
-    #     get_card_filter(query)
+    for query in queries:
+        get_card_filter(query)
 
-    query = "/ˈɪn.sʌlt/ in reduce(insult[noun][UK_IPA])"
+    query = "/ˈɪn.sʌlt/ in lower(reduce($ANY[$ANY][UK_IPA]))"
     card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],

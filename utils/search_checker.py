@@ -225,7 +225,7 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
     raise LogicOperatorError(f"Unknown operator: {operator}")
     
 
-def method_factory(method_name: str) -> Callable[[Any], int]:
+def method_factory(method_name: str):
     if method_name == "len":
         def field_length(x):
             if isinstance(x, str):
@@ -236,6 +236,29 @@ def method_factory(method_name: str) -> Callable[[Any], int]:
         return lambda x: any(x) if isinstance(x, Iterable) else x
     elif method_name == "all":
         return lambda x: all(x) if isinstance(x, Iterable) else x
+    elif method_name == "lower":
+        def lower(x):
+            if isinstance(x, Iterable):
+                return (item_x.lower() if isinstance(item_x, str) else "" for item_x in x)
+            elif isinstance(x, str):
+                return x.lower()
+            return ""
+        return lower
+    elif method_name == "upper":
+        def upper(x):
+            if isinstance(x, Iterable):
+                return (item_x.upper() if isinstance(item_x, str) else "" for item_x in x)
+            elif isinstance(x, str):
+                return x.upper()
+            return ""
+        return upper
+    elif method_name == "reduce":
+        def reduce(x):
+            from itertools import chain
+            if isinstance(x, (list, tuple)):
+                return chain(*x)
+            return x
+        return reduce
     raise WrongMethodError(f"Unknown method name: {method_name}")
 
 
@@ -251,6 +274,8 @@ def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
 
 FIELD_VAL_SEP = ":"
 FIELD_NAMES_SET = frozenset(FIELDS)
+DIGIT_FORCE_PREFIX = "d_$"
+FIELD_FORCE_PREFIX = "f_$"
 
 
 class Token_T(Enum):
@@ -339,9 +364,13 @@ class Token(Computable):
     def compute(self, mapping: Mapping):
         if self.t_type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
-        if not self.value.lstrip("-").isdecimal():
-            raise WrongTokenError("Can't compute non-decimal STRING token!")
-        return float(self.value)
+
+        if self.value.startswith(FIELD_FORCE_PREFIX):
+            return _CardFieldData(self.value[len(FIELD_FORCE_PREFIX):]).compute(mapping)
+
+        if self.value.lstrip("-").isdecimal():
+            return float(self.value)
+        return _CardFieldData(self.value).compute(mapping)
 
 
 class Tokenizer:
@@ -461,16 +490,24 @@ class _CardFieldData(Computable):
                 result.append(entry)
                 return
 
+            current_key = self.query_chain[chain_index]
+            if current_key.startswith(DIGIT_FORCE_PREFIX):
+                current_key = int(current_key[len(DIGIT_FORCE_PREFIX):])
+                if isinstance(entry, (list, tuple)):
+                    if len(entry) > current_key:
+                        traverse_recursively(entry[current_key], chain_index + 1)
+                    return
+
             if not isinstance(entry, Mapping):
                 return None
 
-            if self.query_chain[chain_index] == _CardFieldData.ANY_FIELD:
+            if current_key == _CardFieldData.ANY_FIELD:
                 for key in entry:
                     if (val := entry.get(key)) is not None:
                         traverse_recursively(val, chain_index + 1)
-            else:
-                if (val := entry.get(self.query_chain[chain_index])) is not None:
-                    traverse_recursively(val, chain_index + 1)
+
+            if (val := entry.get(current_key)) is not None:
+                traverse_recursively(val, chain_index + 1)
 
         traverse_recursively(mapping)
         return result
@@ -620,7 +657,7 @@ def main():
     # for query in queries:
     #     get_card_filter(query)
 
-    query = "(\"(B|C)\\d\" in $ANY[$ANY][level])"
+    query = "(\"(b|c)\\d\" in lower(reduce($ANY[$ANY][level])))"
     card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],

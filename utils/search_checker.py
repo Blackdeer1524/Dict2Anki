@@ -11,62 +11,178 @@ Binary operators:
 * arithmetics operators:
     <, <=, >, >=, ==, !=
 
-Field query:
-    field : query
-    Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
-    Example:
-        {
-            field: [val_1, .., val_n]}
-        }
-        field: thing
-        Returns True if thing is in [val_1, .., val_n]
+Keywords:
+    in
+        Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
+        Example:
+            {
+                "field": [val_1, .., val_n]}
+            }
 
+            thing in field
+            Returns True if thing is in [val_1, .., val_n]
+
+
+Special queries & commands
+    $ANY
+        Gets result from the whole hierarchy level
+        Example:
+            {
+                "pos": {
+                    "noun": {
+                        "data": value_1
+                    }
+                    "verb" : {
+                        "data": value_2
+                    }
+                }
+            }
+        pos[$ANY][data] will return [value_1, value_2]
+        $ANY[$ANY][data] will also will return [value_1, value_2]
+
+    d_$
+        Will convert string expression to an integer.
+        By default, every key inside query strings
+        (for example, in field[subfield] the keys are field and subfield)
+        are treated as strings. If you have an integer key or an array
+        with specific index, then you would need to use this prefix
+
+        Example:
+            {
+                "array_field": [1, 2, 3],
+                "int_field": {
+                    1: [4, 5, 6]
+                }
+            }
+
+        array_field[d_$1] will return 2
+        int_field[d_$1] will return [4, 5, 6]
+
+    f_$
+        Will convert a degit to a field
+        By default, every stranded decimal-like strings
+        are treated as decimals. So if your scheme contains decimal as a
+        key you would need this prefix
+
+        Example:
+            {
+                1: [1, 2, 3],
+                2: {
+                    "data": [4, 5, 6]
+                }
+            }
+
+        f_$d_$1 will return [1, 2, 3]
+        You would need to also use d_$ prefix, because as 1 would be converted to
+        a <field> type, it would also be treated as a string
+        Note:
+            to get [4, 5, 6] from this scheme you would only need d_$ prefix:
+            d_$2[data]
 
 Methods:
     len
         Measures length of iterable object
         Example:
             {
-                field: [1, 2, 3]
+                "field": [1, 2, 3]
             }
             len(field) will return 3
-
-Keywords:
-    in
-        Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
+        You can also get length of obtained results
         Example:
             {
-                field: [val_1, .., val_n]}
+                "field": {
+                    "subfield_1": {
+                        "data": [1, 2, 3]
+                    },
+                    "subfield_2": {
+                        "data": [4, 5]
+                    }
+                }
             }
+            len(field[$ANY][data]) will return 2
 
-            thing in field
-            Returns True if thing is in [val_1, .., val_n]
-        Equivalent to field query
-
-
-Special fields start with $ prefix
-* ANY
-    Gets result from the whole hierarchy level
-    Example:
-        {
-        pos: {
-            noun: {
-                data: value_1
+    any
+        Returns True if one of items is True
+        Example:
+            {
+                "field": {
+                    "subfield_1": {
+                        "data": 1
+                    },
+                    "subfield_2": {
+                        "data": 2
+                    }
+                }
             }
-            verb : {
-                data: value_2
+            any(field[$ANY][data] > 1) will return True
+
+    all
+        Returns True if all items are True
+        Example:
+            {
+                "field": {
+                    "subfield_1": {
+                        "data": 1
+                    },
+                    "subfield_2": {
+                        "data": 2
+                    }
+                }
             }
-        }
-    }
-    pos[$ANY][data]:value_1 will return True
-    $ANY[$ANY][data]:value_1 also will return True
+            all($ANY[$ANY][data] > 0) will return True
+            all($ANY[$ANY][data] > 1) will return False
+
+    lower
+        Makes all strings lowercase
+        Example:
+            {
+                "field_1": ["ABC", "abc", "AbC"],
+                "field_2": "ABC"
+            }
+        lower(field_1) will return ["abc", "abc", "abc"]
+        lower(field_2) will return "abc"
+
+    upper
+        Makes all strings uppercase
+        Example:
+            {
+                "field_1": ["ABC", "abc", "AbC"],
+                "field_2": "ABC"
+            }
+        upper(field_1) will return ["ABC", "ABC", "ABC"]
+        upper(field_2) will return "ABC"
+
+    reduce
+        Flattens one layer of nested list result:
+        Example:
+            {
+                "field_1": ["a", "b", "c"],
+                "field_2": ["d", "e", "f"]
+            }
+        $ANY will return [["a", "b", "c"], ["d", "e", "f"]]
+        reduce($ANY) will return ["a", "b", "c", "d", "e", "f"]
+        Note:
+            {
+                "field_1": [["a"], ["b"], ["c"]],
+                "field_2": [[["d"], ["e"], ["f"]]]
+            }
+        $ANY will return [[["a"], ["b"], ["c"]], [[["d"], ["e"], ["f"]]]]
+        reduce($ANY) will return [["a"], ["b"], ["c"], [["d"], ["e"], ["f"]]]
+
+    Note:
+        You can also combine methods:
+        Example:
+            {
+                "field_1": ["ABC", "abc", "AbC"],
+                "field_2": ["Def", "dEF", "def"]
+            }
+        lower(reduce($ANY)) will return ["abc", "abc", "abc", "def", "def", "def"]
 
 Evaluation precedence:
-1) field queries
-2) keywords
-3) expressions in parentheses
-4) unary operators
-5) binary operators
+1) parentheses
+2) keywords, methods
+3) unary operators
+4) binary operators
 """
 
 
@@ -79,7 +195,7 @@ from functools import partial
 from functools import reduce
 import re
 from typing import Callable, Sized, ClassVar
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Generator
 from typing import Optional, Any, Union
 
 from consts.card_fields import FIELDS
@@ -135,10 +251,12 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
                                           Callable[[Union[Iterable[Computable], Computable],
                                                    Union[Iterable[Computable], Computable],
                                                    Mapping], bool]]:
+    list_like_types = (list, tuple, Generator)
+
     def operator_not(x: Union[Iterable[Computable], Computable],
                       mapping: Mapping):
         x_computed = x.compute(mapping)
-        if isinstance(x_computed, Iterable):
+        if isinstance(x_computed, list_like_types):
             return (not item for item in x)
         return not x_computed
 
@@ -148,14 +266,14 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
         x_computed = x.compute(mapping)
         y_computed = y.compute(mapping)
 
-        if isinstance(x_computed, Iterable):
-            if isinstance(y_computed, Iterable):
+        if isinstance(x_computed, list_like_types):
+            if isinstance(y_computed, list_like_types):
                 return (item_x and item_y for item_x in x_computed for item_y in y_computed)
             if not y_computed:
                 return (False, )
             return (item_x for item_x in x_computed)
 
-        if isinstance(y_computed, Iterable):
+        if isinstance(y_computed, list_like_types):
             if not x_computed:
                 return (False,)
             return (item_y for item_y in y_computed)
@@ -170,14 +288,14 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
         x_computed = x.compute(mapping)
         y_computed = y.compute(mapping)
 
-        if isinstance(x_computed, Iterable):
-            if isinstance(y_computed, Iterable):
+        if isinstance(x_computed, list_like_types):
+            if isinstance(y_computed, list_like_types):
                 return (item_x or item_y for item_x in x_computed for item_y in y_computed)
             if y_computed:
                 return (True, )
             return (item_x for item_x in x_computed)
 
-        if isinstance(y_computed, Iterable):
+        if isinstance(y_computed, list_like_types):
             if x_computed:
                 return (True,)
             return (item_y for item_y in y_computed)
@@ -195,12 +313,12 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
         x_computed = x.compute(mapping)
         y_computed = y.compute(mapping)
 
-        if isinstance(x_computed, Iterable):
-            if isinstance(y_computed, Iterable):
+        if isinstance(x_computed, list_like_types):
+            if isinstance(y_computed, list_like_types):
                 return (_op(item_x, item_y) for item_x in x_computed for item_y in y_computed)
             return (_op(item_x, y_computed) for item_x in x_computed)
 
-        if isinstance(y_computed, Iterable):
+        if isinstance(y_computed, list_like_types):
             return (_op(x_computed, item_y) for item_y in y_computed)
 
         return _op(x_computed, y_computed)
@@ -245,7 +363,7 @@ def method_factory(method_name: str):
     elif method_name == "lower":
         def lower(x):
             if isinstance(x, Iterable):
-                return (item_x.lower() if isinstance(item_x, str) else "" for item_x in x)
+                return (item_x.lower() for item_x in x if isinstance(item_x, str))
             elif isinstance(x, str):
                 return x.lower()
             return ""
@@ -253,7 +371,7 @@ def method_factory(method_name: str):
     elif method_name == "upper":
         def upper(x):
             if isinstance(x, Iterable):
-                return (item_x.upper() if isinstance(item_x, str) else "" for item_x in x)
+                return (item_x.upper() for item_x in x if isinstance(item_x, str))
             elif isinstance(x, str):
                 return x.upper()
             return ""
@@ -494,8 +612,10 @@ class FieldDataGetter(Computable):
 
             current_key = self.query_chain[chain_index]
             if current_key.startswith(DIGIT_FORCE_PREFIX):
-                current_key = int(current_key[len(DIGIT_FORCE_PREFIX):])
-                if isinstance(entry, (list, tuple)):
+                if current_key.lstrip("-").isdecimal():
+                    current_key = float(current_key[len(DIGIT_FORCE_PREFIX):])
+                elif current_key.lstrip("-").isdigit() and isinstance(entry, (list, tuple)):
+                    current_key = int(current_key[len(DIGIT_FORCE_PREFIX):])
                     if len(entry) > current_key:
                         traverse_recursively(entry[current_key], chain_index + 1)
                     return
@@ -535,15 +655,13 @@ class EvalNode(Computable):
                      Callable[[Computable, Computable, Mapping], Any]] = field(init=False, repr=False)
 
     def __post_init__(self):
-        if isinstance(self.left, Token) and isinstance(self.right, Token):
-            raise TreeBuildingError("Two STRING's in one node!")
         object.__setattr__(self, "operation", logic_factory(self.operator))
 
     def compute(self, mapping: Mapping) -> bool:
         if self.left is not None and self.right is not None:
-            return bool(self.operation(self.left, self.right, mapping))
+            return self.operation(self.left, self.right, mapping)
         elif self.left is not None:
-            return bool(self.operation(self.left, mapping))
+            return self.operation(self.left, mapping)
         raise TreeBuildingError("Empty node!")
 
 
@@ -660,13 +778,12 @@ def main():
                    "or some_tags in tags and (noun in tags[pos])) "
                    "and (len(sentences) < 5)",
                "\"test value\" in \"test tag\" and len(user_tags[image_links]) == 5",
-               "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
+               "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2",
+               "/ˈɪn.sʌlt/ in lower(reduce($ANY[$ANY][UK_IPA]))")
 
     for query in queries:
         get_card_filter(query)
 
-    query = "/ˈɪn.sʌlt/ in lower(reduce($ANY[$ANY][UK_IPA]))"
-    card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],
                             'UK_audio_link': 'https://dictionary.cambridge.org//media/english/uk_pron/u/uki/ukins/ukinstr024.mp3',
@@ -701,8 +818,35 @@ def main():
                             'labels_and_codes': [['[ T ]']],
                             'region': [[]],
                             'usage': [[]]}}}
+
+    test_card = \
+    {
+        "field": {
+            "subfield_1": {
+                "data": 1
+            },
+            "subfield_2": {
+                "data": 2
+            },
+        }
+    }
+
+    test_card = \
+    {
+        1: 2
+    }
+
+    test_card = \
+    {
+        "field_1": ["ABC", "abc", "AbC"],
+        "field_2": ["Def", "dEF", "def"]
+    }
+
+
+    query = "reduce($ANY)"
+    card_filter = get_card_filter(query)
     result = card_filter(test_card)
-    print(result)
+    print(*result)
 
 
 if __name__ == "__main__":

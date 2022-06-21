@@ -133,24 +133,28 @@ Methods:
             all($ANY[$ANY][data] > 1) will return False
 
     lower
-        Makes all strings lowercase
+        Makes all strings lowercase, discarding non-string types
         Example:
             {
-                "field_1": ["ABC", "abc", "AbC"],
-                "field_2": "ABC"
+                "field_1": ["ABC", "abc", "AbC", 1],
+                "field_2": [["1", "2", "3"]],
+                "field_3": "ABC"
             }
-        lower(field_1) will return ["abc", "abc", "abc"]
-        lower(field_2) will return "abc"
+        lower(field_1) will return ["abc", "abc", "abc", ""]
+        lower(field_2) will return ("")
+        lower(field_3) will return "abc"
 
     upper
-        Makes all strings uppercase
+        Makes all strings uppercase, discarding non-string types
         Example:
             {
-                "field_1": ["ABC", "abc", "AbC"],
-                "field_2": "ABC"
+                "field_1": ["ABC", "abc", "AbC", 1],
+                "field_2": [["1", "2", "3"]],
+                "field_3": "abc"
             }
-        upper(field_1) will return ["ABC", "ABC", "ABC"]
-        upper(field_2) will return "ABC"
+        upper(field_1) will return ["ABC", "ABC", "ABC", ""]
+        upper(field_2) will return ("")
+        upper(field_3) will return "ABC"
 
     reduce
         Flattens one layer of nested list result:
@@ -363,7 +367,7 @@ def method_factory(method_name: str):
     elif method_name == "lower":
         def lower(x):
             if isinstance(x, Iterable):
-                return (item_x.lower() for item_x in x if isinstance(item_x, str))
+                return (item_x.lower() if isinstance(item_x, str) else "" for item_x in x)
             elif isinstance(x, str):
                 return x.lower()
             return ""
@@ -371,7 +375,7 @@ def method_factory(method_name: str):
     elif method_name == "upper":
         def upper(x):
             if isinstance(x, Iterable):
-                return (item_x.upper() for item_x in x if isinstance(item_x, str))
+                return (item_x.upper() if isinstance(item_x, str) else ""  for item_x in x)
             elif isinstance(x, str):
                 return x.upper()
             return ""

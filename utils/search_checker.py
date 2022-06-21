@@ -78,12 +78,13 @@ from enum import Enum, auto
 from functools import partial
 from functools import reduce
 import re
-from typing import Callable, Sized, ClassVar
+from typing import Callable, Sized, ClassVar, Sequence
 from typing import Iterable, Iterator
 from typing import Optional, Any, Union
 
 from consts.card_fields import FIELDS
 from utils.storages import FrozenDict
+import itertools
 
 
 class ParsingException(Exception):
@@ -228,9 +229,14 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
 def method_factory(method_name: str):
     if method_name == "len":
         def field_length(x):
-            if isinstance(x, str):
+            if isinstance(x, Sized):
                 return len(x)
-            return (len(str(item_x)) for item_x in x)
+            elif isinstance(x, Iterable):
+                n = 0
+                for n, _ in enumerate(x, 1):
+                    pass
+                return n
+            return 0
         return field_length
     elif method_name == "any":
         return lambda x: any(x) if isinstance(x, Iterable) else x
@@ -254,9 +260,8 @@ def method_factory(method_name: str):
         return upper
     elif method_name == "reduce":
         def reduce(x):
-            from itertools import chain
-            if isinstance(x, (list, tuple)):
-                return chain(*x)
+            if isinstance(x, (list, tuple)) and len(x) and isinstance(x[0], (list, tuple)):
+                return itertools.chain(*x)
             return x
         return reduce
     raise WrongMethodError(f"Unknown method name: {method_name}")
@@ -266,8 +271,8 @@ def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     if keyword_name == "in":
         def field_contains(collection: Iterable, search_pattern: re.Pattern):
             if isinstance(collection, str):
-                return re.search(search_pattern, collection) is not None
-            return any((re.search(search_pattern, str(item)) is not None for item in collection))
+                return re.match(search_pattern, collection) is not None
+            return any((re.match(search_pattern, str(item)) is not None for item in collection))
         return field_contains
     raise WrongKeywordError(f"Unknown keyword: {keyword_name}")
 
@@ -310,7 +315,8 @@ class Token(Computable):
                                  ")": Token_T.R_PARENTHESIS,
                                  END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict() | keyword_deduction.to_dict(),
          
-         Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.STRING},
+         Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.STRING,
+                                 "(": Token_T.L_PARENTHESIS},
         
          Token_T.SEP:           {STRING_PLACEHOLDER: Token_T.QUERY_STRING},
 
@@ -441,7 +447,7 @@ class _CardFieldData(Computable):
     
     def __init__(self, path: str):
         self._check_nested_path(path)
-        chain = []
+        path_chain = []
 
         start = current_index = 0
         while current_index < len(path) and path[current_index] != "[":
@@ -450,16 +456,16 @@ class _CardFieldData(Computable):
 
         while current_index < len(path):
             if path[current_index] == "[":
-                chain.append(path[start:last_closed_bracket])
+                path_chain.append(path[start:last_closed_bracket])
                 start = current_index + 1
             elif path[current_index] == "]":
                 last_closed_bracket = current_index
             current_index += 1
 
         if start != current_index:
-            chain.append(path[start:last_closed_bracket])
+            path_chain.append(path[start:last_closed_bracket])
 
-        object.__setattr__(self, "query_chain", chain)
+        object.__setattr__(self, "query_chain", path_chain)
 
     @staticmethod
     def _check_nested_path(path) -> None:
@@ -657,7 +663,7 @@ def main():
     # for query in queries:
     #     get_card_filter(query)
 
-    query = "(\"(b|c)\\d\" in lower(reduce($ANY[$ANY][level])))"
+    query = "/ˈɪn.sʌlt/ in reduce(insult[noun][UK_IPA])"
     card_filter = get_card_filter(query)
     test_card = {'insult':
                   {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],
@@ -689,8 +695,8 @@ def main():
                             'examples': [['First he drank all my wine and then he insulted all '
                                           'my friends.']],
                             'image_links': [''],
-                            'labels_and_codes': [['[ T ]']],
                             'level': ['C1'],
+                            'labels_and_codes': [['[ T ]']],
                             'region': [[]],
                             'usage': [[]]}}}
     result = card_filter(test_card)

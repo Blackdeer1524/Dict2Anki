@@ -16,10 +16,11 @@ Field query:
     Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
     Example:
         {
-            field: value}
+            field: [val_1, .., val_n]}
         }
         field: thing
-        Returns True if thing is in value
+        Returns True if thing is in [val_1, .., val_n]
+    Equivalent to in keyword
 
 Methods:
     len
@@ -40,7 +41,25 @@ Keywords:
 
             thing in field
             Returns True if thing is in [val_1, .., val_n]
+        Equivalent to field query
 
+
+Special fields start with $ prefix
+* ANY
+    Gets result from the whole hierarchy level
+    Example:
+        {
+        pos: {
+            noun: {
+                data: value_1
+            }
+            verb : {
+                data: value_2
+            }
+        }
+    }
+    pos[$ANY][data]:value_1 will return True
+    $ANY[$ANY][data]:value_1 also will return True
 
 Evaluation precedence:
 1) field queries
@@ -60,11 +79,10 @@ from functools import partial
 from functools import reduce
 import re
 from typing import Callable, Sized, ClassVar
-from typing import Iterable
+from typing import Iterable, Iterator
 from typing import Optional, Any, Union
 
 from consts.card_fields import FIELDS
-from utils.cards import Card
 from utils.storages import FrozenDict
 
 
@@ -96,6 +114,12 @@ class TreeBuildingError(ParsingException):
     pass
 
 
+class Computable(ABC):
+    @abstractmethod
+    def compute(self, mapping: Mapping):
+        pass
+
+
 KEYWORDS = frozenset(("in", ))
 UNARY_LOGIC = frozenset(("not", ))
 BIN_LOGIC_HIGH = frozenset(("<", "<=", ">", ">=", "==", "!="))
@@ -105,129 +129,213 @@ BIN_LOGIC_PRECEDENCE = (BIN_LOGIC_HIGH, BIN_LOGIC_MID, BIN_LOGIC_LOW)
 BIN_LOGIC_SET  = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
 
-def logic_factory(operator: str) -> Union[Callable[[bool], bool],
-                                          Callable[[bool, bool], bool]]:
+def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], Computable],
+                                                   Mapping], bool],
+                                          Callable[[Union[Iterable[Computable], Computable],
+                                                   Union[Iterable[Computable], Computable],
+                                                   Mapping], bool]]:
+    def operator_not(x: Union[Iterable[Computable], Computable],
+                      mapping: Mapping):
+        x_computed = x.compute(mapping)
+        if isinstance(x_computed, Iterable):
+            return (not item for item in x)
+        return not x_computed
+
+    def operator_and(x: Union[Iterable[Computable], Computable],
+                     y: Union[Iterable[Computable], Computable],
+                     mapping: Mapping):
+        x_computed = x.compute(mapping)
+        y_computed = y.compute(mapping)
+
+        if isinstance(x_computed, Iterable):
+            if isinstance(y_computed, Iterable):
+                return (item_x and item_y for item_x in x_computed for item_y in y_computed)
+            if not y_computed:
+                return (False, )
+            return (item_x for item_x in x_computed)
+
+        if isinstance(y_computed, Iterable):
+            if not x_computed:
+                return (False,)
+            return (item_y for item_y in y_computed)
+
+        if not x_computed:
+            return False
+        return y_computed
+
+    def operator_or(x: Union[Iterable[Computable], Computable],
+                    y: Union[Iterable[Computable], Computable],
+                    mapping: Mapping):
+        x_computed = x.compute(mapping)
+        y_computed = y.compute(mapping)
+
+        if isinstance(x_computed, Iterable):
+            if isinstance(y_computed, Iterable):
+                return (item_x or item_y for item_x in x_computed for item_y in y_computed)
+            if y_computed:
+                return (True, )
+            return (item_x for item_x in x_computed)
+
+        if isinstance(y_computed, Iterable):
+            if x_computed:
+                return (True,)
+            return (item_y for item_y in y_computed)
+
+        if x_computed:
+            return True
+
+        return y_computed
+
+
+    def bin_op_template(x: Union[Iterable[Computable], Computable],
+                        y: Union[Iterable[Computable], Computable],
+                        mapping: Mapping,
+                        _op: Callable[[Any, Any], bool]):
+        x_computed = x.compute(mapping)
+        y_computed = y.compute(mapping)
+
+        if isinstance(x_computed, Iterable):
+            if isinstance(y_computed, Iterable):
+                return (_op(item_x, item_y) for item_x in x_computed for item_y in y_computed)
+            return (_op(item_x, y_computed) for item_x in x_computed)
+
+        if isinstance(y_computed, Iterable):
+            return (_op(x_computed, item_y) for item_y in y_computed)
+
+        return _op(x_computed, y_computed)
+
     if operator == "not":
-        return lambda x: not x
+        return operator_not
     elif operator == "and":
-        return lambda x, y: x and y
+        return operator_and
     elif operator == "or":
-        return lambda x, y: x or y
+        return operator_or
     elif operator == "<":
-        return lambda x, y: x < y
+        return partial(bin_op_template, _op=lambda x, y: x < y)  # type: ignore
     elif operator == "<=":
-        return lambda x, y: x <= y
+        return partial(bin_op_template, _op=lambda x, y: x <= y) # type: ignore
     elif operator == ">":
-        return lambda x, y: x > y
+        return partial(bin_op_template, _op=lambda x, y: x > y)  # type: ignore
     elif operator == ">=":
-        return lambda x, y: x >= y
+        return partial(bin_op_template, _op=lambda x, y: x >= y)  # type: ignore
     elif operator == "==":
-        return lambda x, y: x == y
+        return partial(bin_op_template, _op=lambda x, y: x == y)  # type: ignore
     elif operator == "!=":
-        return lambda x, y: x != y
+        return partial(bin_op_template, _op=lambda x, y: x != y)  # type: ignore
     raise LogicOperatorError(f"Unknown operator: {operator}")
     
 
-def method_factory(method_name: str) -> Callable[[Any], int]:
+def method_factory(method_name: str):
     if method_name == "len":
-        def field_length(x: Sized):
-            try:
+        def field_length(x):
+            if isinstance(x, str):
                 return len(x)
-            except TypeError:
-                return False
+            return (len(str(item_x)) for item_x in x)
         return field_length
+    elif method_name == "any":
+        return lambda x: any(x) if isinstance(x, Iterable) else x
+    elif method_name == "all":
+        return lambda x: all(x) if isinstance(x, Iterable) else x
+    elif method_name == "lower":
+        def lower(x):
+            if isinstance(x, Iterable):
+                return (item_x.lower() if isinstance(item_x, str) else "" for item_x in x)
+            elif isinstance(x, str):
+                return x.lower()
+            return ""
+        return lower
+    elif method_name == "upper":
+        def upper(x):
+            if isinstance(x, Iterable):
+                return (item_x.upper() if isinstance(item_x, str) else "" for item_x in x)
+            elif isinstance(x, str):
+                return x.upper()
+            return ""
+        return upper
+    elif method_name == "reduce":
+        def reduce(x):
+            from itertools import chain
+            if isinstance(x, (list, tuple)):
+                return chain(*x)
+            return x
+        return reduce
     raise WrongMethodError(f"Unknown method name: {method_name}")
 
 
 def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     if keyword_name == "in":
         def field_contains(collection: Iterable, search_pattern: re.Pattern):
-            try:
-                return any((re.search(search_pattern, str(item)) for item in collection))
-            except TypeError:
-                return False
+            if isinstance(collection, str):
+                return re.search(search_pattern, collection) is not None
+            return any((re.search(search_pattern, str(item)) is not None for item in collection))
         return field_contains
     raise WrongKeywordError(f"Unknown keyword: {keyword_name}")
 
 
 FIELD_VAL_SEP = ":"
 FIELD_NAMES_SET = frozenset(FIELDS)
+DIGIT_FORCE_PREFIX = "d_$"
+FIELD_FORCE_PREFIX = "f_$"
 
 
 class Token_T(Enum):
     START = auto()
-    STRING = auto()
     KEYWORD = auto()
+    STRING = auto()
     SEP = auto()
     QUERY_STRING = auto()
     UN_LOGIC_OP = auto()
     BIN_LOGIC_OP = auto()
-    METHOD_LP = auto()
-    METHOD_STRING = auto()
-    METHOD_RP = auto()
-    LOGIC_LP = auto()
-    LOGIC_RP = auto()
+    L_PARENTHESIS = auto()
+    R_PARENTHESIS = auto()
     END = auto()
 
 STRING_PLACEHOLDER = "*"
 END_PLACEHOLDER = "END"
 
 
-class Expression(ABC):
-    @abstractmethod
-    def compute(self, card: Card):
-        pass
-
-
-@dataclass(frozen=True)
-class Token(Expression):
+@dataclass(slots=True, frozen=True)
+class Token(Computable):
     un_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.UN_LOGIC_OP for logic_operator in UNARY_LOGIC})
     bin_logic_deduction: ClassVar[FrozenDict] = FrozenDict({logic_operator: Token_T.BIN_LOGIC_OP for logic_operator in BIN_LOGIC_SET})
     keyword_deduction: ClassVar[FrozenDict] = FrozenDict({keyword_name: Token_T.KEYWORD for keyword_name in KEYWORDS})
     
     next_expected: ClassVar[FrozenDict] = FrozenDict(
-        {Token_T.START:         {"(": Token_T.LOGIC_LP,
+        {Token_T.START:         {"(": Token_T.L_PARENTHESIS,
                                  STRING_PLACEHOLDER: Token_T.STRING,
                                  END_PLACEHOLDER: Token_T.END} | un_logic_deduction.to_dict(),
 
          Token_T.STRING:        {FIELD_VAL_SEP: Token_T.SEP,
-                                 "(": Token_T.METHOD_LP,
-                                 ")": Token_T.LOGIC_RP,
+                                 "(": Token_T.L_PARENTHESIS,
+                                 ")": Token_T.R_PARENTHESIS,
                                  END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict() | keyword_deduction.to_dict(),
          
-         Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.QUERY_STRING},
+         Token_T.KEYWORD:       {STRING_PLACEHOLDER: Token_T.STRING},
         
          Token_T.SEP:           {STRING_PLACEHOLDER: Token_T.QUERY_STRING},
 
-         Token_T.QUERY_STRING:  {")": Token_T.LOGIC_RP,
+         Token_T.QUERY_STRING:  {")": Token_T.R_PARENTHESIS,
                                  END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict(),
 
          Token_T.UN_LOGIC_OP:   {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.LOGIC_LP},
+                                 "(": Token_T.L_PARENTHESIS},
 
          Token_T.BIN_LOGIC_OP:  {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.LOGIC_LP} | un_logic_deduction.to_dict(),
+                                 "(": Token_T.L_PARENTHESIS} | un_logic_deduction.to_dict(),
 
-         Token_T.METHOD_LP:     {STRING_PLACEHOLDER: Token_T.METHOD_STRING},
+         Token_T.L_PARENTHESIS: {STRING_PLACEHOLDER: Token_T.STRING,
+                                 "(": Token_T.L_PARENTHESIS} | un_logic_deduction.to_dict(),
 
-         Token_T.METHOD_STRING: {")": Token_T.METHOD_RP},
-
-         Token_T.METHOD_RP:     {")": Token_T.LOGIC_RP,
-                                 END_PLACEHOLDER: Token_T.END} | bin_logic_deduction.to_dict(),
-
-         Token_T.LOGIC_LP:      {STRING_PLACEHOLDER: Token_T.STRING,
-                                 "(": Token_T.LOGIC_LP} | un_logic_deduction.to_dict(),
-
-         Token_T.LOGIC_RP:      {END_PLACEHOLDER: Token_T.END,
-                                 ")": Token_T.LOGIC_RP} | bin_logic_deduction.to_dict(),
+         Token_T.R_PARENTHESIS: {END_PLACEHOLDER: Token_T.END,
+                                 ")": Token_T.R_PARENTHESIS} | bin_logic_deduction.to_dict(),
 
          Token_T.END:           {}
          })
     
     value: str
     prev_token_type: Token_T = field(repr=False)
-    type: Optional[Token_T] = None
-    
+    t_type: Optional[Token_T] = None
+
     def __post_init__(self):
         def get_expected_keys() -> str:
             nonlocal expected_types
@@ -238,10 +346,10 @@ class Token(Expression):
             return f"[{' '.join([token.name for token in expected_types.values()])}] were expected!"
 
         expected_types: FrozenDict[str, Token_T] = Token.next_expected[self.prev_token_type]
-        if self.type is not None:
-            if (self.type == Token_T.STRING and expected_types.get(STRING_PLACEHOLDER)) is None or \
+        if self.t_type is not None:
+            if (self.t_type == Token_T.STRING and expected_types.get(STRING_PLACEHOLDER)) is None or \
                 expected_types.get(self.value) is None:
-                raise WrongTokenError(f"Unexpected forced token! \"{self.type}\" was forced when "
+                raise WrongTokenError(f"Unexpected forced token! \"{self.t_type}\" was forced when "
                                       f"{get_expected_values()}")
             return
 
@@ -249,16 +357,20 @@ class Token(Expression):
             if (str_type := expected_types.get(STRING_PLACEHOLDER)) is None:
                 raise WrongTokenError(f"Unexpected token! \"{self.value}\" was given when "
                                       f"{get_expected_keys()}")
-            super().__setattr__("type", str_type)
+            object.__setattr__(self, "t_type", str_type)
             return
-        super().__setattr__("type", deduced_type)
+        object.__setattr__(self, "t_type", deduced_type)
 
-    def compute(self, card: Card):
-        if self.type != Token_T.STRING:
+    def compute(self, mapping: Mapping):
+        if self.t_type != Token_T.STRING:
             raise WrongTokenError("Can't compute non-STRING token!")
-        if not self.value.isdecimal():
-            raise WrongTokenError("Can't compute non-decimal STRING token!")
-        return float(self.value)
+
+        if self.value.startswith(FIELD_FORCE_PREFIX):
+            return _CardFieldData(self.value[len(FIELD_FORCE_PREFIX):]).compute(mapping)
+
+        if self.value.lstrip("-").isdecimal():
+            return float(self.value)
+        return _CardFieldData(self.value).compute(mapping)
 
 
 class Tokenizer:
@@ -275,7 +387,7 @@ class Tokenizer:
         if self.exp[start_ind] == FIELD_VAL_SEP:
             return Token(value=self.exp[start_ind],
                          prev_token_type=prev_token_type,
-                         type=Token_T.SEP), start_ind + 1
+                         t_type=Token_T.SEP), start_ind + 1
 
         if self.exp[start_ind] in "()":
             return Token(self.exp[start_ind], prev_token_type), start_ind + 1
@@ -315,14 +427,16 @@ class Tokenizer:
                 parenthesis_counter -= 1
                 if parenthesis_counter < 0:
                     raise QuerySyntaxError("Too many closing parentheses!")
-            current_token_type = cur_token.type
+            current_token_type = cur_token.t_type
         if parenthesis_counter:
             raise QuerySyntaxError("Too many opening parentheses!")
         return res
 
 
-@dataclass(frozen=True, init=False)
-class _CardFieldData:
+@dataclass(slots=True, frozen=True, init=False)
+class _CardFieldData(Computable):
+    ANY_FIELD: ClassVar[str] = "$ANY"
+
     query_chain: list[str] = field(init=False, repr=True)
     
     def __init__(self, path: str):
@@ -345,8 +459,8 @@ class _CardFieldData:
         if start != current_index:
             chain.append(path[start:last_closed_bracket])
 
-        super().__setattr__("query_chain", chain)
-    
+        object.__setattr__(self, "query_chain", chain)
+
     @staticmethod
     def _check_nested_path(path) -> None:
         bracket_stack = 0
@@ -365,146 +479,124 @@ class _CardFieldData:
             for i in range(last_closing_bracket + 1, len(path)):
                 if not path[i].isspace():
                     raise QuerySyntaxError("Wrong bracket sequence in field query!")
-    
-    def get_field_data(self, card: Card) -> Any:
+
+    def compute(self, mapping: Mapping) -> list[Any]:
         """query_chain: chain of keys"""
-        current_entry = card
-        for key in self.query_chain:
-            if not isinstance(current_entry, Mapping):
+        result = []
+
+        def traverse_recursively(entry: Union[Mapping, Any], chain_index: int = 0) -> None:
+            nonlocal result
+            if chain_index == len(self.query_chain):
+                result.append(entry)
+                return
+
+            current_key = self.query_chain[chain_index]
+            if current_key.startswith(DIGIT_FORCE_PREFIX):
+                current_key = int(current_key[len(DIGIT_FORCE_PREFIX):])
+                if isinstance(entry, (list, tuple)):
+                    if len(entry) > current_key:
+                        traverse_recursively(entry[current_key], chain_index + 1)
+                    return
+
+            if not isinstance(entry, Mapping):
                 return None
 
-            current_entry = current_entry.get(key)
-            if current_entry is None:
-                return None
-        return current_entry
+            if current_key == _CardFieldData.ANY_FIELD:
+                for key in entry:
+                    if (val := entry.get(key)) is not None:
+                        traverse_recursively(val, chain_index + 1)
+
+            if (val := entry.get(current_key)) is not None:
+                traverse_recursively(val, chain_index + 1)
+
+        traverse_recursively(mapping)
+        return result
 
 
-@dataclass(frozen=True)
-class FieldExpression(Expression):
-    card_field_data: _CardFieldData
+@dataclass(slots=True, frozen=True)
+class Method(Computable):
+    operand: Computable
 
-
-@dataclass(frozen=True)
-class FieldCheck(FieldExpression):
-    query: str
-    compiled_query: re.Pattern = field(init=False, repr=False)
-    
-    def __post_init__(self):
-        super().__setattr__("compiled_query", re.compile(self.query))
-    
-    def compute(self, card: Card) -> bool:
-        field_data = self.card_field_data.get_field_data(card)
-        if not isinstance(field_data, str):
-            return False
-        return re.search(self.compiled_query, field_data) is not None
-
-
-@dataclass(frozen=True)
-class Method(FieldExpression):
     method: Callable[[Any], int]
-    
-    def compute(self, card: Card) -> int:
-        field_data = self.card_field_data.get_field_data(card)
-        return self.method(self.card_field_data.get_field_data(card)) if field_data is not None else 0
+
+    def compute(self, mapping: Mapping) -> Union[Iterator[int], int]:
+        computed_operand = self.operand.compute(mapping)
+        return self.method(computed_operand)
 
 
-class TokenParser:
-    def __init__(self, tokens: list[Token]):
-        self._tokens: list[Token] = tokens
-        self._expressions: list[Union[Expression, Token]] = []
-
-    def get_field_check(self, index: int) -> tuple[Union[FieldCheck, None], int]:
-        """index: STRING token index"""
-        if self._tokens[index + 1].type == Token_T.SEP and \
-           self._tokens[index + 2].type == Token_T.QUERY_STRING:
-            return FieldCheck(_CardFieldData(self._tokens[index].value), self._tokens[index + 2].value), 2
-        return None, 0
-
-    def get_method(self, index: int) -> tuple[Union[Method, None], int]:
-        """index: STRING token index"""
-        if self._tokens[index + 1].type == Token_T.METHOD_LP and \
-           self._tokens[index + 2].type == Token_T.METHOD_STRING and \
-           self._tokens[index + 3].type == Token_T.METHOD_RP:
-            return Method(_CardFieldData(self._tokens[index + 2].value), method_factory(self._tokens[index].value)), 3
-        return None, 0
-    
-    def get_keyword(self, index: int):
-        if self._tokens[index + 1].type == Token_T.KEYWORD and \
-           self._tokens[index + 2].type == Token_T.QUERY_STRING:
-            return Method(_CardFieldData(self._tokens[index + 2].value),
-                          partial(keyword_factory(self._tokens[index + 1].value),
-                                  search_pattern=re.compile(self._tokens[index].value))), 2
-        return None, 0
-        
-    def _promote_to_expressions(self):
-        i = 0
-        while i < len(self._tokens):
-            if self._tokens[i].type == Token_T.STRING:
-                res, offset = self.get_field_check(i)
-                if res is None:
-                    res, offset = self.get_method(i)
-
-                if res is None:
-                    res, offset = self.get_keyword(i)
-
-                if res is None:
-                    if not self._tokens[i].value.isdecimal():
-                        raise WrongTokenError(f"Decimal type expected, \"{self._tokens[i].value}\" was given!")
-
-                    self._expressions.append(self._tokens[i])
-                else:
-                    self._expressions.append(res)
-                i += offset
-            else:
-                self._expressions.append(self._tokens[i])
-            i += 1
-
-    def tokens2expressions(self) -> list[Union[Expression, Token]]:
-        self._promote_to_expressions()
-        return self._expressions
-
-
-@dataclass(frozen=True)
-class EvalNode(Expression):
+@dataclass(slots=True, frozen=True)
+class EvalNode(Computable):
     operator: str
-    left: Optional[Union[Expression, Token]] = None
-    right: Optional[Union[Expression, Token]] = None
-    operation: Union[Callable[[Any],      bool],
-                     Callable[[Any, Any], bool]] = field(init=False, repr=False)
+    left: Optional[Union[Computable, Token]] = None
+    right: Optional[Union[Computable, Token]] = None
+    operation: Union[Callable[[Computable, Mapping],             Any],
+                     Callable[[Computable, Computable, Mapping], Any]] = field(init=False, repr=False)
 
     def __post_init__(self):
         if isinstance(self.left, Token) and isinstance(self.right, Token):
             raise TreeBuildingError("Two STRING's in one node!")
-        super().__setattr__("operation", logic_factory(self.operator))
+        object.__setattr__(self, "operation", logic_factory(self.operator))
 
-    def compute(self, card: Card) -> bool:
+    def compute(self, mapping: Mapping) -> bool:
         if self.left is not None and self.right is not None:
-            return self.operation(self.left.compute(card), self.right.compute(card))
+            return bool(self.operation(self.left, self.right, mapping))
         elif self.left is not None:
-            return self.operation(self.left.compute(card))
+            return bool(self.operation(self.left, mapping))
         raise TreeBuildingError("Empty node!")
 
 
 class LogicTree:
-    def __init__(self, expressions):
-        if len(expressions) == 1:
+    def __init__(self, tokens):
+        if len(tokens) == 1:
             raise TreeBuildingError("Couldn't build from an empty query!")
-        self._expressions = copy.deepcopy(expressions)
+        self._expressions = copy.deepcopy(tokens)
 
     def construct(self, start: int = 0):
         current_index = start
-        while current_index < len(self._expressions) - 1:
+        while current_index < len(self._expressions) - 2:
+            if self._expressions[current_index].t_type != Token_T.STRING:
+                if self._expressions[current_index].t_type == Token_T.L_PARENTHESIS:
+                    self._expressions.pop(current_index)
+                    self.construct(current_index)
+                current_index += 1
+                continue
+
+            if self._expressions[current_index + 1].t_type == Token_T.SEP:
+                field_query = self._expressions.pop(current_index + 2).value
+                self._expressions.pop(current_index + 1)
+                field = self._expressions.pop(current_index).value
+                self._expressions.insert(current_index,
+                                         Method(_CardFieldData(field),
+                                                partial(keyword_factory("in"), search_pattern=re.compile(field_query))))
+
+            elif self._expressions[current_index + 1].t_type == Token_T.KEYWORD:
+                query = self._expressions.pop(current_index).value
+                keyword_name = self._expressions.pop(current_index).value
+                keyword_function = partial(keyword_factory(keyword_name), search_pattern=re.compile(query))
+                self.construct(current_index)
+                operand = self._expressions.pop(current_index)
+                self._expressions.insert(current_index, Method(operand, keyword_function))
+
+            elif self._expressions[current_index + 1].t_type == Token_T.L_PARENTHESIS:
+                method_name = self._expressions.pop(current_index).value
+                method_function = method_factory(method_name)
+                self._expressions.pop(current_index)  # parenthesis
+                self.construct(current_index)
+                operand = self._expressions.pop(current_index)
+                self._expressions.insert(current_index, Method(operand, method_function))
+
+            if self._expressions[current_index + 1].t_type in (Token_T.R_PARENTHESIS, Token_T.END):
+                break
+            current_index += 1
+
+        current_index = start
+        while current_index < len(self._expressions) - 2:
             operator = self._expressions[current_index]
             if not isinstance(operator, Token):
                 current_index += 1
                 continue
 
-            if operator.type == Token_T.LOGIC_LP:
-                self._expressions.pop(current_index)
-                self.construct(current_index)
-                current_index += 1
-                continue
-            elif operator.type == Token_T.LOGIC_RP:
+            elif operator.t_type == Token_T.R_PARENTHESIS:
                 break
 
             if operator.value not in UNARY_LOGIC:
@@ -512,12 +604,8 @@ class LogicTree:
                 continue
 
             operand = self._expressions[current_index + 1]
-            if isinstance(operand, Token):
-                if operand.type == Token_T.LOGIC_LP:
-                    self._expressions.pop(current_index + 1)
-                    self.construct(current_index + 1)
-                elif operator.type == Token_T.END:
-                    break
+            if isinstance(operand, Token) and operator.t_type == Token_T.END:
+                break
 
             self._expressions.pop(current_index)
             operand = self._expressions.pop(current_index)
@@ -525,9 +613,9 @@ class LogicTree:
 
         for current_logic_set in BIN_LOGIC_PRECEDENCE:
             current_index = start
-            while current_index < len(self._expressions) - 1:
+            while current_index < len(self._expressions) - 2:
                 operator = self._expressions[current_index + 1]
-                if operator.type in (Token_T.LOGIC_RP, Token_T.END):
+                if operator.t_type in (Token_T.R_PARENTHESIS, Token_T.END):
                     break
 
                 if operator.value in current_logic_set:
@@ -538,54 +626,73 @@ class LogicTree:
                                                                      operator=operator.value))
                 else:
                     current_index += 2
-        self._expressions.pop(start + 1)
+        if self._expressions[start + 1].t_type == Token_T.R_PARENTHESIS:
+            self._expressions.pop(start + 1)
 
     def get_master_node(self):
-        if len(self._expressions) != 1:
+        if len(self._expressions) != 2:
             raise TreeBuildingError("Error creating a syntax tree!")
         return self._expressions[0]
 
 
-def get_card_filter(expression: str) -> Callable[[Card], bool]:
+def get_card_filter(expression: str) -> Callable[[Mapping], bool]:
     _tokenizer = Tokenizer(expression)
     tokens = _tokenizer.get_tokens()
-    if tokens[0].type == Token_T.END:
+    if tokens[0].t_type == Token_T.END:
         return lambda x: True
 
-    _token_parser = TokenParser(tokens=tokens)
-    expressions = _token_parser.tokens2expressions()
-    _logic_tree = LogicTree(expressions)
+    _logic_tree = LogicTree(tokens)
     _logic_tree.construct()
     return _logic_tree.get_master_node().compute
 
 
 def main():
-    queries = ("word: test and meaning:\"some meaning\" "
+    queries = ("field: query and len(inner_query in len(field))",
+               "word: test and meaning:\"some meaning\" "
                           "or alt_terms:alt and (sentences : \"some sentences\" or tags : some_tags and (tags[pos] : noun)) "
                           "and (len(sentences) < 5)",
                 "\"test tag\": \"test value\" and len(user_tags[image_links]) == 5",
                "len(\"meaning [  test  ][tag]\") == 2 or len(meaning[test][tag]) != 2")
 
-
     # for query in queries:
     #     get_card_filter(query)
 
-    # query = "1 == len(Sen_Ex)"
-    query = "test in word"
+    query = "(\"(b|c)\\d\" in lower(reduce($ANY[$ANY][level])))"
     card_filter = get_card_filter(query)
-    test_card = {
-        "word": "test",
-        "meaning": "to do something in order to discover if something is safe, works correctly, etc., or if something is present",
-        "Sen_Ex": [
-            "The manufacturers are currently testing the new engine.",
-            "They tested her blood for signs of the infection."
-        ],
-        "level": [
-            "B2"
-        ],
-        "pos": "verb",
-        "audio_link": "https://dictionary.cambridge.org//media/english/us_pron/t/tes/test_/test.mp3"
-    }
+    test_card = {'insult':
+                  {'noun': {'UK_IPA': ['/ˈɪn.sʌlt/'],
+                            'UK_audio_link': 'https://dictionary.cambridge.org//media/english/uk_pron/u/uki/ukins/ukinstr024.mp3',
+                            'US_IPA': ['/ˈɪn.sʌlt/'],
+                            'US_audio_link': 'https://dictionary.cambridge.org//media/english/us_pron/i/ins/insul/insult_01_01.mp3',
+                            'alt_terms': [[]],
+                            'definitions': ['an offensive remark or action'],
+                            'domain': [[]],
+                            'examples': [['She made several insults about my appearance.',
+                                          "The steelworkers' leader rejected the two percent "
+                                          'pay rise saying it was an insult to the profession.',
+                                          'The instructions are so easy they are an insult to '
+                                          'your intelligence (= they seem to suggest you are '
+                                          'not clever if you need to use them).']],
+                            'image_links': [''],
+                            'labels_and_codes': [['[ C ]']],
+                            'level': ['C2'],
+                            'region': [[]],
+                            'usage': [[]]},
+                   'verb': {'UK_IPA': ['/ɪnˈsʌlt/'],
+                            'UK_audio_link': 'https://dictionary.cambridge.org//media/english/uk_pron/u/uki/ukins/ukinstr025.mp3',
+                            'US_IPA': ['/ɪnˈsʌlt/'],
+                            'US_audio_link': 'https://dictionary.cambridge.org//media/english/us_pron/i/ins/insul/insult_01_00.mp3',
+                            'alt_terms': [[]],
+                            'definitions': ['to say or do something to someone that is rude or '
+                                            'offensive'],
+                            'domain': [[]],
+                            'examples': [['First he drank all my wine and then he insulted all '
+                                          'my friends.']],
+                            'image_links': [''],
+                            'labels_and_codes': [['[ T ]']],
+                            'level': ['C1'],
+                            'region': [[]],
+                            'usage': [[]]}}}
     result = card_filter(test_card)
     print(result)
 

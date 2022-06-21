@@ -648,7 +648,7 @@ def get_card_filter(expression: str) -> Callable[[Mapping], bool]:
     if tokens[0].t_type == Token_T.END:
         return lambda x: True
 
-    _logic_tree = LogicTree(tokens)
+    _logic_tree = EvaluationTree(tokens)
     _logic_tree.construct()
     return _logic_tree.get_master_node().compute
 

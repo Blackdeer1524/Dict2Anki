@@ -611,7 +611,7 @@ class FieldDataGetter(Computable):
         def traverse_recursively(entry: Union[Mapping, Any], chain_index: int = 0) -> None:
             nonlocal result
             if chain_index == len(self.query_chain):
-                result.append(entry)
+                result.append(list(entry.keys())) if isinstance(entry, Mapping) else entry
                 return
 
             current_key = self.query_chain[chain_index]
@@ -823,35 +823,10 @@ def main():
                             'region': [[]],
                             'usage': [[]]}}}
 
-    test_card = \
-    {
-        "field": {
-            "subfield_1": {
-                "data": 1
-            },
-            "subfield_2": {
-                "data": 2
-            },
-        }
-    }
-
-    test_card = \
-    {
-        1: 2
-    }
-
-    test_card = \
-    {
-        "field_1": ["ABC", "abc", "AbC"],
-        "field_2": ["Def", "dEF", "def"]
-    }
-
-
-    query = "reduce($ANY)"
+    query = "noun in reduce(insult)"
     card_filter = get_card_filter(query)
     result = card_filter(test_card)
-    print(*result)
-
+    print(result)
 
 if __name__ == "__main__":
     main()

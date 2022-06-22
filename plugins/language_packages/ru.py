@@ -19,6 +19,7 @@ add_card_menu_label = "Добавить"
 search_inside_deck_menu_label = "Перейти"
 statistics_menu_label = "Статистика"
 themes_menu_label = "Тема"
+language_menu_label = "Язык"
 anki_config_menu_label = "Anki"
 exit_menu_label = "Выход"
 

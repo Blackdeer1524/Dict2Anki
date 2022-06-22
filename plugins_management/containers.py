@@ -45,6 +45,7 @@ class LanguagePackageContainter(_PluginContainer):
     search_inside_deck_menu_label: str
     statistics_menu_label: str
     themes_menu_label: str
+    language_menu_label: str
     anki_config_menu_label: str
     exit_menu_label: str
 
@@ -181,6 +182,7 @@ class LanguagePackageContainter(_PluginContainer):
         object.__setattr__(self, "search_inside_deck_menu_label", source_module.search_inside_deck_menu_label)
         object.__setattr__(self, "statistics_menu_label", source_module.statistics_menu_label)
         object.__setattr__(self, "themes_menu_label", source_module.themes_menu_label)
+        object.__setattr__(self, "language_menu_label", source_module.language_menu_label)
         object.__setattr__(self, "anki_config_menu_label", source_module.anki_config_menu_label)
         object.__setattr__(self, "exit_menu_label", source_module.exit_menu_label)
 

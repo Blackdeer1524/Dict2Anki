@@ -138,19 +138,20 @@ class App(Tk):
         main_menu.add_command(label=self.lang_pack.add_card_menu_label, command=self.add_word_dialog)
         main_menu.add_command(label=self.lang_pack.search_inside_deck_menu_label, command=self.find_dialog)
         main_menu.add_command(label=self.lang_pack.statistics_menu_label, command=self.statistics_dialog)
-        main_menu.add_command(label=self.lang_pack.themes_menu_label, command=self.switch_theme)
+        main_menu.add_command(label=self.lang_pack.themes_menu_label, command=self.change_theme)
+        main_menu.add_command(label=self.lang_pack.language_menu_label, command=self.change_language)
         main_menu.add_command(label=self.lang_pack.anki_config_menu_label, command=self.anki_dialog)
         main_menu.add_command(label=self.lang_pack.exit_menu_label, command=self.on_closing)
         self.config(menu=main_menu)
 
-        self.browse_button = self.Button(self, 
-                                         text=self.lang_pack.browse_button_text, 
+        self.browse_button = self.Button(self,
+                                         text=self.lang_pack.browse_button_text,
                                          command=self.web_search_command)
-        self.configure_word_parser_button = self.Button(self, 
-                                                        text=self.lang_pack.configure_word_parser_button_text, 
+        self.configure_word_parser_button = self.Button(self,
+                                                        text=self.lang_pack.configure_word_parser_button_text,
                                                         command=self.configure_dictionary)
-        self.find_image_button = self.Button(self, 
-                                             text=self.lang_pack.find_image_button_normal_text, 
+        self.find_image_button = self.Button(self,
+                                             text=self.lang_pack.find_image_button_normal_text,
                                              command=self.start_image_search)
         self.image_word_parsers_names = loaded_plugins.image_parsers.loaded
 
@@ -160,7 +161,7 @@ class App(Tk):
                                                              command=lambda parser_name:
                                                              self.change_image_parser(parser_name))
         self.sentence_button_text = self.lang_pack.sentence_button_text
-        self.add_sentences_button = self.Button(self, 
+        self.add_sentences_button = self.Button(self,
                                                 text=self.sentence_button_text,
                                                 command=self.replace_sentences)
 
@@ -564,7 +565,7 @@ class App(Tk):
                          f"{self.lang_pack.general_scheme_label}:\n{standard_fields}\n"
                          f"{self.lang_pack.current_scheme_label}:\n{current_scheme}\n"
                          f"{self.lang_pack.query_language_label}:\n{lang_docs}")
-    
+
     @error_handler(show_errors)
     def download_audio(self, choose_file=False, closing=False):
         if choose_file:
@@ -594,7 +595,7 @@ class App(Tk):
             audio_downloader.bind("<Destroy>", lambda event: self.destroy() if isinstance(event.widget, Toplevel) else None)
         spawn_toplevel_in_center(self, audio_downloader)
         audio_downloader.download_audio(audio_links_list)
-    
+
     @error_handler(show_errors)
     def change_media_dir(self):
         media_dir =  askdirectory(title=self.lang_pack.choose_media_dir_message,
@@ -602,12 +603,12 @@ class App(Tk):
                                   initialdir=MEDIA_DOWNLOADING_LOCATION)
         if media_dir:
             self.configurations["directories"]["media_dir"] = media_dir
-    
+
     @error_handler(show_errors)
     def save_button(self):
         self.save_files()
         messagebox.showinfo(message=self.lang_pack.save_files_message)
-    
+
     @error_handler(show_errors)
     def define_word(self, word_query: str, additional_query: str) -> bool:
         try:
@@ -832,9 +833,9 @@ class App(Tk):
         anki_toplevel.bind("<Return>", lambda event: save_anki_settings_command())
         anki_toplevel.bind("<Escape>", lambda event: anki_toplevel.destroy())
         spawn_toplevel_in_center(self, anki_toplevel)
-    
+
     @error_handler(show_errors)
-    def switch_theme(self):
+    def change_theme(self):
         @error_handler(self.show_errors)
         def pick(name: str):
             self.configurations["app"]["theme"] = name
@@ -848,6 +849,21 @@ class App(Tk):
             b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
         theme_toplevel.bind("<Escape>", lambda event: theme_toplevel.destroy())
         spawn_toplevel_in_center(self, theme_toplevel)
+    
+    def change_language(self):
+        @error_handler(self.show_errors)
+        def pick(name: str):
+            self.configurations["app"]["language_package"] = name
+            messagebox.showinfo(message=self.lang_pack.restart_app_text)
+            lang_pack_toplevel.destroy()
+
+        lang_pack_toplevel = self.Toplevel(self)
+        lang_pack_toplevel.grid_columnconfigure(0, weight=1)
+        for i, lang_pack_name in enumerate(loaded_plugins.language_packages.loaded):
+            b = self.Button(lang_pack_toplevel, text=lang_pack_name, command=lambda x=lang_pack_name: pick(x))
+            b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
+        lang_pack_toplevel.bind("<Escape>", lambda event: lang_pack_toplevel.destroy())
+        spawn_toplevel_in_center(self, lang_pack_toplevel)
     
     @error_handler(show_errors)
     def on_closing(self):

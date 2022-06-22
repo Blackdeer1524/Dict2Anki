@@ -39,6 +39,7 @@ class LanguagePackageInterface(Protocol):
     search_inside_deck_menu_label: str
     statistics_menu_label: str
     themes_menu_label: str
+    language_menu_label: str
     anki_config_menu_label: str
     exit_menu_label: str
 

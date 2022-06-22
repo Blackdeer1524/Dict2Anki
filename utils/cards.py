@@ -18,12 +18,7 @@ class Card(FrozenDict):
             super(Card, self).__init__(data={})
             return
 
-        data = {}
-        for field_name in FIELDS:
-            if (field_value := card_fields.get(field_name)) is not None:
-                data[field_name] = field_value
-
-        super(Card, self).__init__(data=data)
+        super(Card, self).__init__(data=card_fields)
 
     def __repr__(self):
         return f"Card {self._data}"
@@ -228,27 +223,9 @@ class SavedDataDeck(PointerList):
 
         res = {SavedDataDeck.CARD_STATUS: status}
         if status != CardStatus.SKIP:
+            additional_data = card_data.pop(SavedDataDeck.ADDITIONAL_DATA, {})
             saving_card = Card(card_data)
             res[SavedDataDeck.CARD_DATA] = saving_card
-
-            additional_data = {}
-            if (hierarchical_prefix := card_data.get(SavedDataDeck.HIERARCHICAL_PREFIX)) is not None:
-                additional_data[SavedDataDeck.HIERARCHICAL_PREFIX] = hierarchical_prefix
-
-            if (user_tags := card_data.get(SavedDataDeck.USER_TAGS)) is not None:
-                additional_data[SavedDataDeck.USER_TAGS] = user_tags
-
-            if (image_data := card_data.get(SavedDataDeck.SAVED_IMAGES_PATHS)) is not None:
-                additional_data[SavedDataDeck.SAVED_IMAGES_PATHS] = image_data
-
-            audio_data = {}
-            if (audio_src := card_data.get(SavedDataDeck.AUDIO_SRCS)) is not None:
-                audio_data[SavedDataDeck.AUDIO_SRCS]          = audio_src
-                audio_data[SavedDataDeck.AUDIO_SRCS_TYPE]     = card_data[SavedDataDeck.AUDIO_SRCS_TYPE]
-                audio_data[SavedDataDeck.AUDIO_SAVING_PATHS] = card_data[SavedDataDeck.AUDIO_SAVING_PATHS]
-            if audio_data:
-                additional_data[SavedDataDeck.AUDIO_DATA] = audio_data
-
             if additional_data:
                 res[SavedDataDeck.ADDITIONAL_DATA] = additional_data
 

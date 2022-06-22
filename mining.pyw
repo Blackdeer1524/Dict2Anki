@@ -1024,14 +1024,16 @@ class App(Tk):
             picked_sentence = self.dict_card_data[FIELDS.word]
         self.dict_card_data[FIELDS.sentences] = [picked_sentence]
 
+        additional = self.dict_card_data.get(SavedDataDeck.ADDITIONAL_DATA, {})
         user_tags = self.user_tags_field.get().strip()
         if user_tags:
-            self.dict_card_data[SavedDataDeck.USER_TAGS] = user_tags
+            additional[SavedDataDeck.USER_TAGS] = user_tags
 
         if self.local_audio_getter is not None and (local_audios := self.local_audio_getter.get_local_audios(word, dict_tags)):
-            self.dict_card_data[SavedDataDeck.AUDIO_SRCS] = local_audios
-            self.dict_card_data[SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_LOCAL
-            self.dict_card_data[SavedDataDeck.AUDIO_SAVING_PATHS] = [
+            additional[SavedDataDeck.AUDIO_DATA] = {}
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = local_audios
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_LOCAL
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
                 os.path.join(self.configurations["directories"]["media_dir"],
                              self.card_processor.get_save_audio_name(word,
                                                                      self.local_audio_getter.name,
@@ -1040,9 +1042,10 @@ class App(Tk):
                 for i in range(len(local_audios))
             ]
         elif self.local_audio_getter is None and (web_audios := self.dict_card_data.get(FIELDS.audio_links, [])):
-            self.dict_card_data[SavedDataDeck.AUDIO_SRCS] = web_audios
-            self.dict_card_data[SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_WEB
-            self.dict_card_data[SavedDataDeck.AUDIO_SAVING_PATHS] = [
+            additional[SavedDataDeck.AUDIO_DATA] = {}
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = web_audios
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_WEB
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
                 os.path.join(self.configurations["directories"]["media_dir"],
                              self.card_processor.get_save_audio_name(word,
                                                                      self.typed_word_parser_name,
@@ -1052,7 +1055,10 @@ class App(Tk):
             ]
 
         if (hierarchical_prefix := self.tag_prefix_field.get().strip()):
-            self.dict_card_data[SavedDataDeck.HIERARCHICAL_PREFIX] = hierarchical_prefix
+            additional[SavedDataDeck.HIERARCHICAL_PREFIX] = hierarchical_prefix
+
+        if additional:
+            self.dict_card_data[SavedDataDeck.ADDITIONAL_DATA] = additional
 
         self.saved_cards_data.append(status=CardStatus.ADD, card_data=self.dict_card_data)
         if not self.deck.get_n_cards_left():
@@ -1185,13 +1191,17 @@ class App(Tk):
                     instance.saving_images[i].save(saving_name)
                     names.append(saving_name)
 
-            if (paths := self.dict_card_data.get(self.saved_cards_data.SAVED_IMAGES_PATHS)) is not None:
+            additional = self.dict_card_data.get(SavedDataDeck.ADDITIONAL_DATA)
+            if additional is not None and \
+                    (paths := additional.get(self.saved_cards_data.SAVED_IMAGES_PATHS)) is not None:
                 for path in paths:
                     if os.path.isfile(path):
                         os.remove(path)
 
             if names:
-                self.dict_card_data[self.saved_cards_data.SAVED_IMAGES_PATHS] = names
+                if additional is None:
+                    self.dict_card_data[SavedDataDeck.ADDITIONAL_DATA] = {}
+                self.dict_card_data[SavedDataDeck.ADDITIONAL_DATA][self.saved_cards_data.SAVED_IMAGES_PATHS] = names
 
             x, y = instance.geometry().split(sep="+")[1:]
             self.configurations["app"]["image_search_position"] = f"+{x}+{y}"
@@ -1205,8 +1215,11 @@ class App(Tk):
                                    search_term=word,
                                    saving_dir=self.configurations["directories"]["media_dir"],
                                    url_scrapper=self.image_parser.get_image_links,
-                                   init_urls=self.dict_card_data.get(FIELDS.img_links, []),
-                                   local_images=self.dict_card_data.get(self.saved_cards_data.SAVED_IMAGES_PATHS, []),
+                                   init_urls=self.dict_card_data
+                                                 .get(FIELDS.img_links, []),
+                                   local_images=self.dict_card_data
+                                                    .get(SavedDataDeck.ADDITIONAL_DATA, {})
+                                                    .get(self.saved_cards_data.SAVED_IMAGES_PATHS, []),
                                    headers=self.headers,
                                    on_close_action=connect_images_to_card,
                                    show_image_width=show_image_width,

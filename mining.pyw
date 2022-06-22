@@ -16,6 +16,7 @@ from typing import Callable
 from playsound import playsound
 from tkinterdnd2 import Tk
 
+from plugins_management.containers import LanguagePackageContainter
 from consts.card_fields import FIELDS
 from consts.paths import *
 from plugins_management.factory import loaded_plugins
@@ -57,7 +58,7 @@ class App(Tk):
             with open("./Words/custom.json", "w", encoding="UTF-8") as custom_file:
                 json.dump([], custom_file)
 
-        self.configurations, error_code = self.load_conf_file()
+        self.configurations, self.lang_pack, error_code = self.load_conf_file()
         if error_code:
             self.destroy()
             return
@@ -114,7 +115,6 @@ class App(Tk):
         self.deck_saver = loaded_plugins.get_deck_saving_formats(self.configurations["deck_saving_format"])
         self.audio_saver = loaded_plugins.get_deck_saving_formats("json_deck_audio")
         self.buried_saver = loaded_plugins.get_deck_saving_formats("json_deck_cards")
-        self.lang_pack = loaded_plugins.get_language_package(self.configurations["app"]["language_package"])
 
         main_menu = Menu(self)
         filemenu = Menu(main_menu, tearoff=0)
@@ -333,12 +333,11 @@ class App(Tk):
         with open(CONFIG_FILE_PATH, "w") as f:
             json.dump(self.configurations, f, indent=3)
 
-    @error_handler(show_errors)
-    def load_conf_file(self) -> tuple[dict[str, dict], bool]:
+    def load_conf_file(self) -> tuple[dict[str, dict], LanguagePackageContainter, bool]:
         standard_conf_file = {"app": {"theme": "dark",
                                       "main_window_geometry": "500x800+0+0",
                                       "image_search_position": "+0+0",
-                                      "language_package": "ru"},
+                                      "language_package": "eng"},
                               "card_processor": "Anki",
                               "deck_saving_format": "csv",
                               "scrappers": {"base_sentence_parser": "sentencedict",
@@ -362,31 +361,32 @@ class App(Tk):
                 conf_file = json.load(f)
 
         validate_json(checking_scheme=conf_file, default_scheme=standard_conf_file)
+        lang_pack = loaded_plugins.get_language_package(conf_file["app"]["language_package"])
 
         if not conf_file["directories"]["media_dir"] or not os.path.isdir(conf_file["directories"]["media_dir"]):
-            conf_file["directories"]["media_dir"] = askdirectory(title=self.lang_pack.choose_media_dir_message,
+            conf_file["directories"]["media_dir"] = askdirectory(title=lang_pack.choose_media_dir_message,
                                                                  mustexist=True,
                                                                  initialdir=MEDIA_DOWNLOADING_LOCATION)
             if not conf_file["directories"]["media_dir"]:
-                return (conf_file, True)
+                return (conf_file, lang_pack, True)
 
         if not conf_file["directories"]["last_open_file"] or not os.path.isfile(
                 conf_file["directories"]["last_open_file"]):
-            conf_file["directories"]["last_open_file"] = askopenfilename(title=self.lang_pack.choose_deck_file_message,
+            conf_file["directories"]["last_open_file"] = askopenfilename(title=lang_pack.choose_deck_file_message,
                                                                          filetypes=(("JSON", ".json"),),
                                                                          initialdir="./")
             if not conf_file["directories"]["last_open_file"]:
-                return (conf_file, True)
+                return (conf_file, lang_pack, True)
 
         if not conf_file["directories"]["last_save_dir"] or not os.path.isdir(
                 conf_file["directories"]["last_save_dir"]):
-            conf_file["directories"]["last_save_dir"] = askdirectory(title=self.lang_pack.choose_save_dir_message,
+            conf_file["directories"]["last_save_dir"] = askdirectory(title=lang_pack.choose_save_dir_message,
                                                                      mustexist=True,
                                                                      initialdir="./")
             if not conf_file["directories"]["last_save_dir"]:
-                return (conf_file, True)
+                return (conf_file, lang_pack, True)
 
-        return (conf_file, False)
+        return (conf_file, lang_pack, False)
 
     @staticmethod
     def load_history_file() -> dict:
@@ -430,7 +430,7 @@ class App(Tk):
         self.configurations["directories"]["last_save_dir"] = new_save_dir
         self.configurations["directories"]["last_open_file"] = new_file
         if not self.history.get(self.configurations["directories"]["last_open_file"]):
-            self.history[self.configurations["directories"]["last_open_file"]] = 0
+            self.history[self.configurations["directories"]["last_open_file"]] = -1
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
                          current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
                          card_generator=self.cd)
@@ -1244,6 +1244,13 @@ class App(Tk):
         def connect_images_to_card(instance: ImageSearch):
             nonlocal word
 
+            additional = self.dict_card_data.get(SavedDataDeck.ADDITIONAL_DATA)
+            if additional is not None and \
+                    (paths := additional.get(self.saved_cards_data.SAVED_IMAGES_PATHS)) is not None:
+                for path in paths:
+                    if os.path.isfile(path):
+                        os.remove(path)
+
             dict_tags = self.dict_card_data.get(FIELDS.dict_tags, {})
 
             names: list[str] = []
@@ -1258,13 +1265,6 @@ class App(Tk):
                                                      dict_tags))
                     instance.saving_images[i].save(saving_name)
                     names.append(saving_name)
-
-            additional = self.dict_card_data.get(SavedDataDeck.ADDITIONAL_DATA)
-            if additional is not None and \
-                    (paths := additional.get(self.saved_cards_data.SAVED_IMAGES_PATHS)) is not None:
-                for path in paths:
-                    if os.path.isfile(path):
-                        os.remove(path)
 
             if names:
                 if additional is None:

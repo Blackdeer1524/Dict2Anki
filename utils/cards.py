@@ -8,7 +8,6 @@ from consts.card_fields import FIELDS
 from plugins.parsers.return_types import SentenceGenerator
 from utils.storages import FrozenDictJSONEncoder
 from utils.storages import PointerList, FrozenDict
-from typing import ClassVar
 
 
 class Card(FrozenDict):

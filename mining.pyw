@@ -16,6 +16,7 @@ from typing import Callable
 from playsound import playsound
 from tkinterdnd2 import Tk
 
+import utils.search_checker
 from consts.card_fields import FIELDS
 from consts.paths import *
 from plugins_management.factory import loaded_plugins
@@ -26,8 +27,6 @@ from utils.error_handling import create_exception_message
 from utils.error_handling import error_handler
 from utils.global_bindings import Binder
 from utils.image_utils import ImageSearch
-
-import utils.search_checker
 from utils.search_checker import ParsingException
 from utils.search_checker import get_card_filter
 from utils.storages import validate_json

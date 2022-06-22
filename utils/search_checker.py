@@ -40,6 +40,15 @@ Special queries & commands
         pos[$ANY][data] will return [value_1, value_2]
         $ANY[$ANY][data] will also will return [value_1, value_2]
 
+    $SELF
+        Gets current hierarchy level keys
+        Example:
+            {
+                "field_1": 1,
+                "field_2": 2,
+            }
+        $SELF will return [["field_1", "field_2"]]
+
     d_$
         Will convert string expression to an integer.
         By default, every key inside query strings
@@ -191,20 +200,20 @@ Evaluation precedence:
 
 
 import copy
+import itertools
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from functools import partial
 from functools import reduce
-import re
 from typing import Callable, Sized, ClassVar
 from typing import Iterable, Iterator, Generator
 from typing import Optional, Any, Union
 
 from consts.card_fields import FIELDS
 from utils.storages import FrozenDict
-import itertools
 
 
 class ParsingException(Exception):
@@ -560,6 +569,7 @@ class Tokenizer:
 @dataclass(slots=True, frozen=True, init=False)
 class FieldDataGetter(Computable):
     ANY_FIELD: ClassVar[str] = "$ANY"
+    SELF_FIELD: ClassVar[str] = "$SELF"
 
     query_chain: list[str] = field(init=False, repr=True)
     
@@ -631,6 +641,10 @@ class FieldDataGetter(Computable):
                 for key in entry:
                     if (val := entry.get(key)) is not None:
                         traverse_recursively(val, chain_index + 1)
+
+            elif current_key == FieldDataGetter.SELF_FIELD:
+                traverse_recursively(entry, chain_index + 1)
+
 
             if (val := entry.get(current_key)) is not None:
                 traverse_recursively(val, chain_index + 1)
@@ -823,7 +837,7 @@ def main():
                             'region': [[]],
                             'usage': [[]]}}}
 
-    query = "noun in reduce(insult)"
+    query = "$SELF[insult][$ANY]"
     card_filter = get_card_filter(query)
     result = card_filter(test_card)
     print(result)

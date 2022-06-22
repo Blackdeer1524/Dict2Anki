@@ -2,7 +2,7 @@
 error_title = "Error"
 
 # main window
-main_window_title_prefix = "Sentence mining. Cards left: "
+main_window_title_prefix = "Sentence mining. Cards left"
 
 # main menu
 create_file_menu_label = "Create"

@@ -6,6 +6,7 @@ from typing import Callable
 from typing import ClassVar
 from typing import TypeVar, Generic
 
+import plugins.language_packages
 import plugins.parsers.image_parsers
 import plugins.parsers.local_audio_getters
 import plugins.parsers.sentence_parsers
@@ -15,6 +16,7 @@ import plugins.saving.card_processors
 import plugins.saving.format_processors
 import plugins.themes
 from consts.paths import LOCAL_MEDIA_DIR
+from plugins_management.containers import LanguagePackageContainter
 from plugins_management.containers import CardProcessorContainer
 from plugins_management.containers import DeckSavingFormatContainer
 from plugins_management.containers import ImageParserContainer
@@ -90,6 +92,7 @@ class PluginLoader(Generic[PluginContainer]):
 class PluginFactory:
     _is_initialized:     ClassVar[bool] = False
 
+    language_packages:   PluginLoader[LanguagePackageContainter]
     themes:              PluginLoader[ThemeContainer]
     web_word_parsers:    PluginLoader[WebWordParserContainer]
     local_word_parsers:  PluginLoader[LocalWordParserContainer]
@@ -104,6 +107,9 @@ class PluginFactory:
             raise LoaderError(f"{self.__class__.__name__} already exists!")
         PluginFactory._is_initialized = True
 
+        object.__setattr__(self, "language_packages",   PluginLoader(plugin_type="language package",
+                                                                     module=plugins.language_packages,
+                                                                     container_type=LanguagePackageContainter))
         object.__setattr__(self, "themes",              PluginLoader(plugin_type="theme",
                                                                      module=plugins.themes,
                                                                      container_type=ThemeContainer))
@@ -128,6 +134,11 @@ class PluginFactory:
         object.__setattr__(self, "local_audio_getters", PluginLoader(plugin_type="local audio getter",
                                                                      module=plugins.parsers.local_audio_getters,
                                                                      container_type=LocalAudioGetterContainer))
+
+    def get_language_package(self, name: str) -> LanguagePackageContainter:
+        if (lang_pack := self.language_packages.get(name)) is None:
+            raise UnknownPluginName(f"Unknown language package: {name}")
+        return lang_pack
 
     def get_theme(self, name: str) -> ThemeContainer:
         if (theme := self.themes.get(name)) is None:

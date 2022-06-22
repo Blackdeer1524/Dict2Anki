@@ -16,7 +16,6 @@ from typing import Callable
 from playsound import playsound
 from tkinterdnd2 import Tk
 
-import utils.search_checker
 from consts.card_fields import FIELDS
 from consts.paths import *
 from plugins_management.factory import loaded_plugins
@@ -58,7 +57,7 @@ class App(Tk):
             with open("./Words/custom.json", "w", encoding="UTF-8") as custom_file:
                 json.dump([], custom_file)
 
-        self.configurations, error_code = App.load_conf_file()
+        self.configurations, error_code = self.load_conf_file()
         if error_code:
             self.destroy()
             return
@@ -115,76 +114,101 @@ class App(Tk):
         self.deck_saver = loaded_plugins.get_deck_saving_formats(self.configurations["deck_saving_format"])
         self.audio_saver = loaded_plugins.get_deck_saving_formats("json_deck_audio")
         self.buried_saver = loaded_plugins.get_deck_saving_formats("json_deck_cards")
+        self.lang_pack = loaded_plugins.get_language_package(self.configurations["app"]["language_package"])
 
         main_menu = Menu(self)
         filemenu = Menu(main_menu, tearoff=0)
-        filemenu.add_command(label="Создать", command=self.create_new_file)
-        filemenu.add_command(label="Открыть", command=self.change_file)
-        filemenu.add_command(label="Сохранить", command=self.save_button)
+        filemenu.add_command(label=self.lang_pack.create_file_menu_label, command=self.create_file_dialog)
+        filemenu.add_command(label=self.lang_pack.open_file_menu_label, command=self.change_file)
+        filemenu.add_command(label=self.lang_pack.save_files_menu_label, command=self.save_button)
         filemenu.add_separator()
 
         help_menu = Menu(filemenu, tearoff=0)
-        help_menu.add_command(label="Кнопки/Горячие клавиши", command=self.help_command)
-        help_menu.add_command(label="Язык запросов", command=self.get_query_language_help)
-        filemenu.add_cascade(label="Справка", menu=help_menu)
+        help_menu.add_command(label=self.lang_pack.hotkeys_and_buttons_help_menu_label, command=self.help_command)
+        help_menu.add_command(label=self.lang_pack.query_language_menu_label, command=self.get_query_language_help)
+        filemenu.add_cascade(label=self.lang_pack.help_master_menu_label, menu=help_menu)
 
         filemenu.add_separator()
-        filemenu.add_command(label="Скачать аудио", command=partial(self.download_audio, choose_file=True))
+        filemenu.add_command(label=self.lang_pack.download_audio_menu_label, 
+                             command=partial(self.download_audio, choose_file=True))
         filemenu.add_separator()
-        filemenu.add_command(label="Сменить пользователя", command=self.change_media_dir)
-        main_menu.add_cascade(label="Файл", menu=filemenu)
+        filemenu.add_command(label=self.lang_pack.change_media_folder_menu_label, command=self.change_media_dir)
+        main_menu.add_cascade(label=self.lang_pack.file_master_menu_label, menu=filemenu)
 
-        main_menu.add_command(label="Добавить", command=self.add_word_dialog)
-        main_menu.add_command(label="Перейти", command=self.find_dialog)
-        main_menu.add_command(label="Статистика", command=self.statistics_dialog)
-        main_menu.add_command(label="Тема", command=self.switch_theme)
-        main_menu.add_command(label="Anki", command=self.anki_dialog)
-        main_menu.add_command(label="Выход", command=self.on_closing)
+        main_menu.add_command(label=self.lang_pack.add_card_menu_label, command=self.add_word_dialog)
+        main_menu.add_command(label=self.lang_pack.search_inside_deck_menu_label, command=self.find_dialog)
+        main_menu.add_command(label=self.lang_pack.statistics_menu_label, command=self.statistics_dialog)
+        main_menu.add_command(label=self.lang_pack.themes_menu_label, command=self.switch_theme)
+        main_menu.add_command(label=self.lang_pack.anki_config_menu_label, command=self.anki_dialog)
+        main_menu.add_command(label=self.lang_pack.exit_menu_label, command=self.on_closing)
         self.config(menu=main_menu)
 
-        self.browse_button = self.Button(self, text="Найти в браузере", command=self.web_search_command)
-        self.configurations_word_parser_button = self.Button(self, text="Настроить словарь", command=self.configure_dictionary)
-        self.find_image_button = self.Button(self, text="Добавить изображение", command=self.start_image_search)
+        self.browse_button = self.Button(self, 
+                                         text=self.lang_pack.browse_button_text, 
+                                         command=self.web_search_command)
+        self.configure_word_parser_button = self.Button(self, 
+                                                        text=self.lang_pack.configure_word_parser_button_text, 
+                                                        command=self.configure_dictionary)
+        self.find_image_button = self.Button(self, 
+                                             text=self.lang_pack.find_image_button_normal_text, 
+                                             command=self.start_image_search)
         self.image_word_parsers_names = loaded_plugins.image_parsers.loaded
 
         self.image_parser_option_menu = self.get_option_menu(self,
-                                                        init_text=self.image_parser.name,
-                                                        values=self.image_word_parsers_names,
-                                                        command=lambda parser_name:
-                                                        self.change_image_parser(parser_name))
-        self.sentence_button_text = "Добавить предложения"
-        self.add_sentences_button = self.Button(self, text=self.sentence_button_text,
-                                           command=self.replace_sentences)
+                                                             init_text=self.image_parser.name,
+                                                             values=self.image_word_parsers_names,
+                                                             command=lambda parser_name:
+                                                             self.change_image_parser(parser_name))
+        self.sentence_button_text = self.lang_pack.sentence_button_text
+        self.add_sentences_button = self.Button(self, 
+                                                text=self.sentence_button_text,
+                                                command=self.replace_sentences)
 
         self.sentence_parser_option_menu = self.get_option_menu(self,
-                                                               init_text=self.sentence_parser.name,
-                                                               values=loaded_plugins.web_sent_parsers.loaded,
-                                                               command=lambda parser_name:
-                                                               self.change_sentence_parser(parser_name))
+                                                                init_text=self.sentence_parser.name,
+                                                                values=loaded_plugins.web_sent_parsers.loaded,
+                                                                command=lambda parser_name:
+                                                                self.change_sentence_parser(parser_name))
 
-        self.word_text = self.Text(self, placeholder="Слово", height=2)
+        self.word_text = self.Text(self, placeholder=self.lang_pack.word_text_placeholder, height=2)
         self.alt_terms_field = self.Text(self, relief="ridge", state="disabled", height=1)
-        self.definition_text = self.Text(self, placeholder="Значение")
+        self.definition_text = self.Text(self, placeholder=self.lang_pack.definition_text_placeholder)
 
         self.sent_text_list = []
         self.sent_button_list = []
         button_width = 3
         for i in range(5):
-            self.sent_text_list.append(self.Text(self, placeholder=f"Предложение {i + 1}"))
+            self.sent_text_list.append(
+                self.Text(self, placeholder=f"{self.lang_pack.sentence_text_placeholder_prefix} {i + 1}"))
             self.sent_text_list[-1].fill_placeholder()
             self.sent_button_list.append(self.Button(self,
                                                 text=f"{i + 1}",
                                                 command=lambda x=i: self.choose_sentence(x),
                                                 width=button_width))
 
-        self.skip_button = self.Button(self, text="Skip", command=self.skip_command, width=button_width)
-        self.prev_button = self.Button(self, text="Prev", command=lambda x=-1: self.replace_decks_pointers(x),
-                                  state="disabled", width=button_width)
-        self.sound_button = self.Button(self, text="Play", command=self.play_sound, width=button_width)
-        self.anki_button = self.Button(self, text="Anki", command=self.open_anki_browser, width=button_width)
-        self.bury_button = self.Button(self, text="Bury", command=self.bury_command, width=button_width)
+        self.skip_button = self.Button(self,
+                                       text=self.lang_pack.skip_button_text,
+                                       command=self.skip_command,
+                                       width=button_width)
+        self.prev_button = self.Button(self,
+                                       text=self.lang_pack.prev_button_text,
+                                       command=lambda x=-1: self.replace_decks_pointers(x),
+                                       state="disabled", width=button_width)
+        self.sound_button = self.Button(self,
+                                        text=self.lang_pack.sound_button_text,
+                                        command=self.play_sound,
+                                        width=button_width)
+        self.anki_button = self.Button(self,
+                                       text=self.lang_pack.anki_button_text,
+                                       command=self.open_anki_browser,
+                                       width=button_width)
+        self.bury_button = self.Button(self,
+                                       text=self.lang_pack.bury_button_text,
+                                       command=self.bury_command,
+                                       width=button_width)
 
-        self.user_tags_field = self.Entry(self, placeholder="Тэги")
+        self.user_tags_field = self.Entry(self,
+                                          placeholder=self.lang_pack.user_tags_field_placeholder)
         self.user_tags_field.fill_placeholder()
 
         self.tag_prefix_field = self.Entry(self, justify="center", width=8)
@@ -193,9 +217,8 @@ class App(Tk):
 
         Text_padx = 10
         Text_pady = 2
-        # Расстановка виджетов
         self.browse_button.grid(row=0, column=0, padx=(Text_padx, 0), pady=(Text_pady, 0), sticky="news", columnspan=4)
-        self.configurations_word_parser_button.grid(row=0, column=4, padx=(0, Text_padx), pady=(Text_pady, 0),
+        self.configure_word_parser_button.grid(row=0, column=4, padx=(0, Text_padx), pady=(Text_pady, 0),
                                             columnspan=4, sticky="news")
 
         self.word_text.grid(row=1, column=0, padx=Text_padx, pady=Text_pady, columnspan=8, sticky="news")
@@ -274,7 +297,7 @@ class App(Tk):
 
         self.gb = Binder()
         self.gb.bind("Control", "c", "space",
-                     action=lambda: self.define_word_button(word_query=self.clipboard_get(), additional_query="")
+                     action=lambda: self.define_word(word_query=self.clipboard_get(), additional_query="")
                      )
         self.gb.start()
 
@@ -301,254 +324,20 @@ class App(Tk):
         error_log = create_exception_message()
         self.clipboard_clear()
         self.clipboard_append(error_log)
-        error_toplevel = self.show_window("Ошибка", error_log)
+        error_toplevel = self.show_window(title=self.lang_pack.error_title, text=error_log)
         error_toplevel.grab_set()
-
-    @error_handler(show_errors)
-    def switch_theme(self):
-        @error_handler(self.show_errors)
-        def pick(name: str):
-            self.configurations["app"]["theme"] = name
-            messagebox.showinfo(message="Изменения вступят в силу после перезагрузки приложения!")
-            theme_toplevel.destroy()
-
-        theme_toplevel = self.Toplevel(self)
-        theme_toplevel.grid_columnconfigure(0, weight=1)
-        for i, theme_name in enumerate(loaded_plugins.themes.loaded):
-            b = self.Button(theme_toplevel, text=theme_name, command=lambda x=theme_name: pick(x))
-            b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
-        theme_toplevel.bind("<Escape>", lambda event: theme_toplevel.destroy())
-        spawn_toplevel_in_center(self, theme_toplevel)
-
-    @error_handler(show_errors)
-    def change_image_parser(self, given_image_parser_name: str):
-        self.image_parser = loaded_plugins.get_image_parser(given_image_parser_name)
-        self.configurations["scrappers"]["base_image_parser"] = given_image_parser_name
-
-    @error_handler(show_errors)
-    def change_sentence_parser(self, given_sentence_parser_name: str):
-        self.sentence_parser = loaded_plugins.get_sentence_parser(given_sentence_parser_name)
-        self.sentence_fetcher = SentenceFetcher(sent_fetcher=self.sentence_parser.get_sentence_batch,
-                                                sentence_batch_size=self.sentence_batch_size)
-        self.configurations["scrappers"]["base_sentence_parser"] = given_sentence_parser_name
-
-    @error_handler(show_errors)
-    def configure_dictionary(self):
-        WEB_PREF = "[web]"
-        LOCAL_PREF = "[local]"
-        DEFAULT_AUDIO_SRC = "default"
-
-        @error_handler(self.show_errors)
-        def pick_parser(typed_parser: str):
-            if typed_parser.startswith(WEB_PREF):
-                raw_name = typed_parser[len(WEB_PREF) + 1:]
-                self.cd = loaded_plugins.get_web_card_generator(typed_parser[len(WEB_PREF) + 1:])
-                self.configurations["scrappers"]["word_parser_type"] = "web"
-            else:
-                raw_name = typed_parser[len(LOCAL_PREF) + 1:]
-                self.cd = loaded_plugins.get_local_card_generator(typed_parser[len(LOCAL_PREF) + 1:])
-                self.configurations["scrappers"]["word_parser_type"] = "local"
-            self.configurations["scrappers"]["word_parser_name"] = raw_name
-            self.typed_word_parser_name = typed_parser
-            self.deck.update_card_generator(self.cd)
-
-        # dict
-        dict_configuration_toplevel = self.Toplevel(self)
-        dict_configuration_toplevel.grid_columnconfigure(1, weight=1)
-        dict_configuration_toplevel.withdraw()
-
-        dict_label = self.Label(dict_configuration_toplevel, text="Словарь")
-        dict_label.grid(row=0, column=0, sticky="news")
-
-        choose_wp_option = self.get_option_menu(dict_configuration_toplevel,
-                                           init_text=self.typed_word_parser_name,
-                                           values=[f"{WEB_PREF} {item}" for item in loaded_plugins.web_word_parsers.loaded] +
-                                                  [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_word_parsers.loaded],
-                                           command=lambda typed_parser: pick_parser(typed_parser))
-        choose_wp_option.grid(row=0, column=1, sticky="news")
-
-        # audio_getter
-        audio_getter_label = self.Label(dict_configuration_toplevel, text="Получение аудио")
-        audio_getter_label.grid(row=1, column=0, sticky="news")
-
-        @error_handler(self.show_errors)
-        def pick_audio_getter(name: str):
-            if name == DEFAULT_AUDIO_SRC:
-                self.local_audio_getter = None
-                self.configurations["scrappers"]["local_audio"] = ""
-                self.sound_button["state"] = "normal" if self.dict_card_data.get(FIELDS.audio_links, []) else "disabled"
-                return
-            self.sound_button["state"] = "normal"
-            self.configurations["scrappers"]["local_audio"] = name
-            self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
-
-        choose_audio_option = self.get_option_menu(dict_configuration_toplevel,
-                                              init_text=DEFAULT_AUDIO_SRC if self.local_audio_getter is None
-                                                                          else self.local_audio_getter.name,
-                                              values=list(loaded_plugins.local_audio_getters.loaded) + [DEFAULT_AUDIO_SRC],
-                                              command=lambda getter: pick_audio_getter(getter))
-        choose_audio_option.grid(row=1, column=1, sticky="news")
-
-        # card_processor
-        card_processor_label = self.Label(dict_configuration_toplevel, text="Формат карточки")
-        card_processor_label.grid(row=2, column=0, sticky="news")
-
-        @error_handler(self.show_errors)
-        def choose_card_processor(name: str):
-            self.configurations["card_processor"] = name
-            self.card_processor = loaded_plugins.get_card_processor(name)
-
-        card_processor_option = self.get_option_menu(dict_configuration_toplevel,
-                                                init_text=self.card_processor.name,
-                                                values=loaded_plugins.card_processors.loaded,
-                                                command=lambda processor: choose_card_processor(processor))
-        card_processor_option.grid(row=2, column=1, sticky="news")
-
-        #format_processor
-        format_processor_label = self.Label(dict_configuration_toplevel, text="Формат итогового файла")
-        format_processor_label.grid(row=3, column=0, sticky="news")
-
-        @error_handler(self.show_errors)
-        def choose_format_processor(name: str):
-            self.configurations["deck_saving_format"] = name
-            self.deck_saver = loaded_plugins.get_deck_saving_formats(name)
-
-        format_processor_option = self.get_option_menu(dict_configuration_toplevel,
-                                                  init_text=self.deck_saver.name,
-                                                  values=loaded_plugins.deck_saving_formats.loaded,
-                                                  command=lambda format: choose_format_processor(format))
-        format_processor_option.grid(row=3, column=1, sticky="news")
-
-        dict_configuration_toplevel.bind("<Escape>", lambda event: dict_configuration_toplevel.destroy())
-        dict_configuration_toplevel.bind("<Return>", lambda event: dict_configuration_toplevel.destroy())
-        dict_configuration_toplevel.deiconify()
-        spawn_toplevel_in_center(self, dict_configuration_toplevel)
-
-    @error_handler(show_errors)
-    def web_search_command(self):
-        search_term = self.word
-        definition_search_query = search_term + " definition"
-        webbrowser.open_new_tab(f"https://www.google.com/search?q={definition_search_query}")
-        sentence_search_query = search_term + " sentence examples"
-        webbrowser.open_new_tab(f"https://www.google.com/search?q={sentence_search_query}")
-
-    @error_handler(show_errors)
-    def help_command(self):
-        mes = """
-Назначения кнопок:
-* 1-5: кнопки выбора соответствующих предложений
-* Skip: пропуск карточки
-* Prev: возврат к предыдущей карточке
-* Bury: откладывает текущую карточку в отдельный файл,
-который будет находится в директории сохранения карточек.
-Имя этого файла будет такое же, как и у файла с сохраненными карточками +
-постфикс _buried
-
-Горячие клавиши (локальные для приложения):
-* Ctrl + 0: Перемещает приложение в верхний левый угол экрана
-* Ctrl + 1..5: выбор предложения
-* Ctrl + d: пропуск карточки
-* Ctrl + z: возврат к предыдущей карточке
-* Ctrl + q: откладывает текущую карточку в отдельный файл
-* Ctrl + Shift + a: вызов окна добавления слова в колоду
-* Ctrl + e: вызов окна статистики
-* Ctrl + f: вызов окна поиска по колоде
-
-Горячие клавиши (глобальные):
-* Ctrl + c + space: добавить выделенного слова в колоду
-"""
-        self.show_window("Справка", mes)
-
-    @error_handler(show_errors)
-    def get_query_language_help(self):
-        standard_fields = f"""
-{FIELDS.word}: слово (строка)
-{FIELDS.alt_terms}: альтернативные использования (список)
-{FIELDS.definition}: определение (строка)
-{FIELDS.sentences}: предложения (список)
-{FIELDS.img_links}: ссылки на изображения (список)
-{FIELDS.audio_links}: ссылки на аудио (список)
-{FIELDS.dict_tags}: тэги (словарь)
-"""
-        current_scheme = self.cd.scheme_docs
-        lang_docs = utils.search_checker.__doc__
-
-        self.show_window("Справка", f"Общая схема:\n{standard_fields}\n"
-                                    f"Текущая схема:\n{current_scheme}\n"
-                                    f"Синтаксис:\n{lang_docs}")
-
-    @error_handler(show_errors)
-    def skip_command(self):
-        if self.deck.get_n_cards_left():
-            self.saved_cards_data.append(CardStatus.SKIP)
-        self.refresh()
-
-    @error_handler(show_errors)
-    def bury_command(self):
-        self.saved_cards_data.append(status=CardStatus.BURY, card_data=self.dict_card_data)
-        self.refresh()
-
-    @staticmethod
-    def load_history_file() -> dict:
-        if not os.path.exists(HISTORY_FILE_PATH):
-            history_json = {}
-        else:
-            with open(HISTORY_FILE_PATH, "r", encoding="UTF-8") as f:
-                history_json = json.load(f)
-        return history_json
-
-    @error_handler(show_errors)
-    def replace_decks_pointers(self, n: int):
-        self.saved_cards_data.move(min(n, self.deck.get_n_cards_left()))
-        self.deck.move(n - 1)
-        self.refresh()
-
-    @error_handler(show_errors)
-    def open_anki_browser(self):
-        @error_handler(self.show_errors)
-        def invoke(action, **params):
-            def request_anki(action, **params):
-                return {'action': action, 'params': params, 'version': 6}
-            import requests
-
-            request_json = json.dumps(request_anki(action, **params)).encode('utf-8')
-            try:
-                res = requests.get("http://localhost:8765", data=request_json, timeout=1)
-                res.raise_for_status()
-            except requests.ConnectionError:
-                messagebox.showerror("Ошибка", "Проверьте аддон AnkiConnect и откройте Anki")
-                return
-            except requests.RequestException as e:
-                messagebox.showerror("Ошибка", f"Результат ошибки: {e}")
-                return
-
-            response = res.json()
-            if response['error'] is not None:
-                messagebox.showerror("Ошибка", response['error'])
-            return response['result']
-
-        word = self.word_text.get(1.0, "end").strip()
-        query_list = []
-        if self.configurations["anki"]["anki_deck"]:
-            query_list.append("deck:\"{}\"".format(self.configurations["anki"]["anki_deck"]))
-        if self.configurations["anki"]["anki_field"]:
-            query_list.append("\"{}:*{}*\"".format(self.configurations["anki"]["anki_field"],
-                                                   word))
-        else:
-            query_list.append(f"*{word}*")
-        result_query = " and ".join(query_list)
-        invoke('guiBrowse', query=result_query)
 
     @error_handler(show_errors)
     def save_conf_file(self):
         with open(CONFIG_FILE_PATH, "w") as f:
             json.dump(self.configurations, f, indent=3)
 
-    @staticmethod
-    def load_conf_file() -> tuple[dict[str, dict], bool]:
+    @error_handler(show_errors)
+    def load_conf_file(self) -> tuple[dict[str, dict], bool]:
         standard_conf_file = {"app": {"theme": "dark",
                                       "main_window_geometry": "500x800+0+0",
-                                      "image_search_position": "+0+0"},
+                                      "image_search_position": "+0+0",
+                                      "language_package": "ru"},
                               "card_processor": "Anki",
                               "deck_saving_format": "csv",
                               "scrappers": {"base_sentence_parser": "sentencedict",
@@ -574,21 +363,23 @@ class App(Tk):
         validate_json(checking_scheme=conf_file, default_scheme=standard_conf_file)
 
         if not conf_file["directories"]["media_dir"] or not os.path.isdir(conf_file["directories"]["media_dir"]):
-            conf_file["directories"]["media_dir"] = askdirectory(title="Выберете директорию для медиа файлов",
+            conf_file["directories"]["media_dir"] = askdirectory(title=self.lang_pack.choose_media_dir_message,
                                                                  mustexist=True,
                                                                  initialdir=MEDIA_DOWNLOADING_LOCATION)
             if not conf_file["directories"]["media_dir"]:
                 return (conf_file, True)
 
-        if not conf_file["directories"]["last_open_file"] or not os.path.isfile(conf_file["directories"]["last_open_file"]):
-            conf_file["directories"]["last_open_file"] = askopenfilename(title="Выберете JSON файл со словами",
+        if not conf_file["directories"]["last_open_file"] or not os.path.isfile(
+                conf_file["directories"]["last_open_file"]):
+            conf_file["directories"]["last_open_file"] = askopenfilename(title=self.lang_pack.choose_deck_file_message,
                                                                          filetypes=(("JSON", ".json"),),
                                                                          initialdir="./")
             if not conf_file["directories"]["last_open_file"]:
                 return (conf_file, True)
 
-        if not conf_file["directories"]["last_save_dir"] or not os.path.isdir(conf_file["directories"]["last_save_dir"]):
-            conf_file["directories"]["last_save_dir"] = askdirectory(title="Выберете директорию сохранения",
+        if not conf_file["directories"]["last_save_dir"] or not os.path.isdir(
+                conf_file["directories"]["last_save_dir"]):
+            conf_file["directories"]["last_save_dir"] = askdirectory(title=self.lang_pack.choose_save_dir_message,
                                                                      mustexist=True,
                                                                      initialdir="./")
             if not conf_file["directories"]["last_save_dir"]:
@@ -596,23 +387,39 @@ class App(Tk):
 
         return (conf_file, False)
 
+    @staticmethod
+    def load_history_file() -> dict:
+        if not os.path.exists(HISTORY_FILE_PATH):
+            history_json = {}
+        else:
+            with open(HISTORY_FILE_PATH, "r", encoding="UTF-8") as f:
+                history_json = json.load(f)
+        return history_json
+
+    @property
     @error_handler(show_errors)
-    def change_media_dir(self):
-        media_dir =  askdirectory(title="Выберете директорию для медиа файлов",
-                                  mustexist=True,
-                                  initialdir=MEDIA_DOWNLOADING_LOCATION)
-        if media_dir:
-            self.configurations["directories"]["media_dir"] = media_dir
+    def word(self):
+        return self.word_text.get(1.0, "end").strip()
+
+    @property
+    @error_handler(show_errors)
+    def definition(self):
+        return self.definition_text.get(1.0, "end").rstrip()
+
+    @error_handler(show_errors)
+    def get_sentence(self, n: int):
+        return self.sent_text_list[n].get(1.0, "end").rstrip()
 
     @error_handler(show_errors)
     def change_file(self):
-        new_file = askopenfilename(title="Выберете JSON файл со словами",
+        new_file = askopenfilename(title=self.lang_pack.choose_deck_file_message,
                                    filetypes=(("JSON", ".json"),),
                                    initialdir="./")
         if not new_file:
             return
 
-        new_save_dir = askdirectory(title="Выберете директорию сохранения", initialdir="./")
+        new_save_dir = askdirectory(title=self.lang_pack.choose_save_dir_message,
+                                    initialdir="./")
         if not new_save_dir:
             return
 
@@ -630,7 +437,7 @@ class App(Tk):
         self.refresh()
 
     @error_handler(show_errors)
-    def create_new_file(self):
+    def create_file_dialog(self):
         @error_handler(self.show_errors)
         def create_file():
             def foo():
@@ -639,7 +446,8 @@ class App(Tk):
 
             new_file_name = remove_special_chars(name_entry.get().strip(), sep="_")
             if not new_file_name:
-                messagebox.showerror("Ошибка", "Не указано имя файла")
+                messagebox.showerror(title=self.lang_pack.error_title,
+                                     message=self.lang_pack.create_file_no_file_name_was_given_message)
                 return
 
             new_file_path = f"{new_file_dir}/{new_file_name}.json"
@@ -648,10 +456,14 @@ class App(Tk):
             if os.path.exists(new_file_path):
                 copy_encounter = self.Toplevel(create_file_win)
                 copy_encounter.withdraw()
-                message = f"Файл уже существует.\nВыберите нужную опцию:"
+                message = self.lang_pack.create_file_file_already_exists_message
                 encounter_label = self.Label(copy_encounter, text=message, relief="ridge")
-                skip_encounter_button = self.Button(copy_encounter, text="Пропустить", command=lambda: foo())
-                rewrite_encounter_button = self.Button(copy_encounter, text="Заменить", command=lambda: copy_encounter.destroy())
+                skip_encounter_button = self.Button(copy_encounter,
+                                                    text=self.lang_pack.create_file_skip_encounter_button_text,
+                                                    command=lambda: foo())
+                rewrite_encounter_button = self.Button(copy_encounter,
+                                                       text=self.lang_pack.create_file_rewrite_encounter_button_text,
+                                                       command=lambda: copy_encounter.destroy())
 
                 encounter_label.grid(row=0, column=0, padx=5, pady=5)
                 skip_encounter_button.grid(row=1, column=0, padx=5, pady=5, sticky="news")
@@ -666,7 +478,7 @@ class App(Tk):
                 with open(new_file_path, "w", encoding="UTF-8") as new_file:
                     json.dump([], new_file)
 
-            new_save_dir = askdirectory(title="Выберете директорию сохранения", initialdir="./")
+            new_save_dir = askdirectory(title=self.lang_pack.choose_save_dir_message, initialdir="./")
             if not new_save_dir:
                 return
 
@@ -681,13 +493,17 @@ class App(Tk):
             self.saved_cards_data = SavedDataDeck()
             self.refresh()
 
-        new_file_dir = askdirectory(title="Выберете директорию для файла со словами", initialdir="./")
+        new_file_dir = askdirectory(title=self.lang_pack.create_file_choose_dir_message, initialdir="./")
         if not new_file_dir:
             return
         create_file_win = self.Toplevel()
         create_file_win.withdraw()
-        name_entry = self.Entry(create_file_win, placeholder="Имя файла", justify="center")
-        name_button = self.Button(create_file_win, text="Создать", command=create_file)
+        name_entry = self.Entry(create_file_win,
+                                placeholder=self.lang_pack.create_file_name_entry_placeholder,
+                                justify="center")
+        name_button = self.Button(create_file_win,
+                                  text=self.lang_pack.create_file_name_button_placeholder,
+                                  command=create_file)
         name_entry.grid(row=0, column=0, padx=5, pady=3, sticky="news")
         name_button.grid(row=1, column=0, padx=5, pady=3, sticky="ns")
         create_file_win.deiconify()
@@ -698,7 +514,6 @@ class App(Tk):
 
     @error_handler(show_errors)
     def save_files(self):
-        # получение координат на экране через self.winfo_rootx(), self.winfo_rooty() даёт некоторое смещение
         self.configurations["app"]["main_window_geometry"] = self.geometry()
         self.configurations["tags_hierarchical_pref"] = self.tag_prefix_field.get().strip()
         self.save_conf_file()
@@ -726,20 +541,36 @@ class App(Tk):
                                self.card_processor.get_card_audio_name)
 
     @error_handler(show_errors)
-    def on_closing(self):
-        """
-        Закрытие программы
-        """
-        if messagebox.askokcancel("Выход", "Вы точно хотите выйти?"):
-            self.save_files()
-            self.gb.stop()
-            self.download_audio(closing=True)
+    def help_command(self):
+        mes = self.lang_pack.buttons_hotkeys_help_message
+        self.show_window(title=self.lang_pack.buttons_hotkeys_help_toplevel_title,
+                         text=mes)
 
+    @error_handler(show_errors)
+    def get_query_language_help(self):
+        standard_fields = f"""
+{FIELDS.word}: {self.lang_pack.word_field_help}
+{FIELDS.alt_terms}: {self.lang_pack.alt_terms_field_help}
+{FIELDS.definition}: {self.lang_pack.definition_field_help}
+{FIELDS.sentences}: {self.lang_pack.sentences_field_help}
+{FIELDS.img_links}: {self.lang_pack.img_links_field_help}
+{FIELDS.audio_links}: {self.lang_pack.audio_links_field_help}
+{FIELDS.dict_tags}: {self.lang_pack.dict_tags_field_help}
+"""
+        current_scheme = self.cd.scheme_docs
+        lang_docs = self.lang_pack.query_language_docs
+
+        self.show_window(self.lang_pack.query_language_toplevel_title,
+                         f"{self.lang_pack.general_scheme_label}:\n{standard_fields}\n"
+                         f"{self.lang_pack.current_scheme_label}:\n{current_scheme}\n"
+                         f"{self.lang_pack.query_language_label}:\n{lang_docs}")
+    
     @error_handler(show_errors)
     def download_audio(self, choose_file=False, closing=False):
         if choose_file:
             self.save_files()
-            audio_file_name = askopenfilename(title="Выберете JSON файл c аудио", filetypes=(("JSON", ".json"),),
+            audio_file_name = askopenfilename(title=self.lang_pack.download_audio_choose_audio_file_title,
+                                              filetypes=(("JSON", ".json"),),
                                               initialdir="./")
             if not audio_file_name:
                 return
@@ -763,92 +594,27 @@ class App(Tk):
             audio_downloader.bind("<Destroy>", lambda event: self.destroy() if isinstance(event.widget, Toplevel) else None)
         spawn_toplevel_in_center(self, audio_downloader)
         audio_downloader.download_audio(audio_links_list)
-
+    
+    @error_handler(show_errors)
+    def change_media_dir(self):
+        media_dir =  askdirectory(title=self.lang_pack.choose_media_dir_message,
+                                  mustexist=True,
+                                  initialdir=MEDIA_DOWNLOADING_LOCATION)
+        if media_dir:
+            self.configurations["directories"]["media_dir"] = media_dir
+    
     @error_handler(show_errors)
     def save_button(self):
         self.save_files()
-        messagebox.showinfo(message="Файлы сохранены")
-
-    @property
+        messagebox.showinfo(message=self.lang_pack.save_files_message)
+    
     @error_handler(show_errors)
-    def word(self):
-        return self.word_text.get(1.0, "end").strip()
-
-    @property
-    @error_handler(show_errors)
-    def definition(self):
-        return self.definition_text.get(1.0, "end").rstrip()
-
-    @error_handler(show_errors)
-    def get_sentence(self, n: int):
-        return self.sent_text_list[n].get(1.0, "end").rstrip()
-
-    @error_handler(show_errors)
-    def replace_sentences(self) -> None:
-        sent_batch, error_message, local_flag = self.sentence_fetcher.get_sentence_batch(self.word)
-        for text_field in self.sent_text_list:
-            text_field.clear()
-            text_field.fill_placeholder()
-        for i in range(len(sent_batch)):
-            self.sent_text_list[i].remove_placeholder()
-            self.sent_text_list[i].insert(1.0, sent_batch[i])
-        if error_message:
-            messagebox.showerror(title="Ошибка получения предложений", message=error_message)
-        self.add_sentences_button["text"] = self.sentence_button_text if local_flag else self.sentence_button_text + " +"
-
-    @error_handler(show_errors)
-    def refresh(self) -> bool:
-        @error_handler(self.show_errors)
-        def fill_additional_dict_data(widget: Text, text: str):
-            widget["state"] = "normal"
-            widget.clear()
-            widget.insert(1.0, text)
-            widget["state"] = "disabled"
-
-        self.dict_card_data = self.deck.get_card().to_dict()
-        self.card_processor.process_card(self.dict_card_data)
-
-        self.prev_button["state"] = "normal" if self.deck.get_pointer_position() != self.deck.get_starting_position() + 1 \
-                                             else "disabled"
-
-        self.title(f"Поиск предложений для Anki. Осталось: {self.deck.get_n_cards_left()} слов")
-
-        self.word_text.clear()
-        self.word_text.insert(1.0, self.dict_card_data.get(FIELDS.word, ""))
-        self.word_text.focus()
-
-        fill_additional_dict_data(self.dict_tags_field, Card.get_str_dict_tags(self.dict_card_data))
-        fill_additional_dict_data(self.alt_terms_field, " ".join(self.dict_card_data.get(FIELDS.alt_terms, [])))
-
-        self.definition_text.clear()
-        self.definition_text.insert(1.0, self.dict_card_data.get(FIELDS.definition, ""))
-        self.definition_text.fill_placeholder()
-
-        self.sentence_fetcher(self.word, self.dict_card_data.get(FIELDS.sentences, []))
-        self.replace_sentences()
-        if not self.dict_card_data:
-            self.find_image_button["text"] = "Добавить изображение"
-            if not self.configurations["scrappers"]["local_audio"]:
-                self.sound_button["state"] = "disabled"
-            return False
-
-        if self.dict_card_data.get(FIELDS.img_links, []):
-            self.find_image_button["text"] = "Добавить изображение ★"
-        else:
-            self.find_image_button["text"] = "Добавить изображение"
-
-        if self.configurations["scrappers"]["local_audio"] or self.dict_card_data.get(FIELDS.audio_links, []):
-            self.sound_button["state"] = "normal"
-        else:
-            self.sound_button["state"] = "disabled"
-        return True
-
-    @error_handler(show_errors)
-    def define_word_button(self, word_query: str, additional_query: str) -> bool:
+    def define_word(self, word_query: str, additional_query: str) -> bool:
         try:
             exact_pattern = re.compile(r"\b{}\b".format(word_query))
         except re.error:
-            messagebox.showerror("Неверно задано регулярное выражение для слова!")
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=self.lang_pack.define_word_wrong_regex_message)
             return True
 
         exact_word_filter = lambda comparable: re.search(exact_pattern, comparable)
@@ -859,9 +625,11 @@ class App(Tk):
                                           additional_filter=additional_filter):
                 self.refresh()
                 return False
-            messagebox.showerror(title="Ошибка!", message="Слово не найдено!")
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=self.lang_pack.define_word_word_not_found_message)
         except ParsingException as e:
-            messagebox.showerror("Ошибка запроса", str(e))
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=str(e))
         return True
 
     @error_handler(show_errors)
@@ -870,7 +638,7 @@ class App(Tk):
         def get_word():
             clean_word = add_word_entry.get().strip()
             additional_query = additional_filter_entry.get(1.0, "end").strip()
-            if not self.define_word_button(clean_word, additional_query):
+            if not self.define_word(clean_word, additional_query):
                 add_word_frame.destroy()
             else:
                 add_word_frame.withdraw()
@@ -880,16 +648,21 @@ class App(Tk):
         add_word_frame.withdraw()
 
         add_word_frame.grid_columnconfigure(0, weight=1)
-        add_word_frame.title("Добавить")
+        add_word_frame.title(self.lang_pack.add_word_frame_title)
 
-        add_word_entry = self.Entry(add_word_frame, placeholder="Слово")
+        add_word_entry = self.Entry(add_word_frame,
+                                    placeholder=self.lang_pack.add_word_entry_placeholder)
         add_word_entry.focus()
         add_word_entry.grid(row=0, column=0, padx=5, pady=3, sticky="we")
 
-        additional_filter_entry = self.Text(add_word_frame, placeholder="Дополнительный фильтр", height=5)
+        additional_filter_entry = self.Text(add_word_frame,
+                                            placeholder=self.lang_pack.add_word_additional_filter_entry_placeholder,
+                                            height=5)
         additional_filter_entry.grid(row=1, column=0, padx=5, pady=3, sticky="we")
 
-        start_parsing_button = self.Button(add_word_frame, text="Добавить", command=get_word)
+        start_parsing_button = self.Button(add_word_frame,
+                                           text=self.lang_pack.add_word_start_parsing_button_text,
+                                           command=get_word)
         start_parsing_button.grid(row=2, column=0, padx=5, pady=3, sticky="ns")
 
         add_word_frame.bind("<Escape>", lambda event: add_word_frame.destroy())
@@ -904,12 +677,14 @@ class App(Tk):
         def go_to():
             find_query = find_entry.get(1.0, "end").strip()
             if not find_query:
-                messagebox.showerror("Ошибка запроса", "Пустой запрос!")
+                messagebox.showerror(title=self.lang_pack.error_title,
+                                     message=self.lang_pack.find_dialog_empty_query_message)
                 return
 
             if find_query.startswith("->"):
                 if not (move_quotient := find_query[2:]).lstrip("-").isdigit():
-                    messagebox.showerror("Ошибка запроса", "Неверно задан переход!")
+                    messagebox.showerror(title=self.lang_pack.error_title,
+                                         message=self.lang_pack.find_dialog_wrong_move_message)
                 else:
                     self.replace_decks_pointers(int(move_quotient))
                 find_frame.destroy()
@@ -918,7 +693,8 @@ class App(Tk):
             try:
                 searching_filter = get_card_filter(find_query)
             except ParsingException as e:
-                messagebox.showerror("Ошибка запроса", str(e))
+                messagebox.showerror(title=self.lang_pack.error_title,
+                                     message=str(e))
                 find_frame.withdraw()
                 find_frame.deiconify()
                 return
@@ -955,24 +731,29 @@ class App(Tk):
                 right = self.Button(rotate_frame, text=">", command=lambda: rotate(1))
                 right.grid(row=0, column=2)
 
-                done = self.Button(rotate_frame, text="Готово", command=lambda: rotate_frame.destroy())
-                done.grid(row=0, column=1)
+                done_button_text = self.Button(rotate_frame,
+                                               text=self.lang_pack.find_dialog_done_button_text,
+                                               command=lambda: rotate_frame.destroy())
+                done_button_text.grid(row=0, column=1)
                 spawn_toplevel_in_center(self, rotate_frame)
                 rotate_frame.bind("<Escape>", lambda _: rotate_frame.destroy())
                 return
-            messagebox.showerror("Ошибка запроса", "Ничего не найдено!")
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=self.lang_pack.find_dialog_nothing_found_message)
             find_frame.withdraw()
             find_frame.deiconify()
 
         find_frame = self.Toplevel(self)
         find_frame.withdraw()
-        find_frame.title("Перейти")
+        find_frame.title(self.lang_pack.find_dialog_find_frame_title)
         find_frame.grid_columnconfigure(0, weight=1)
         find_entry = self.Text(find_frame, height=5)
         find_entry.grid(row=0, column=0, padx=5, pady=3, sticky="we")
         find_entry.focus()
 
-        find_button = self.Button(find_frame, text="Перейти", command=go_to)
+        find_button = self.Button(find_frame,
+                                  text=self.lang_pack.find_dialog_find_button_text,
+                                  command=go_to)
         find_button.grid(row=1, column=0, padx=5, pady=3, sticky="ns")
         find_frame.bind("<Return>", lambda _: go_to())
         find_frame.bind("<Escape>", lambda _: find_frame.destroy())
@@ -984,12 +765,19 @@ class App(Tk):
         statistics_window = self.Toplevel(self)
         statistics_window.withdraw()
 
-        statistics_window.title("Статистика")
-        text_list = (('Добавлено', 'Отложено', 'Пропущено', 'Осталось', "Файл", "Директория сохранения", "Медиа"),
+        statistics_window.title(self.lang_pack.statistics_dialog_statistics_window_title)
+        text_list = ((self.lang_pack.statistics_dialog_added_label,
+                      self.lang_pack.statistics_dialog_buried_label,
+                      self.lang_pack.statistics_dialog_skipped_label,
+                      self.lang_pack.statistics_dialog_cards_left_label,
+                      self.lang_pack.statistics_dialog_current_file_label,
+                      self.lang_pack.statistics_dialog_saving_dir_label,
+                      self.lang_pack.statistics_dialog_media_dir_label),
                      (self.saved_cards_data.get_card_status_stats(CardStatus.ADD),
                       self.saved_cards_data.get_card_status_stats(CardStatus.BURY),
                       self.saved_cards_data.get_card_status_stats(CardStatus.SKIP),
-                      self.deck.get_n_cards_left(), self.deck.deck_path,
+                      self.deck.get_n_cards_left(),
+                      self.deck.deck_path,
                       self.configurations["directories"]["last_save_dir"],
                       self.configurations["directories"]["media_dir"]))
 
@@ -1012,6 +800,178 @@ class App(Tk):
         spawn_toplevel_in_center(self, statistics_window)
         statistics_window.deiconify()
 
+    @error_handler(show_errors)
+    def anki_dialog(self):
+        anki_toplevel = self.Toplevel(self)
+
+        @error_handler(self.show_errors)
+        def save_anki_settings_command():
+            self.configurations["anki"]["anki_deck"] = anki_deck_entry.get().strip()
+            self.configurations["anki"]["anki_field"] = anki_field_entry.get().strip()
+            anki_toplevel.destroy()
+
+        anki_toplevel.title(self.lang_pack.anki_dialog_anki_toplevel_title)
+        anki_deck_entry = self.Entry(anki_toplevel,
+                                     placeholder=self.lang_pack.anki_dialog_anki_deck_entry_placeholder)
+        anki_deck_entry.insert(0, self.configurations["anki"]["anki_deck"])
+        anki_deck_entry.fill_placeholder()
+
+        anki_field_entry = self.Entry(anki_toplevel,
+                                      placeholder=self.lang_pack.anki_dialog_anki_field_entry_placeholder)
+        anki_field_entry.insert(0, self.configurations["anki"]["anki_field"])
+        anki_field_entry.fill_placeholder()
+
+        save_anki_settings_button = self.Button(anki_toplevel,
+                                                text=self.lang_pack.anki_dialog_save_anki_settings_button_text,
+                                                command=save_anki_settings_command)
+
+        padx = pady = 5
+        anki_deck_entry.grid(row=0, column=0, sticky="we", padx=padx, pady=pady)
+        anki_field_entry.grid(row=1, column=0, sticky="we", padx=padx, pady=pady)
+        save_anki_settings_button.grid(row=2, column=0, sticky="ns", padx=padx)
+        anki_toplevel.bind("<Return>", lambda event: save_anki_settings_command())
+        anki_toplevel.bind("<Escape>", lambda event: anki_toplevel.destroy())
+        spawn_toplevel_in_center(self, anki_toplevel)
+    
+    @error_handler(show_errors)
+    def switch_theme(self):
+        @error_handler(self.show_errors)
+        def pick(name: str):
+            self.configurations["app"]["theme"] = name
+            messagebox.showinfo(message=self.lang_pack.restart_app_text)
+            theme_toplevel.destroy()
+
+        theme_toplevel = self.Toplevel(self)
+        theme_toplevel.grid_columnconfigure(0, weight=1)
+        for i, theme_name in enumerate(loaded_plugins.themes.loaded):
+            b = self.Button(theme_toplevel, text=theme_name, command=lambda x=theme_name: pick(x))
+            b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
+        theme_toplevel.bind("<Escape>", lambda event: theme_toplevel.destroy())
+        spawn_toplevel_in_center(self, theme_toplevel)
+    
+    @error_handler(show_errors)
+    def on_closing(self):
+        if messagebox.askokcancel(title=self.lang_pack.on_closing_message_title,
+                                  message=self.lang_pack.on_closing_message):
+            self.save_files()
+            self.gb.stop()
+            self.download_audio(closing=True)
+    
+    @error_handler(show_errors)
+    def web_search_command(self):
+        search_term = self.word
+        definition_search_query = search_term + " definition"
+        webbrowser.open_new_tab(f"https://www.google.com/search?q={definition_search_query}")
+        sentence_search_query = search_term + " sentence examples"
+        webbrowser.open_new_tab(f"https://www.google.com/search?q={sentence_search_query}")
+    
+    @error_handler(show_errors)
+    def configure_dictionary(self):
+        WEB_PREF = "[web]"
+        LOCAL_PREF = "[local]"
+        DEFAULT_AUDIO_SRC = "default"
+
+        @error_handler(self.show_errors)
+        def pick_parser(typed_parser: str):
+            if typed_parser.startswith(WEB_PREF):
+                raw_name = typed_parser[len(WEB_PREF) + 1:]
+                self.cd = loaded_plugins.get_web_card_generator(typed_parser[len(WEB_PREF) + 1:])
+                self.configurations["scrappers"]["word_parser_type"] = "web"
+            else:
+                raw_name = typed_parser[len(LOCAL_PREF) + 1:]
+                self.cd = loaded_plugins.get_local_card_generator(typed_parser[len(LOCAL_PREF) + 1:])
+                self.configurations["scrappers"]["word_parser_type"] = "local"
+            self.configurations["scrappers"]["word_parser_name"] = raw_name
+            self.typed_word_parser_name = typed_parser
+            self.deck.update_card_generator(self.cd)
+
+        # dict
+        dict_configuration_toplevel = self.Toplevel(self)
+        dict_configuration_toplevel.grid_columnconfigure(1, weight=1)
+        dict_configuration_toplevel.withdraw()
+
+        dict_label = self.Label(dict_configuration_toplevel, text=self.lang_pack.configure_dictionary_dict_label_text)
+        dict_label.grid(row=0, column=0, sticky="news")
+
+        choose_wp_option = self.get_option_menu(
+            dict_configuration_toplevel,
+            init_text=self.typed_word_parser_name,
+            values=[f"{WEB_PREF} {item}" for item in loaded_plugins.web_word_parsers.loaded] +
+                   [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_word_parsers.loaded],
+            command=lambda typed_parser: pick_parser(typed_parser))
+        choose_wp_option.grid(row=0, column=1, sticky="news")
+
+        # audio_getter
+        audio_getter_label = self.Label(dict_configuration_toplevel,
+                                        text=self.lang_pack.configure_dictionary_audio_getter_label_text)
+        audio_getter_label.grid(row=1, column=0, sticky="news")
+
+        @error_handler(self.show_errors)
+        def pick_audio_getter(name: str):
+            if name == DEFAULT_AUDIO_SRC:
+                self.local_audio_getter = None
+                self.configurations["scrappers"]["local_audio"] = ""
+                self.sound_button["state"] = "normal" if self.dict_card_data.get(FIELDS.audio_links, []) else "disabled"
+                return
+            self.sound_button["state"] = "normal"
+            self.configurations["scrappers"]["local_audio"] = name
+            self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
+
+        choose_audio_option = self.get_option_menu(
+            dict_configuration_toplevel,
+            init_text=DEFAULT_AUDIO_SRC if self.local_audio_getter is None else self.local_audio_getter.name,
+            values=list(loaded_plugins.local_audio_getters.loaded) + [DEFAULT_AUDIO_SRC],
+            command=lambda getter: pick_audio_getter(getter))
+        choose_audio_option.grid(row=1, column=1, sticky="news")
+
+        # card_processor
+        card_processor_label = self.Label(dict_configuration_toplevel,
+                                          text=self.lang_pack.configure_dictionary_card_processor_label_text)
+        card_processor_label.grid(row=2, column=0, sticky="news")
+
+        @error_handler(self.show_errors)
+        def choose_card_processor(name: str):
+            self.configurations["card_processor"] = name
+            self.card_processor = loaded_plugins.get_card_processor(name)
+
+        card_processor_option = self.get_option_menu(dict_configuration_toplevel,
+                                                init_text=self.card_processor.name,
+                                                values=loaded_plugins.card_processors.loaded,
+                                                command=lambda processor: choose_card_processor(processor))
+        card_processor_option.grid(row=2, column=1, sticky="news")
+
+        format_processor_label = self.Label(dict_configuration_toplevel,
+                                            text=self.lang_pack.configure_dictionary_format_processor_label_text)
+        format_processor_label.grid(row=3, column=0, sticky="news")
+
+        @error_handler(self.show_errors)
+        def choose_format_processor(name: str):
+            self.configurations["deck_saving_format"] = name
+            self.deck_saver = loaded_plugins.get_deck_saving_formats(name)
+
+        format_processor_option = self.get_option_menu(dict_configuration_toplevel,
+                                                  init_text=self.deck_saver.name,
+                                                  values=loaded_plugins.deck_saving_formats.loaded,
+                                                  command=lambda format: choose_format_processor(format))
+        format_processor_option.grid(row=3, column=1, sticky="news")
+
+        dict_configuration_toplevel.bind("<Escape>", lambda event: dict_configuration_toplevel.destroy())
+        dict_configuration_toplevel.bind("<Return>", lambda event: dict_configuration_toplevel.destroy())
+        dict_configuration_toplevel.deiconify()
+        spawn_toplevel_in_center(self, dict_configuration_toplevel)
+    
+    @error_handler(show_errors)
+    def change_image_parser(self, given_image_parser_name: str):
+        self.image_parser = loaded_plugins.get_image_parser(given_image_parser_name)
+        self.configurations["scrappers"]["base_image_parser"] = given_image_parser_name
+    
+    @error_handler(show_errors)
+    def change_sentence_parser(self, given_sentence_parser_name: str):
+        self.sentence_parser = loaded_plugins.get_sentence_parser(given_sentence_parser_name)
+        self.sentence_fetcher = SentenceFetcher(sent_fetcher=self.sentence_parser.get_sentence_batch,
+                                                sentence_batch_size=self.sentence_batch_size)
+        self.configurations["scrappers"]["base_sentence_parser"] = given_sentence_parser_name
+    
     @error_handler(show_errors)
     def choose_sentence(self, sentence_number: int):
         word = self.word
@@ -1064,38 +1024,19 @@ class App(Tk):
         if not self.deck.get_n_cards_left():
             self.deck.append(Card(self.dict_card_data))
         self.refresh()
+    
+    @error_handler(show_errors)
+    def skip_command(self):
+        if self.deck.get_n_cards_left():
+            self.saved_cards_data.append(CardStatus.SKIP)
+        self.refresh()
 
     @error_handler(show_errors)
-    def anki_dialog(self):
-        anki_toplevel = self.Toplevel(self)
-
-        @error_handler(self.show_errors)
-        def save_anki_settings_command():
-            deck = anki_deck_entry.get().strip()
-            field = anki_field_entry.get().strip()
-            self.configurations["anki"]["anki_deck"] = deck if deck != 'Колода поиска' else ""
-            self.configurations["anki"]["anki_field"] = field if field != 'Поле поиска' else ""
-            anki_toplevel.destroy()
-
-        anki_toplevel.title("Настройки Anki")
-        anki_deck_entry = self.Entry(anki_toplevel, placeholder='Колода поиска')
-        anki_deck_entry.insert(0, self.configurations["anki"]["anki_deck"])
-        anki_deck_entry.fill_placeholder()
-
-        anki_field_entry = self.Entry(anki_toplevel, placeholder='Поле поиска')
-        anki_field_entry.insert(0, self.configurations["anki"]["anki_field"])
-        anki_field_entry.fill_placeholder()
-
-        save_anki_settings_button = self.Button(anki_toplevel, text="Сохранить", command=save_anki_settings_command)
-
-        padx = pady = 5
-        anki_deck_entry.grid(row=0, column=0, sticky="we", padx=padx, pady=pady)
-        anki_field_entry.grid(row=1, column=0, sticky="we", padx=padx, pady=pady)
-        save_anki_settings_button.grid(row=2, column=0, sticky="ns", padx=padx)
-        anki_toplevel.bind("<Return>", lambda event: save_anki_settings_command())
-        anki_toplevel.bind("<Escape>", lambda event: anki_toplevel.destroy())
-        spawn_toplevel_in_center(self, anki_toplevel)
-
+    def replace_decks_pointers(self, n: int):
+        self.saved_cards_data.move(min(n, self.deck.get_n_cards_left()))
+        self.deck.move(n - 1)
+        self.refresh()
+    
     @error_handler(show_errors)
     def play_sound(self):
         @error_handler(self.show_errors)
@@ -1104,7 +1045,7 @@ class App(Tk):
 
             playsound_toplevel = self.Toplevel(self)
             playsound_toplevel.withdraw()
-            playsound_toplevel.title("Аудио")
+            playsound_toplevel.title(self.lang_pack.play_sound_playsound_toplevel_title)
             playsound_toplevel.columnconfigure(0, weight=1)
 
             for i in range(len(audio_src)):
@@ -1113,7 +1054,9 @@ class App(Tk):
                 label.insert(1.0, info[i])
                 label["state"] = "disabled"
                 label.grid(row=i, column=0)
-                b = self.Button(playsound_toplevel, text="Play", command=lambda src=audio_src[i]: play_command(src, str(i)))
+                b = self.Button(playsound_toplevel,
+                                text=self.lang_pack.sound_button_text,
+                                command=lambda src=audio_src[i]: play_command(src, str(i)))
                 b.grid(row=i, column=1, sticky="news")
 
             playsound_toplevel.bind("<Escape>", lambda _: playsound_toplevel.destroy())
@@ -1124,7 +1067,7 @@ class App(Tk):
 
         @error_handler(self.show_errors)
         def show_download_error(exc):
-            messagebox.showerror(message=f"Ошибка получения звука\n{exc}")
+            messagebox.showerror(message=f"{self.lang_pack.error_title}\n{exc}")
 
         @error_handler(self.show_errors)
         def web_playsound(src: str, postfix: str = ""):
@@ -1158,18 +1101,127 @@ class App(Tk):
                     return
                 sound_dialog(audio_file_paths, audio_file_paths, local_playsound)
                 return
-            messagebox.showerror(message="Ошибка получения звука\nЛокальный файл не найден")
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=self.lang_pack.play_sound_local_audio_not_found_message)
             return
 
         if (audio_file_urls := self.dict_card_data.get(FIELDS.audio_links)) is None or not audio_file_urls:
-            messagebox.showerror(message="Ошибка получения звука\nНе откуда брать аудио!")
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=self.lang_pack.play_sound_no_audio_source_found_message)
             return
 
         elif len(audio_file_urls) == 1:
             web_playsound(audio_file_urls[0], "")
             return
         sound_dialog(audio_file_urls, audio_file_urls, web_playsound)
+    
+    @error_handler(show_errors)
+    def open_anki_browser(self):
+        @error_handler(self.show_errors)
+        def invoke(action, **params):
+            def request_anki(action, **params):
+                return {'action': action, 'params': params, 'version': 6}
+            import requests
 
+            request_json = json.dumps(request_anki(action, **params)).encode('utf-8')
+            try:
+                res = requests.get("http://localhost:8765", data=request_json, timeout=1)
+                res.raise_for_status()
+            except requests.ConnectionError:
+                messagebox.showerror(title=self.lang_pack.error_title,
+                                     message=self.lang_pack.request_anki_connection_error_message)
+                return
+            except requests.RequestException as e:
+                messagebox.showerror(title=self.lang_pack.error_title,
+                                     message=f"{self.lang_pack.request_anki_general_request_error_message_prefix}: {e}")
+                return
+
+            response = res.json()
+            if response['error'] is not None:
+                messagebox.showerror(title=self.lang_pack.error_title,
+                                     message=response['error'])
+            return response['result']
+
+        word = self.word_text.get(1.0, "end").strip()
+        query_list = []
+        if self.configurations["anki"]["anki_deck"]:
+            query_list.append("deck:\"{}\"".format(self.configurations["anki"]["anki_deck"]))
+        if self.configurations["anki"]["anki_field"]:
+            query_list.append("\"{}:*{}*\"".format(self.configurations["anki"]["anki_field"],
+                                                   word))
+        else:
+            query_list.append(f"*{word}*")
+        result_query = " and ".join(query_list)
+        invoke('guiBrowse', query=result_query)
+    
+    @error_handler(show_errors)
+    def bury_command(self):
+        self.saved_cards_data.append(status=CardStatus.BURY, card_data=self.dict_card_data)
+        self.refresh()
+    
+    @error_handler(show_errors)
+    def replace_sentences(self) -> None:
+        sent_batch, error_message, local_flag = self.sentence_fetcher.get_sentence_batch(self.word)
+        for text_field in self.sent_text_list:
+            text_field.clear()
+            text_field.fill_placeholder()
+        for i in range(len(sent_batch)):
+            self.sent_text_list[i].remove_placeholder()
+            self.sent_text_list[i].insert(1.0, sent_batch[i])
+        if error_message:
+            messagebox.showerror(title=self.lang_pack.error_title,
+                                 message=error_message)
+        self.add_sentences_button["text"] = self.sentence_button_text if local_flag else self.sentence_button_text + " +"
+    
+    @error_handler(show_errors)
+    def refresh(self) -> bool:
+        @error_handler(self.show_errors)
+        def fill_additional_dict_data(widget: Text, text: str):
+            widget["state"] = "normal"
+            widget.clear()
+            widget.insert(1.0, text)
+            widget["state"] = "disabled"
+
+        self.dict_card_data = self.deck.get_card().to_dict()
+        self.card_processor.process_card(self.dict_card_data)
+
+        self.prev_button["state"] = "normal" if self.deck.get_pointer_position() != self.deck.get_starting_position() + 1 \
+                                             else "disabled"
+
+        self.title(f"{self.lang_pack.main_window_title_prefix}: {self.deck.get_n_cards_left()}")
+
+        self.word_text.clear()
+        self.word_text.insert(1.0, self.dict_card_data.get(FIELDS.word, ""))
+        self.word_text.focus()
+
+        fill_additional_dict_data(self.dict_tags_field, Card.get_str_dict_tags(self.dict_card_data))
+        fill_additional_dict_data(self.alt_terms_field, " ".join(self.dict_card_data.get(FIELDS.alt_terms, [])))
+
+        self.definition_text.clear()
+        self.definition_text.insert(1.0, self.dict_card_data.get(FIELDS.definition, ""))
+        self.definition_text.fill_placeholder()
+
+        self.sentence_fetcher(self.word, self.dict_card_data.get(FIELDS.sentences, []))
+        self.replace_sentences()
+        if not self.dict_card_data:
+            # normal
+            self.find_image_button["text"] = self.lang_pack.find_image_button_normal_text
+            if not self.configurations["scrappers"]["local_audio"]:
+                self.sound_button["state"] = "disabled"
+            return False
+
+        if self.dict_card_data.get(FIELDS.img_links, []):
+            self.find_image_button["text"] = self.lang_pack.find_image_button_normal_text + \
+                                             self.lang_pack.find_image_button_image_link_encountered_postfix
+        else:
+            self.find_image_button["text"] = self.lang_pack.find_image_button_normal_text
+
+        if self.configurations["scrappers"]["local_audio"] or self.dict_card_data.get(FIELDS.audio_links, []):
+            self.sound_button["state"] = "normal"
+        else:
+            self.sound_button["state"] = "disabled"
+        return True
+    
     @error_handler(show_errors)
     def start_image_search(self):
         @error_handler(self.show_errors)

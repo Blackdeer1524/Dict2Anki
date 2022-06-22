@@ -420,7 +420,7 @@ class FieldDataGetter(Computable):
         def traverse_recursively(entry: Union[Mapping, Any], chain_index: int = 0) -> None:
             nonlocal result
             if chain_index == len(self.query_chain):
-                result.append(list(entry.keys())) if isinstance(entry, Mapping) else entry
+                result.append(list(entry.keys())) if isinstance(entry, Mapping) else result.append(entry)
                 return
 
             current_key = self.query_chain[chain_index]

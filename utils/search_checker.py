@@ -201,8 +201,8 @@ def keyword_factory(keyword_name: str) -> Callable[[Any], int]:
     if keyword_name == "in":
         def field_contains(collection: Iterable, search_pattern: re.Pattern):
             if isinstance(collection, str):
-                return re.match(search_pattern, collection) is not None
-            return any((re.match(search_pattern, str(item)) is not None for item in collection))
+                return re.search(search_pattern, collection) is not None
+            return any((re.search(search_pattern, str(item)) is not None for item in collection))
         return field_contains
     raise WrongKeywordError(f"Unknown keyword: {keyword_name}")
 

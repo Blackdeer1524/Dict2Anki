@@ -8,6 +8,7 @@ from consts.card_fields import FIELDS
 from plugins.parsers.return_types import SentenceGenerator
 from utils.storages import FrozenDictJSONEncoder
 from utils.storages import PointerList, FrozenDict
+from typing import ClassVar
 
 
 class Card(FrozenDict):
@@ -60,8 +61,11 @@ class Card(FrozenDict):
 
 
 class CardGenerator(ABC):
-    def __init__(self, item_converter: Callable[[str, dict], dict]):
+    def __init__(self,
+                 item_converter: Callable[[str, dict], dict],
+                 scheme_docs: str):
         self.item_converter = item_converter
+        self.scheme_docs = scheme_docs
 
     @abstractmethod
     def _get_search_subset(self, query: str) -> list[tuple[str, dict]]:
@@ -85,12 +89,13 @@ class CardGenerator(ABC):
 class LocalCardGenerator(CardGenerator):
     def __init__(self,
                  local_dict_path: str,
-                 item_converter: Callable[[(str, dict)], dict]):
+                 item_converter: Callable[[(str, dict)], dict],
+                 scheme_docs: str):
         """
         local_dict_path: str
         item_converter: Callable[[(str, dict)], dict]
         """
-        super(LocalCardGenerator, self).__init__(item_converter)
+        super(LocalCardGenerator, self).__init__(item_converter, scheme_docs)
         if not os.path.isfile(local_dict_path):
             raise Exception(f"Local dictionary with path \"{local_dict_path}\" doesn't exist")
 
@@ -104,12 +109,13 @@ class LocalCardGenerator(CardGenerator):
 class WebCardGenerator(CardGenerator):
     def __init__(self,
                  parsing_function: Callable[[str], list[(str, dict)]],
-                 item_converter: Callable[[(str, dict)], dict]):
+                 item_converter: Callable[[(str, dict)], dict],
+                 scheme_docs: str):
         """
         parsing_function: Callable[[str], list[(str, dict)]]
         item_converter: Callable[[(str, dict)], dict]
         """
-        super(WebCardGenerator, self).__init__(item_converter)
+        super(WebCardGenerator, self).__init__(item_converter, scheme_docs)
         self.parsing_function = parsing_function
 
     def _get_search_subset(self, query: str) -> list[tuple[str, dict]]:

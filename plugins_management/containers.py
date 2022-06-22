@@ -49,21 +49,25 @@ class ThemeContainer(_PluginContainer):
 
 
 class WebWordParserContainer(_PluginContainer):
+    scheme_docs: str
     define: Callable[[str], list[(str, dict)]]
     translate: Callable[[str, dict], dict]
 
     def __init__(self, name: str, source_module: WebWordParserInterface):
         super(WebWordParserContainer, self).__init__(name)
+        object.__setattr__(self, "scheme_docs", source_module.SCHEME_DOCS)
         object.__setattr__(self, "define", source_module.define)
         object.__setattr__(self, "translate", source_module.translate)
 
 
 class LocalWordParserContainer(_PluginContainer):
+    scheme_docs: str
     local_dict_name: str
     translate: Callable[[str], dict]
 
     def __init__(self, name: str, source_module: LocalWordParserInterface):
         super(LocalWordParserContainer, self).__init__(name)
+        object.__setattr__(self, "scheme_docs", source_module.SCHEME_DOCS)
         object.__setattr__(self, "local_dict_name", source_module.DICTIONARY_PATH)
         object.__setattr__(self, "translate", source_module.translate)
 

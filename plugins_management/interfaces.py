@@ -18,6 +18,8 @@ class ThemeInterface(Protocol):
 
 
 class WebWordParserInterface(Protocol):
+    SCHEME_DOCS: str
+
     @staticmethod
     def define(word: str) -> dict:
         ...
@@ -28,6 +30,7 @@ class WebWordParserInterface(Protocol):
 
 
 class LocalWordParserInterface(Protocol):
+    SCHEME_DOCS: str
     DICTIONARY_PATH: str
 
     @staticmethod

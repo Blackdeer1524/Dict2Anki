@@ -138,13 +138,15 @@ class PluginFactory:
         if (args := self.web_word_parsers.get(name)) is None:
             raise UnknownPluginName(f"Unknown WebCardGenerator: {name}")
         return WebCardGenerator(parsing_function=args.define,
-                                item_converter=args.translate)
+                                item_converter=args.translate,
+                                scheme_docs=args.scheme_docs)
 
     def get_local_card_generator(self, name: str) -> LocalCardGenerator:
         if (args := self.local_word_parsers.get(name)) is None:
             raise UnknownPluginName(f"Unknown LocalCardGenerator: {name}")
         return LocalCardGenerator(local_dict_path=f"{LOCAL_MEDIA_DIR}/{args.local_dict_name}.json",
-                                  item_converter=args.translate)
+                                  item_converter=args.translate,
+                                  scheme_docs=args.scheme_docs)
 
     def get_sentence_parser(self, name: str) -> WebSentenceParserContainer:
         if (gen := self.web_sent_parsers.get(name)) is None:

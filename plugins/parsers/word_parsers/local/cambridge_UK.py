@@ -3,6 +3,15 @@ from utils.preprocessing import remove_empty_keys
 
 
 DICTIONARY_PATH = "cambridge"
+SCHEME_DOCS = """
+tags: {
+    pos: part of speach (str)
+    domain: word domain (list[str])
+    level: English proficiency level (str)[A1, A2, B1, B2, C1, C2]
+    region: where this word mostly in use (list[str])
+    usage: usage context (list[str])
+}
+"""
 
 
 def translate(word: str, word_dict: dict):
@@ -25,11 +34,11 @@ def translate(word: str, word_dict: dict):
                                  FIELDS.sentences: examples,
                                  FIELDS.audio_links: [audio] if audio else [],
                                  FIELDS.img_links: [image] if image else [],
-                                 FIELDS.dict_tags: {"domain": domain,
+                                 FIELDS.dict_tags: {"pos": pos,
+                                                    "domain": domain,
                                                     "level": level,
                                                     "region": region,
                                                     "usage": usage,
-                                                    "pos": pos
                                                     }
                                  }
             remove_empty_keys(current_word_dict)

@@ -288,15 +288,13 @@ class App(Tk):
     def show_window(self, title: str, text: str) -> Toplevel:
         text_toplevel = self.Toplevel(self)
         text_toplevel.title(title)
-        sf = ScrolledFrame(text_toplevel, scrollbars="both")
-        sf.pack(side="top", expand=1, fill="both")
-        sf.bind_scroll_wheel(text_toplevel)
-        inner_frame = sf.display_widget(self.Frame)
-        label = self.Label(inner_frame, text=text, justify="left")
-        label.pack()
-        label.update()
-        sf.config(width=min(1000, label.winfo_width()), height=min(500, label.winfo_height()))
-        text_toplevel.resizable(False, False)
+        message_display_text = self.Text(text_toplevel, **self.theme.label_cfg)
+        message_display_text.insert(1.0, text)
+        message_display_text["state"] = "disabled"
+        message_display_text.pack(expand=1, fill="both")
+        message_display_text.update()
+        text_toplevel.config(width=min(1000, message_display_text.winfo_width()),
+                             height=min(500, message_display_text.winfo_height()))
         text_toplevel.bind("<Escape>", lambda event: text_toplevel.destroy())
         return text_toplevel
 
@@ -473,9 +471,12 @@ class App(Tk):
 {FIELDS.audio_links}: ссылки на аудио (список)
 {FIELDS.dict_tags}: тэги (словарь)
 """
+        current_scheme = self.cd.scheme_docs
         lang_docs = utils.search_checker.__doc__
 
-        self.show_window("Справка", f"{standard_fields}\n{lang_docs}")
+        self.show_window("Справка", f"Общая схема:\n{standard_fields}\n"
+                                    f"Текущая схема:\n{current_scheme}\n"
+                                    f"Синтаксис:\n{lang_docs}")
 
     @error_handler(show_errors)
     def skip_command(self):

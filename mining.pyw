@@ -731,15 +731,15 @@ class App(Tk):
 
                 left = self.Button(rotate_frame, text="<", command=lambda: rotate(-1))
                 left["state"] = "disabled"
-                left.grid(row=0, column=0)
+                left.grid(row=0, column=0, sticky="we")
 
                 right = self.Button(rotate_frame, text=">", command=lambda: rotate(1))
-                right.grid(row=0, column=2)
+                right.grid(row=0, column=2, sticky="we")
 
                 done_button_text = self.Button(rotate_frame,
                                                text=self.lang_pack.find_dialog_done_button_text,
                                                command=lambda: rotate_frame.destroy())
-                done_button_text.grid(row=0, column=1)
+                done_button_text.grid(row=0, column=1, sticky="we")
                 spawn_toplevel_in_center(self, rotate_frame)
                 rotate_frame.bind("<Escape>", lambda _: rotate_frame.destroy())
                 return

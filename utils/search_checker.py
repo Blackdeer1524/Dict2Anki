@@ -82,12 +82,12 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
             if isinstance(y_computed, list_like_types):
                 return (item_x and item_y for item_x in x_computed for item_y in y_computed)
             if not y_computed:
-                return (False, )
+                return (False for _ in x_computed)
             return (item_x for item_x in x_computed)
 
         if isinstance(y_computed, list_like_types):
             if not x_computed:
-                return (False,)
+                return (False for _ in y_computed)
             return (item_y for item_y in y_computed)
 
         if not x_computed:
@@ -104,12 +104,12 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
             if isinstance(y_computed, list_like_types):
                 return (item_x or item_y for item_x in x_computed for item_y in y_computed)
             if y_computed:
-                return (True, )
+                return (True for _ in x_computed)
             return (item_x for item_x in x_computed)
 
         if isinstance(y_computed, list_like_types):
             if x_computed:
-                return (True,)
+                return (True for _ in y_computed)
             return (item_y for item_y in y_computed)
 
         if x_computed:

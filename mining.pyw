@@ -858,6 +858,7 @@ class App(Tk):
         @error_handler(self.show_errors)
         def pick(name: str):
             self.configurations["app"]["language_package"] = name
+            self.lang_pack = loaded_plugins.get_language_package(self.configurations["app"]["language_package"])
             messagebox.showinfo(message=self.lang_pack.restart_app_text)
             lang_pack_toplevel.destroy()
 

@@ -354,7 +354,7 @@ request_anki_general_request_error_message_prefix = "Error log"
 audio_downloader_title = "Downloading..."
 audio_downloader_file_exists_message = "File\n {} \n already exists.\n Choose action:"
 audio_downloader_skip_encounter_button_text = "Skip"
-audio_downloader_rewrite_encounter_button_text = "Rewrite"
+audio_downloader_rewrite_encounter_button_text = "Replace"
 audio_downloader_apply_to_all_button_text = "Apply to all"
 audio_downloader_n_errors_message_prefix = "Number of not processed words:"
 

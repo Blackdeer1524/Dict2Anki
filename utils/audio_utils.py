@@ -10,7 +10,7 @@ import requests
 from utils.cards import SavedDataDeck
 from utils.storages import FrozenDict
 from utils.window_utils import spawn_toplevel_in_center
-from plugins_management.containers import LanguagePackageContainter
+from plugins_management.containers import LanguagePackageContainer
 
 
 class AudioDownloader(Toplevel):
@@ -20,7 +20,7 @@ class AudioDownloader(Toplevel):
         REWRITE = 2
 
     def __init__(self, master, headers: dict, timeout: int,
-                 lang_pack: LanguagePackageContainter,
+                 lang_pack: LanguagePackageContainer,
                  request_delay: int = 5_000,
                  temp_dir: str = "./", saving_dir: str = "./", local_media_dir: str = "./",
                  toplevel_cfg: dict = None, pb_cfg: dict = None, label_cfg: dict = None,

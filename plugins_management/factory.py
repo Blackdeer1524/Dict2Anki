@@ -16,7 +16,7 @@ import plugins.saving.card_processors
 import plugins.saving.format_processors
 import plugins.themes
 from consts.paths import LOCAL_MEDIA_DIR
-from plugins_management.containers import LanguagePackageContainter
+from plugins_management.containers import LanguagePackageContainer
 from plugins_management.containers import CardProcessorContainer
 from plugins_management.containers import DeckSavingFormatContainer
 from plugins_management.containers import ImageParserContainer
@@ -92,7 +92,7 @@ class PluginLoader(Generic[PluginContainer]):
 class PluginFactory:
     _is_initialized:     ClassVar[bool] = False
 
-    language_packages:   PluginLoader[LanguagePackageContainter]
+    language_packages:   PluginLoader[LanguagePackageContainer]
     themes:              PluginLoader[ThemeContainer]
     web_word_parsers:    PluginLoader[WebWordParserContainer]
     local_word_parsers:  PluginLoader[LocalWordParserContainer]
@@ -109,7 +109,7 @@ class PluginFactory:
 
         object.__setattr__(self, "language_packages",   PluginLoader(plugin_type="language package",
                                                                      module=plugins.language_packages,
-                                                                     container_type=LanguagePackageContainter))
+                                                                     container_type=LanguagePackageContainer))
         object.__setattr__(self, "themes",              PluginLoader(plugin_type="theme",
                                                                      module=plugins.themes,
                                                                      container_type=ThemeContainer))
@@ -135,7 +135,7 @@ class PluginFactory:
                                                                      module=plugins.parsers.local_audio_getters,
                                                                      container_type=LocalAudioGetterContainer))
 
-    def get_language_package(self, name: str) -> LanguagePackageContainter:
+    def get_language_package(self, name: str) -> LanguagePackageContainer:
         if (lang_pack := self.language_packages.get(name)) is None:
             raise UnknownPluginName(f"Unknown language package: {name}")
         return lang_pack

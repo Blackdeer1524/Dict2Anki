@@ -4,19 +4,6 @@ from plugins.parsers.return_types import SentenceGenerator, ImageGenerator
 from utils.cards import SavedDataDeck, CardStatus
 
 
-class ThemeInterface(Protocol):
-    label_cfg: dict
-    button_cfg: dict
-    text_cfg: dict
-    entry_cfg: dict
-    checkbutton_cfg: dict
-    toplevel_cfg: dict
-    root_cfg: dict
-    frame_cfg: dict
-    option_menu_cfg: dict
-    option_submenus_cfg: dict
-
-
 class LanguagePackageInterface(Protocol):
     # errors
     error_title: str
@@ -166,6 +153,19 @@ class LanguagePackageInterface(Protocol):
     image_search_show_more_button_text: str
     image_search_save_button_text: str
     image_search_empty_search_query_message: str
+
+
+class ThemeInterface(Protocol):
+    label_cfg: dict
+    button_cfg: dict
+    text_cfg: dict
+    entry_cfg: dict
+    checkbutton_cfg: dict
+    toplevel_cfg: dict
+    root_cfg: dict
+    frame_cfg: dict
+    option_menu_cfg: dict
+    option_submenus_cfg: dict
 
 
 class WebWordParserInterface(Protocol):

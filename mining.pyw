@@ -16,7 +16,7 @@ from typing import Callable
 from playsound import playsound
 from tkinterdnd2 import Tk
 
-from plugins_management.containers import LanguagePackageContainter
+from plugins_management.containers import LanguagePackageContainer
 from consts.card_fields import FIELDS
 from consts.paths import *
 from plugins_management.factory import loaded_plugins
@@ -333,7 +333,7 @@ class App(Tk):
         with open(CONFIG_FILE_PATH, "w") as f:
             json.dump(self.configurations, f, indent=3)
 
-    def load_conf_file(self) -> tuple[dict[str, dict], LanguagePackageContainter, bool]:
+    def load_conf_file(self) -> tuple[dict[str, dict], LanguagePackageContainer, bool]:
         standard_conf_file = {"app": {"theme": "dark",
                                       "main_window_geometry": "500x800+0+0",
                                       "image_search_position": "+0+0",

@@ -19,7 +19,7 @@ from tkinterdnd2 import DND_FILES, DND_TEXT
 
 from consts.paths import SYSTEM
 from utils.widgets import ScrolledFrame
-from plugins_management.containers import LanguagePackageContainter
+from plugins_management.containers import LanguagePackageContainer
 
 
 if SYSTEM == "Linux":
@@ -58,7 +58,7 @@ class ImageSearch(Toplevel):
         NON_RETRIABLE_FETCHING_ERROR = 2
         IMAGE_PROCESSING_ERROR = 3
 
-    def __init__(self, master, search_term: str, lang_pack: LanguagePackageContainter, **kwargs):
+    def __init__(self, master, search_term: str, lang_pack: LanguagePackageContainer, **kwargs):
         """
         master: \n
         main_params: toplevel config

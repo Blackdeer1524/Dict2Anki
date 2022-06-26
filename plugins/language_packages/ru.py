@@ -89,64 +89,64 @@ img_links_field_help = "ссылки на изображения (список)"
 audio_links_field_help = "ссылки на аудио (список)"
 dict_tags_field_help = "тэги (словарь)"
 query_language_docs = """
-Language query help
-
-Unary operators:
-* logic operators:
+Унарные операторы:
+* логические:
     not
 
-Binary operators:
-* logic operators
+Бинарные операторы:
+* логические
     and, or
-* arithmetics operators:
+* арифметические:
     <, <=, >, >=, ==, !=
 
-Keywords:
+Ключевые слова:
     in
-        Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
-        Example:
+        Проверяет наличие <thing> в <field>[<subfield_1>][...][<subfield_n>]
+        Пример:
             {
                 "field": [val_1, .., val_n]}
             }
 
             thing in field
-            Returns True if thing is in [val_1, .., val_n]
+            Вернет истину если thing находится в [val_1, .., val_n]
 
 
-Special queries & commands
+Специальные запросы & и команды 
     $ANY
-        Gets result from the whole hierarchy level
-        Example:
+        Возвращает результат текущего уровня иерархии 
+        Пример:
             {
                 "pos": {
                     "noun": {
                         "data": value_1
-                    }
+                    },
                     "verb" : {
                         "data": value_2
                     }
                 }
             }
-        pos[$ANY][data] will return [value_1, value_2]
-        $ANY[$ANY][data] will also will return [value_1, value_2]
+        $ANY вернет ["noun", "verb"]
+        pos[$ANY][data] вернет [value_1, value_2]
+        $ANY[$ANY][data] также вернет [value_1, value_2]
 
     $SELF
-        Gets current hierarchy level keys
-        Example:
+        Возвращает ключи текущего уровня иерархии
+        Пример:
             {
                 "field_1": 1,
                 "field_2": 2,
             }
-        $SELF will return [["field_1", "field_2"]]
+        $SELF вернет [["field_1", "field_2"]]
 
     d_$
-        Will convert string expression to an integer.
-        By default, every key inside query strings
-        (for example, in field[subfield] the keys are field and subfield)
-        are treated as strings. If you have an integer key or an array
-        with specific index, then you would need to use this prefix
+        Конвертирует строку в тип числа.
+        По умолчанию, ключи в строке запроса
+        (то есть в field[subfield] field и subfield - это ключи)
+        обрадатываются как строковый тип. Если у вас ключ с целочисленным или 
+        дробным типом, или вам нужно получить элемент массива по конкретному индексу,
+        то вам нужен этот префикс.
 
-        Example:
+        Пример:
             {
                 "array_field": [1, 2, 3],
                 "int_field": {
@@ -154,16 +154,15 @@ Special queries & commands
                 }
             }
 
-        array_field[d_$1] will return 2
-        int_field[d_$1] will return [4, 5, 6]
+        array_field[d_$1] вернет 2
+        int_field[d_$1] вернет [4, 5, 6]
 
     f_$
-        Will convert a degit to a field
-        By default, every stranded decimal-like strings
-        are treated as decimals. So if your scheme contains decimal as a
-        key you would need this prefix
+        Конвертирует к типу поля
+        По умолчанию, "одинокие" числа обрабатываются как числа
+        Если ваш ключ - число, то вам понадобится этот префикс
 
-        Example:
+        Пример:
             {
                 1: [1, 2, 3],
                 2: {
@@ -171,23 +170,22 @@ Special queries & commands
                 }
             }
 
-        f_$d_$1 will return [1, 2, 3]
-        You would need to also use d_$ prefix, because as 1 would be converted to
-        a <field> type, it would also be treated as a string
-        Note:
-            to get [4, 5, 6] from this scheme you would only need d_$ prefix:
+        f_$d_$1 вернет [1, 2, 3]
+        Нужно так же использовать d_$ префикс, так как 1 будет считаться полем -> 
+        будет обрабатываться как строка
+        Обратите внимание:
+            Чтобы получить [4, 5, 6] из данной схемы, нужно просто использовать d_$ префикс:
             d_$2[data]
 
-Methods:
+Методы:
     len
-        Measures length of iterable object
-        Example:
+        Измеряет длину результата
+        Пример:
             {
                 "field": [1, 2, 3]
             }
-            len(field) will return 3
-        You can also get length of obtained results
-        Example:
+        len(field) вернет 3
+        Пример:
             {
                 "field": {
                     "subfield_1": {
@@ -198,11 +196,11 @@ Methods:
                     }
                 }
             }
-            len(field[$ANY][data]) will return 2
+        len(field[$ANY][data]) = len([[1, 2, 3], [4, 5]]) = 2
 
     any
-        Returns True if one of items is True
-        Example:
+        Вернет истину если хотя бы один элемент истина
+        Пример:
             {
                 "field": {
                     "subfield_1": {
@@ -213,11 +211,11 @@ Methods:
                     }
                 }
             }
-            any(field[$ANY][data] > 1) will return True
+        any(field[$ANY][data] > 1) вернет истину 
 
     all
-        Returns True if all items are True
-        Example:
+        Вернет истину если все элементы - истина
+        Пример:
             {
                 "field": {
                     "subfield_1": {
@@ -228,64 +226,64 @@ Methods:
                     }
                 }
             }
-            all($ANY[$ANY][data] > 0) will return True
-            all($ANY[$ANY][data] > 1) will return False
+            all($ANY[$ANY][data] > 0) вернет истину
+            all($ANY[$ANY][data] > 1) вернет ложь
 
     lower
-        Makes all strings lowercase, discarding non-string types
-        Example:
+        Конвертирует все строки в нижний регистр, отбросив нестроковые типы
+        Пример:
             {
                 "field_1": ["ABC", "abc", "AbC", 1],
                 "field_2": [["1", "2", "3"]],
                 "field_3": "ABC"
             }
-        lower(field_1) will return ["abc", "abc", "abc", ""]
-        lower(field_2) will return ("")
-        lower(field_3) will return "abc"
+        lower(field_1) вернет ["abc", "abc", "abc", ""]
+        lower(field_2) вернет [""]
+        lower(field_3) вернет "abc"
 
     upper
-        Makes all strings uppercase, discarding non-string types
-        Example:
+        Конвертирует все строки в верхний регистр, отбросив нестроковые типы
+        Пример:
             {
                 "field_1": ["ABC", "abc", "AbC", 1],
                 "field_2": [["1", "2", "3"]],
                 "field_3": "abc"
             }
-        upper(field_1) will return ["ABC", "ABC", "ABC", ""]
-        upper(field_2) will return ("")
-        upper(field_3) will return "ABC"
+        upper(field_1) вернет ["ABC", "ABC", "ABC", ""]
+        upper(field_2) вернет [""]
+        upper(field_3) вернет "ABC"
 
     reduce
-        Flattens one layer of nested list result:
-        Example:
+        Объединит один(!) слой вложенности:
+        Пример:
             {
                 "field_1": ["a", "b", "c"],
                 "field_2": ["d", "e", "f"]
             }
-        $ANY will return [["a", "b", "c"], ["d", "e", "f"]]
-        reduce($ANY) will return ["a", "b", "c", "d", "e", "f"]
-        Note:
+        $ANY вернет [["a", "b", "c"], ["d", "e", "f"]]
+        reduce($ANY) вернет ["a", "b", "c", "d", "e", "f"]
+        Обратите внимание:
             {
                 "field_1": [["a"], ["b"], ["c"]],
                 "field_2": [[["d"], ["e"], ["f"]]]
             }
-        $ANY will return [[["a"], ["b"], ["c"]], [[["d"], ["e"], ["f"]]]]
-        reduce($ANY) will return [["a"], ["b"], ["c"], [["d"], ["e"], ["f"]]]
+        $ANY вернет [[["a"], ["b"], ["c"]], [[["d"], ["e"], ["f"]]]]
+        reduce($ANY) вернет [["a"], ["b"], ["c"], [["d"], ["e"], ["f"]]]
 
-    Note:
-        You can also combine methods:
-        Example:
+    Обратите внимание:
+        Можно комбинировать методы:
+        Пример:
             {
                 "field_1": ["ABC", "abc", "AbC"],
                 "field_2": ["Def", "dEF", "def"]
             }
-        lower(reduce($ANY)) will return ["abc", "abc", "abc", "def", "def", "def"]
+        lower(reduce($ANY)) вернет ["abc", "abc", "abc", "def", "def", "def"]
 
-Evaluation precedence:
-1) parentheses
-2) keywords, methods
-3) unary operators
-4) binary operators
+Порядок выполнения:
+1) выражения в скобках
+2) ключевые слова, методы
+3) унарные операторы
+4) бинарные операторы
 """
 query_language_toplevel_title = "Справка"
 general_scheme_label = "Общая схема"

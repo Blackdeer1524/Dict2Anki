@@ -119,12 +119,13 @@ Special queries & commands
                 "pos": {
                     "noun": {
                         "data": value_1
-                    }
+                    },
                     "verb" : {
                         "data": value_2
                     }
                 }
             }
+        $ANY will return ["noun", "verb"]
         pos[$ANY][data] will return [value_1, value_2]
         $ANY[$ANY][data] will also will return [value_1, value_2]
 
@@ -138,10 +139,10 @@ Special queries & commands
         $SELF will return [["field_1", "field_2"]]
 
     d_$
-        Will convert string expression to an integer.
+        Will convert string expression to a digit.
         By default, every key inside query strings
         (for example, in field[subfield] the keys are field and subfield)
-        are treated as strings. If you have an integer key or an array
+        are treated as strings. If you have an integer/float key or an array
         with specific index, then you would need to use this prefix
 
         Example:
@@ -156,7 +157,7 @@ Special queries & commands
         int_field[d_$1] will return [4, 5, 6]
 
     f_$
-        Will convert a degit to a field
+        Will convert a numeric expression to a field
         By default, every stranded decimal-like strings
         are treated as decimals. So if your scheme contains decimal as a
         key you would need this prefix
@@ -183,8 +184,7 @@ Methods:
             {
                 "field": [1, 2, 3]
             }
-            len(field) will return 3
-        You can also get length of obtained results
+        len(field) will return 3
         Example:
             {
                 "field": {
@@ -196,7 +196,7 @@ Methods:
                     }
                 }
             }
-            len(field[$ANY][data]) will return 2
+        len(field[$ANY][data]) = len([[1, 2, 3], [4, 5]]) = 2
 
     any
         Returns True if one of items is True
@@ -238,7 +238,7 @@ Methods:
                 "field_3": "ABC"
             }
         lower(field_1) will return ["abc", "abc", "abc", ""]
-        lower(field_2) will return ("")
+        lower(field_2) will return [""]
         lower(field_3) will return "abc"
 
     upper
@@ -250,7 +250,7 @@ Methods:
                 "field_3": "abc"
             }
         upper(field_1) will return ["ABC", "ABC", "ABC", ""]
-        upper(field_2) will return ("")
+        upper(field_2) will return [""]
         upper(field_3) will return "ABC"
 
     reduce
@@ -280,7 +280,7 @@ Methods:
         lower(reduce($ANY)) will return ["abc", "abc", "abc", "def", "def", "def"]
 
 Evaluation precedence:
-1) parentheses
+1) expressions in parentheses
 2) keywords, methods
 3) unary operators
 4) binary operators

@@ -802,8 +802,8 @@ class App(Tk):
         current_frame_height = inner_frame.winfo_height()
         scroll_frame.config(width=min(self.winfo_width(), current_frame_width),
                             height=min(self.winfo_height(), current_frame_height))
-        spawn_toplevel_in_center(self, statistics_window)
         statistics_window.deiconify()
+        spawn_toplevel_in_center(self, statistics_window)
 
     @error_handler(show_errors)
     def anki_dialog(self):

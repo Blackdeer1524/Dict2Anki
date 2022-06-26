@@ -1,0 +1,13 @@
+beautifulsoup4==4.11.1
+certifi==2022.6.15
+charset-normalizer==2.0.12
+global-hotkeys==0.0.4
+idna==3.3
+Pillow==9.1.1
+playsound==1.2.2
+pypiwin32==223
+pywin32==304
+requests==2.28.0
+soupsieve==2.3.2.post1
+tkinterdnd2==0.3.0
+urllib3==1.26.9

@@ -413,10 +413,10 @@ class App(Tk):
 
     @error_handler(show_errors)
     def change_file(self):
-        new_file = askopenfilename(title=self.lang_pack.choose_deck_file_message,
+        new_file_path = askopenfilename(title=self.lang_pack.choose_deck_file_message,
                                    filetypes=(("JSON", ".json"),),
                                    initialdir="./")
-        if not new_file:
+        if not new_file_path:
             return
 
         new_save_dir = askdirectory(title=self.lang_pack.choose_save_dir_message,
@@ -428,9 +428,10 @@ class App(Tk):
         self.session_start = datetime.now()
         self.str_session_start = self.session_start.strftime("%d-%m-%Y-%H-%M-%S")
         self.configurations["directories"]["last_save_dir"] = new_save_dir
-        self.configurations["directories"]["last_open_file"] = new_file
-        if not self.history.get(self.configurations["directories"]["last_open_file"]):
-            self.history[self.configurations["directories"]["last_open_file"]] = -1
+        self.configurations["directories"]["last_open_file"] = new_file_path
+        if self.history.get(new_file_path) is None:
+            self.history[new_file_path] = -1
+
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
                          current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
                          card_generator=self.cd)
@@ -488,8 +489,11 @@ class App(Tk):
             self.str_session_start = self.session_start.strftime("%d-%m-%Y-%H-%M-%S")
             self.configurations["directories"]["last_save_dir"] = new_save_dir
             self.configurations["directories"]["last_open_file"] = new_file_path
-            self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
-                             current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
+            if self.history.get(new_file_path) is None:
+                self.history[new_file_path] = -1
+
+            self.deck = Deck(deck_path=new_file_path,
+                             current_deck_pointer=self.history[new_file_path],
                              card_generator=self.cd)
             self.saved_cards_data = SavedDataDeck()
             self.refresh()

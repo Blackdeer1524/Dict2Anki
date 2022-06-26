@@ -158,6 +158,21 @@ class LanguagePackageContainter(_PluginContainer):
     request_anki_connection_error_message: str
     request_anki_general_request_error_message_prefix: str
 
+    # audio downloader
+    audio_downloader_title: str
+    audio_downloader_file_exists_message: str
+    audio_downloader_skip_encounter_button_text: str
+    audio_downloader_rewrite_encounter_button_text: str
+    audio_downloader_apply_to_all_button_text: str
+    audio_downloader_n_errors_message_prefix: str
+
+    # image downloader
+    image_search_title: str
+    image_search_start_search_button_text: str
+    image_search_show_more_button_text: str
+    image_search_save_button_text: str
+    image_search_empty_search_query_message: str
+
     def __init__(self, name: str, source_module: LanguagePackageInterface):
         super(LanguagePackageContainter, self).__init__(name)
         # errors
@@ -319,6 +334,32 @@ class LanguagePackageContainter(_PluginContainer):
                            source_module.request_anki_connection_error_message)
         object.__setattr__(self, "request_anki_general_request_error_message_prefix",
                            source_module.request_anki_general_request_error_message_prefix)
+
+        # audio downloader
+        object.__setattr__(self, "audio_downloader_title",
+                           source_module.audio_downloader_title)
+        object.__setattr__(self, "audio_downloader_file_exists_message",
+                           source_module.audio_downloader_file_exists_message)
+        object.__setattr__(self, "audio_downloader_skip_encounter_button_text",
+                           source_module.audio_downloader_skip_encounter_button_text)
+        object.__setattr__(self, "audio_downloader_rewrite_encounter_button_text",
+                           source_module.audio_downloader_rewrite_encounter_button_text)
+        object.__setattr__(self, "audio_downloader_apply_to_all_button_text",
+                           source_module.audio_downloader_apply_to_all_button_text)
+        object.__setattr__(self, "audio_downloader_n_errors_message_prefix",
+                           source_module.audio_downloader_n_errors_message_prefix)
+
+        # image downloader
+        object.__setattr__(self, "image_search_title",
+                           source_module.image_search_title)
+        object.__setattr__(self, "image_search_start_search_button_text",
+                           source_module.image_search_start_search_button_text)
+        object.__setattr__(self, "image_search_show_more_button_text",
+                           source_module.image_search_show_more_button_text)
+        object.__setattr__(self, "image_search_save_button_text",
+                           source_module.image_search_save_button_text)
+        object.__setattr__(self, "image_search_empty_search_query_message",
+                           source_module.image_search_empty_search_query_message)
 
 
 class ThemeContainer(_PluginContainer):

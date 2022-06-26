@@ -593,8 +593,8 @@ class App(Tk):
                                            pb_cfg={"length": self.winfo_width()},
                                            label_cfg=self.theme.label_cfg,
                                            button_cfg=self.theme.button_cfg,
-                                           checkbutton_cfg=self.theme.checkbutton_cfg
-                                           )
+                                           checkbutton_cfg=self.theme.checkbutton_cfg,
+                                           lang_pack=self.lang_pack)
         if closing:
             audio_downloader.bind("<Destroy>", lambda event: self.destroy() if isinstance(event.widget, Toplevel) else None)
         spawn_toplevel_in_center(self, audio_downloader)
@@ -1303,8 +1303,8 @@ class App(Tk):
                                    on_closing_action=connect_images_to_card,
                                    command_button_params=self.theme.button_cfg,
                                    entry_params=self.theme.entry_cfg,
-                                   frame_params=self.theme.frame_cfg
-                                   )
+                                   frame_params=self.theme.frame_cfg,
+                                   lang_pack=self.lang_pack)
         image_finder.focus()
         image_finder.grab_set()
         image_finder.geometry(self.configurations["app"]["image_search_position"])

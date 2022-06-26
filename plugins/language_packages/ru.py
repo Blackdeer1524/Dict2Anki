@@ -349,3 +349,18 @@ play_sound_no_audio_source_found_message = "Не откуда брать ауд�
 # request anki
 request_anki_connection_error_message = "Проверьте аддон AnkiConnect и откройте Anki"
 request_anki_general_request_error_message_prefix = "Результат ошибки"
+
+# audio downloader
+audio_downloader_title = "Скачиваю..."
+audio_downloader_file_exists_message = "Файл\n {} \n уже существует.\n Выберите действие:"
+audio_downloader_skip_encounter_button_text = "Пропустить"
+audio_downloader_rewrite_encounter_button_text = "Перезаписать"
+audio_downloader_apply_to_all_button_text = "Применить ко всем"
+audio_downloader_n_errors_message_prefix = "Количество необработанных слов:"
+
+# image downloader
+image_search_title = "Поиск изображений"
+image_search_start_search_button_text = "Поиск"
+image_search_show_more_button_text = "Ещё"
+image_search_save_button_text = "Сохранить"
+image_search_empty_search_query_message = "Пустой запрос"

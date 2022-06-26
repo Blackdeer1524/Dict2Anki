@@ -152,6 +152,21 @@ class LanguagePackageInterface(Protocol):
     request_anki_connection_error_message: str
     request_anki_general_request_error_message_prefix: str
 
+    # audio downloader
+    audio_downloader_title: str
+    audio_downloader_file_exists_message: str
+    audio_downloader_skip_encounter_button_text: str
+    audio_downloader_rewrite_encounter_button_text: str
+    audio_downloader_apply_to_all_button_text: str
+    audio_downloader_n_errors_message_prefix: str
+
+    # image downloader
+    image_search_title: str
+    image_search_start_search_button_text: str
+    image_search_show_more_button_text: str
+    image_search_save_button_text: str
+    image_search_empty_search_query_message: str
+
 
 class WebWordParserInterface(Protocol):
     SCHEME_DOCS: str

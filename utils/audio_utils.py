@@ -10,6 +10,7 @@ import requests
 from utils.cards import SavedDataDeck
 from utils.storages import FrozenDict
 from utils.window_utils import spawn_toplevel_in_center
+from plugins_management.containers import LanguagePackageContainter
 
 
 class AudioDownloader(Toplevel):
@@ -18,12 +19,18 @@ class AudioDownloader(Toplevel):
         SKIP = 1
         REWRITE = 2
 
-    def __init__(self, master, headers, timeout, request_delay=5_000,
-                 temp_dir="./", saving_dir="./", local_media_dir="./",
-                 toplevel_cfg=None, pb_cfg=None, label_cfg=None, button_cfg=None, checkbutton_cfg=None):
+    def __init__(self, master, headers: dict, timeout: int,
+                 lang_pack: LanguagePackageContainter,
+                 request_delay: int = 5_000,
+                 temp_dir: str = "./", saving_dir: str = "./", local_media_dir: str = "./",
+                 toplevel_cfg: dict = None, pb_cfg: dict = None, label_cfg: dict = None,
+                 button_cfg: dict = None, checkbutton_cfg: dict = None):
         self.toplevel_cfg = toplevel_cfg
         if self.toplevel_cfg is None:
             self.toplevel_cfg = {}
+        super(AudioDownloader, self).__init__(master, **self.toplevel_cfg)
+
+        self.lang_pack = lang_pack
         if pb_cfg is None:
             pb_cfg = {}
         pb_cfg.pop("orient", None)
@@ -48,9 +55,8 @@ class AudioDownloader(Toplevel):
         self.request_delay = request_delay
         self.errors = {"error_types": {}, "missing_audios": []}
 
-        super(AudioDownloader, self).__init__(master, **self.toplevel_cfg)
         self.withdraw()
-        self.title("Скачивание аудио...")
+        self.title(self.lang_pack.audio_downloader_title)
 
         self.pb = ttk.Progressbar(self,
                                   orient='horizontal',
@@ -114,10 +120,12 @@ class AudioDownloader(Toplevel):
                 return wait_flag
 
             self.pb["value"] = min(100.0, round(index / length * 100, 2))
-            self.current_word_label["text"] = dst
+
+            dst_filename = os.path.split(dst)[-1]
+            self.current_word_label["text"] = dst_filename
             self.update()
 
-            temp_audio_path = os.path.join(self.temp_dir, os.path.split(dst)[-1])
+            temp_audio_path = os.path.join(self.temp_dir, dst_filename)
 
             wait_before_next_batch = False
             if dst not in self.already_processed_audios:
@@ -153,17 +161,23 @@ class AudioDownloader(Toplevel):
                     copy_encounter_tl = Toplevel(self, **self.toplevel_cfg)
                     copy_encounter_tl.withdraw()
 
-                    message = f"Файл\n  {dst}  \nуже существует.\nВыберите нужную опцию:"
+                    message = self.lang_pack.audio_downloader_file_exists_message.format(dst)
 
                     encounter_label = Label(copy_encounter_tl, text=message, relief="ridge",
                                             wraplength=self.winfo_width() * 2 // 3, **self.label_cfg)
 
-                    skip_encounter_button = Button(copy_encounter_tl, text="Пропустить",
-                                                   command=skip_encounter, **self.button_cfg)
-                    rewrite_encounter_button = Button(copy_encounter_tl, text="Заменить",
-                                                      command=rewrite_encounter, **self.button_cfg)
-                    apply_to_all_button = Checkbutton(copy_encounter_tl, variable=apply_to_all_var,
-                                                      text="Применить ко всем", **self.checkbutton_cfg)
+                    skip_encounter_button = Button(copy_encounter_tl,
+                                                   text=self.lang_pack.audio_downloader_skip_encounter_button_text,
+                                                   command=skip_encounter,
+                                                   **self.button_cfg)
+                    rewrite_encounter_button = Button(copy_encounter_tl,
+                                                      text=self.lang_pack.audio_downloader_rewrite_encounter_button_text,
+                                                      command=rewrite_encounter,
+                                                      **self.button_cfg)
+                    apply_to_all_button = Checkbutton(copy_encounter_tl,
+                                                      variable=apply_to_all_var,
+                                                      text=self.lang_pack.audio_downloader_apply_to_all_button_text,
+                                                      **self.checkbutton_cfg)
 
                     encounter_label.grid(row=0, column=0, padx=5, pady=5, sticky="news")
                     skip_encounter_button.grid(row=1, column=0, padx=5, pady=5, sticky="news")
@@ -187,7 +201,8 @@ class AudioDownloader(Toplevel):
 
             if self.errors["missing_audios"]:
                 absent_audio_words = ", ".join(self.errors['missing_audios'])
-                n_errors = f"Количество необработаных слов: {len(self.errors['missing_audios'])}\n"
+                n_errors = f"{self.lang_pack.audio_downloader_n_errors_message_prefix}: " \
+                           f"{len(self.errors['missing_audios'])}\n"
                 for error_type in self.errors["error_types"]:
                     n_errors += f"{error_type}: {self.errors['error_types'][error_type]}\n"
 

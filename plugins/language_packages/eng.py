@@ -349,3 +349,18 @@ play_sound_no_audio_source_found_message = "No audio source found"
 # request anki
 request_anki_connection_error_message = "Make sure Anki is open and AnkiConnect addon is installed"
 request_anki_general_request_error_message_prefix = "Error log"
+
+# audio downloader
+audio_downloader_title = "Downloading..."
+audio_downloader_file_exists_message = "File\n {} \n already exists.\n Choose action:"
+audio_downloader_skip_encounter_button_text = "Skip"
+audio_downloader_rewrite_encounter_button_text = "Rewrite"
+audio_downloader_apply_to_all_button_text = "Apply to all"
+audio_downloader_n_errors_message_prefix = "Number of not processed words:"
+
+# image downloader
+image_search_title = "Image search"
+image_search_start_search_button_text = "Search"
+image_search_show_more_button_text = "Show more"
+image_search_save_button_text = "Save"
+image_search_empty_search_query_message = "Empty search query"

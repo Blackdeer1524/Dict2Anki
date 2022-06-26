@@ -19,6 +19,8 @@ from tkinterdnd2 import DND_FILES, DND_TEXT
 
 from consts.paths import SYSTEM
 from utils.widgets import ScrolledFrame
+from plugins_management.containers import LanguagePackageContainter
+
 
 if SYSTEM == "Linux":
     import gi
@@ -26,7 +28,6 @@ if SYSTEM == "Linux":
     from gi.repository import Gtk, Gdk
 else:
     from PIL import ImageGrab
-
 
 
 class _UrlDeque(UserList):
@@ -57,7 +58,7 @@ class ImageSearch(Toplevel):
         NON_RETRIABLE_FETCHING_ERROR = 2
         IMAGE_PROCESSING_ERROR = 3
 
-    def __init__(self, master, search_term, **kwargs):
+    def __init__(self, master, search_term: str, lang_pack: LanguagePackageContainter, **kwargs):
         """
         master: \n
         main_params: toplevel config
@@ -83,7 +84,10 @@ class ImageSearch(Toplevel):
         command_button_params(**kwargs): "Show more" and "Download" buttons params\n
         on_close_action(**kwargs): additional action performed on closing.
         """
+        super(ImageSearch, self).__init__(master, **kwargs.get("main_params", {}))
         self.search_term: str = search_term
+        self.lang_pack = lang_pack
+
         self._img_urls: _UrlDeque = _UrlDeque(kwargs.get("init_urls", []))
         self._init_local_img_paths: list[str] = [image_path for image_path in kwargs.get("local_images", []) if
                                                  os.path.isfile(image_path)]
@@ -100,7 +104,6 @@ class ImageSearch(Toplevel):
         self._entry_params = kwargs.get("entry_params", {})
         self._button_padx = kwargs.get("button_padx", 10)
         self._button_pady = kwargs.get("button_pady", 10)
-        Toplevel.__init__(self, master, **kwargs.get("main_params", {}))
 
         self._headers = kwargs.get("headers")
         self._timeout = kwargs.get("timeout", 1)
@@ -122,11 +125,13 @@ class ImageSearch(Toplevel):
         self.optimal_result_width = kwargs.get("saving_image_width")
         self.optimal_result_height = kwargs.get("saving_image_height")
 
-        self.title("Image search")
+        self.title(self.lang_pack.image_search_title)
         self._search_field = Entry(self, justify="center", **self._entry_params)
         self._search_field.insert(0, self.search_term)
-        self._start_search_button = Button(self, text="Search", command=self._restart_search,
-                                            **self._command_button_params)
+        self._start_search_button = Button(self,
+                                           text=self.lang_pack.image_search_start_search_button_text,
+                                           command=self._restart_search,
+                                           **self._command_button_params)
 
         self._search_field.grid(row=0, column=0, sticky="news",
                                  padx=(self._button_padx, 0), pady=self._button_pady)
@@ -148,10 +153,13 @@ class ImageSearch(Toplevel):
             master.winfo_screenheight() * 2 // 3
 
         self._show_more_gen = self._show_more()
-        self._show_more_button = Button(master=self, text="Show more",
-                                         command=lambda x=self._show_more_gen: next(x), **self._command_button_params)
-        self._save_button = Button(master=self, text="Save",
-                                    command=lambda: self.destroy(), **self._command_button_params)
+        self._show_more_button = Button(master=self,
+                                        text=self.lang_pack.image_search_show_more_button_text,
+                                        command=lambda x=self._show_more_gen: next(x), **self._command_button_params)
+        self._save_button = Button(master=self,
+                                   text=self.lang_pack.image_search_save_button_text,
+                                   command=lambda: self.destroy(),
+                                   **self._command_button_params)
         self._show_more_button.grid(row=3, column=0, sticky="news")
         self._save_button.grid(row=3, column=1, sticky="news")
 
@@ -210,7 +218,7 @@ class ImageSearch(Toplevel):
     def _restart_search(self):
         self.search_term = self._search_field.get()
         if not self.search_term:
-            messagebox.showerror(message="Empty search query")
+            messagebox.showerror(message=self.lang_pack.image_search_empty_search_query_message)
             return
 
         self._scrapper_stop_flag = False

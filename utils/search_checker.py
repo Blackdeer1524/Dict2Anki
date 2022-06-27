@@ -17,8 +17,8 @@ Keywords:
                 "field": [val_1, .., val_n]}
             }
 
-            thing in field
-            Returns True if thing is in [val_1, .., val_n]
+        thing in field
+        Returns True if thing is in [val_1, .., val_n]
 
 
 Special queries & commands
@@ -121,7 +121,7 @@ Methods:
                     }
                 }
             }
-            any(field[$ANY][data] > 1) will return True
+       any(field[$ANY][data] > 1) will return True
 
     all
         Returns True if all items are True
@@ -136,8 +136,8 @@ Methods:
                     }
                 }
             }
-            all($ANY[$ANY][data] > 0) will return True
-            all($ANY[$ANY][data] > 1) will return False
+        all($ANY[$ANY][data] > 0) will return True
+        all($ANY[$ANY][data] > 1) will return False
 
     lower
         Makes all strings lowercase, discarding non-string types

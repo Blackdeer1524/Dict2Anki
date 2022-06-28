@@ -197,9 +197,9 @@ To create a language package, create a python file inside **./plugins/language_p
 * Ctrl + d: skips current card
 * Ctrl + z: returns to a previous card
 * Ctrl + q: moves current card to a separate file
-* Ctrl + Shift + a: calls <add word> window
-* Ctrl + e: calls <statistics> window
-* Ctrl + f: calls <find> window
+* Ctrl + Shift + a: calls \<add word> window
+* Ctrl + e: calls \<statistics> window
+* Ctrl + f: calls \<find> window
 
 ## [Global](#hotkeys)
 * Ctrl + c + space: adds selected word to deck

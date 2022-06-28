@@ -203,6 +203,8 @@ To create a language package, create a python file inside **./plugins/language_p
 
 ## [Global](#hotkeys)
 * Ctrl + c + space: adds selected word to deck
+
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/global-add-word-hotkey.gif)
  
 # [Query language documentation](#structure)
 <pre>

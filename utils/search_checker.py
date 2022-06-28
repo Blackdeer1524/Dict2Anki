@@ -624,13 +624,14 @@ class FieldDataGetter(Computable):
 
             current_key = self.query_chain[chain_index]
             if current_key.startswith(DIGIT_FORCE_PREFIX):
-                if current_key.lstrip("-").isdecimal():
-                    current_key = float(current_key[len(DIGIT_FORCE_PREFIX):])
-                elif current_key.lstrip("-").isdigit() and isinstance(entry, (list, tuple)):
-                    current_key = int(current_key[len(DIGIT_FORCE_PREFIX):])
+                current_key = current_key[len(DIGIT_FORCE_PREFIX):]
+                if current_key.lstrip("-").isdigit() and isinstance(entry, (list, tuple)):
+                    current_key = int(current_key)
                     if len(entry) > current_key:
                         traverse_recursively(entry[current_key], chain_index + 1)
                     return
+                elif current_key.lstrip("-").isdecimal():
+                    current_key = float(current_key)
 
             if not isinstance(entry, Mapping):
                 return None
@@ -642,7 +643,6 @@ class FieldDataGetter(Computable):
 
             elif current_key == FieldDataGetter.SELF_FIELD:
                 traverse_recursively(entry, chain_index + 1)
-
 
             if (val := entry.get(current_key)) is not None:
                 traverse_recursively(val, chain_index + 1)

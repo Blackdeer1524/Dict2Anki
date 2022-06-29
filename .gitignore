@@ -4,6 +4,7 @@
 !/plugins_management/**
 !/utils/**
 !/.gitignore
+!/app_demonstration/**
 !mining.pyw
 !requirements.txt
 !linux_installation_gudie.txt

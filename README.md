@@ -4,32 +4,46 @@ Sentence-mining app written in Python using Tkinter.
 # Structure
 * [Demonstration](#demonstration)
 * [Requirements](#requirements)
+* [Hotkeys](#hotkeys)
 * [Resulting file](#resulting-file)
 * [Plugins](#plugins)
-* [Hotkeys](#hotkeys)
 * [Query language documentation](#query-language-documentation)
 
 # [Demonstration](#structure)
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/start-to-finish-demo.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/start_to_finish_demo.gif)
 
 ## [Quickly create card](#demonstration)
 ![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/choose_sentence.gif)
 
 ## [Add word](#demonstration)
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/add_word.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Add_option/exact_word.gif)
 
 ## [Add sentences from external sources](#demonstration)
 ![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/add_sentences.gif)
 
 ## [Download images from web](#demonstration)
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/img.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/pick_images.gif)
+
+### [Drag & Drop](#download-images-from-web) 
+#### [Image from browser](#drag--drop) 
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/drag_image_from_browser.gif)
+#### [Local image](#drag--drop) 
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/drag_local_image.gif)
+#### [Image link from any text field](#drag--drop) 
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/drag_image_link_from_browser.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/drag_image_link_from_editor.gif)
+
+### [Paste from clipboard](#download-images-from-web) 
+Hotkey: **Ctrl + V**
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/paste_screenshot.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Image_downloading/paste_from_clipboard.gif)
 
 ## [Download audio](#demonstration)
-* Menu option
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/audio.gif)
+### [Menu option](#download-audio)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Audio_downloading/menu_option.gif)
 
-* On closing
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/audio_on_closing.gif)
+### [On closing](#download-audio)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Audio_downloading/on_closing.gif)
 
 ## [Browse anki](#demonstration)
 ![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/anki_search.gif)
@@ -41,19 +55,17 @@ Sentence-mining app written in Python using Tkinter.
 ![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/bury_and_reopen.gif)
 
 ## [Search in already created decks](#demonstration)
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/find_word.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Find_option/word.gif)
 
 ## [Skip redundant cards](#demonstration)
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/move.gif)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Find_option/move.gif)
 
 ## [Use query language to find what you realy need](#demonstration)
-* when adding new card
+### [when adding new card](#use-query-language-to-find-what-you-realy-need)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Add_option/query_language.gif)
 
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/query_language.gif)
-
-* when looking through created deck
-
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/query_language_find.gif)
+### [when looking through created deck](#use-query-language-to-find-what-you-realy-need)
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Find_option/query_language.gif)
 
 [More on query language](#query-language-documentation)
 
@@ -69,6 +81,22 @@ Sentence-mining app written in Python using Tkinter.
 # [Requirements](#structure)
 * Python 3.10+
 * Libraries from corresponding {SYSTEM}\_requirements.txt files 
+
+# [Hotkeys](#structure)
+## [Local](#hotkeys)
+* Ctrl + 0: Moves app to upper left corner of the screen
+* Ctrl + 1..5: picks corresponding sentence
+* Ctrl + d: skips current card
+* Ctrl + z: returns to a previous card
+* Ctrl + q: moves current card to a separate file
+* Ctrl + Shift + a: calls \<add word> window
+* Ctrl + e: calls \<statistics> window
+* Ctrl + f: calls \<find> window
+
+## [Global](#hotkeys)
+* Ctrl + c + space: adds selected word to deck
+
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Add_option/global_hotkey.gif)
 
 # [Resulting file](#structure)
 By default, resulting file has CSV extention, is located at saving directory that you choosed, and has the following naming convention:
@@ -189,22 +217,6 @@ To create a theme, create a python file inside **./plugins/themes/** with the fo
 ## [Language packages](#plugins)
 To create a language package, create a python file inside **./plugins/language_packages/** with the protocol listed inside 
   **./plugins_management/interfaces.LanguagePackageInterface** class
- 
-# [Hotkeys](#structure)
-## [Local](#hotkeys)
-* Ctrl + 0: Moves app to upper left corner of the screen
-* Ctrl + 1..5: picks corresponding sentence
-* Ctrl + d: skips current card
-* Ctrl + z: returns to a previous card
-* Ctrl + q: moves current card to a separate file
-* Ctrl + Shift + a: calls \<add word> window
-* Ctrl + e: calls \<statistics> window
-* Ctrl + f: calls \<find> window
-
-## [Global](#hotkeys)
-* Ctrl + c + space: adds selected word to deck
-
-![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/global-add-word-hotkey.gif)
  
 # [Query language documentation](#structure)
 <pre>

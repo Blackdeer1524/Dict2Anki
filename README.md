@@ -219,7 +219,7 @@ To create a language package, create a python file inside **./plugins/language_p
   **./plugins_management/interfaces.LanguagePackageInterface** class
  
 # [Query language documentation](#structure)
-<pre>
+```
 Unary operators:
 * logic operators:
     not
@@ -232,10 +232,10 @@ Binary operators:
 
 Keywords:
     in
-        Checks whether \<thing> is in \<field>\[\<subfield_1>]\[...][\<subfield_n>]
+        Checks whether <thing> is in <field>[<subfield_1>][...][<subfield_n>]
         Example:
             {
-                "field": \[val_1, .., val_n]}
+                "field": [val_1, .., val_n]}
             }
 
         thing in field
@@ -415,4 +415,4 @@ Evaluation precedence:
 2) keywords, methods
 3) unary operators
 4) binary operators
-</pre>
+```

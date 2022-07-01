@@ -302,7 +302,6 @@ class App(Tk):
                      )
         self.gb.start()
 
-        self.minsize(500, 0)
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.refresh()
         self.geometry(self.configurations["app"]["main_window_geometry"])

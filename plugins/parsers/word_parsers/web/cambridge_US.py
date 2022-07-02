@@ -123,6 +123,9 @@ def get_phonetics(header_block, dictionary_index=0) -> tuple[list[str], list[str
         ipa = header_block.find_all("span", {"class": "pron dpron"})
         for child in ipa:
             ipa_parent = child.parent.get("class")
+            if ipa_parent is None:
+                continue
+
             if "uk" in ipa_parent:
                 uk_ipa.append(child.text.strip())
             elif "us" in ipa_parent:

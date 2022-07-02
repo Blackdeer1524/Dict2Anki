@@ -82,7 +82,7 @@ Hotkeys (global):
 """
 buttons_hotkeys_help_toplevel_title = "Help"
 word_field_help = "word (str)"
-alt_terms_field_help = "alternative term (list[str])"
+special_field_help = "special term (list[str])"
 definition_field_help = "definition (str)"
 sentences_field_help = "sentences (list[str])"
 img_links_field_help = "image links (list[str])"

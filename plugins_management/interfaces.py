@@ -67,7 +67,7 @@ class LanguagePackageInterface(Protocol):
     buttons_hotkeys_help_message: str
     buttons_hotkeys_help_toplevel_title: str
     word_field_help: str
-    alt_terms_field_help: str
+    special_field_help: str
     definition_field_help: str
     sentences_field_help: str
     img_links_field_help: str

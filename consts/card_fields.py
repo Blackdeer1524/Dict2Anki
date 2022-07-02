@@ -6,7 +6,7 @@ __all__ = ["FIELDS"]
 
 class _CardFields(NamedTuple):
     word: str = "word"
-    alt_terms: str = "alt_terms"
+    special: str = "special"
     definition: str = "definition"
     sentences: str = "examples"
     img_links: str = "image_links"

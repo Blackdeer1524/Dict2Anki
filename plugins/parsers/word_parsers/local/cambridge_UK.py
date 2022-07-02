@@ -29,7 +29,7 @@ def translate(word: str, word_dict: dict):
                                                    word_dict[pos]["image_links"],
                                                    word_dict[pos]["alt_terms"]):
             current_word_dict = {FIELDS.word: word.strip(),
-                                 FIELDS.alt_terms: alt_terms,
+                                 FIELDS.special: alt_terms,
                                  FIELDS.definition: definition,
                                  FIELDS.sentences: examples,
                                  FIELDS.audio_links: [audio] if audio else [],

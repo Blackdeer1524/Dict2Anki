@@ -172,7 +172,7 @@ class App(Tk):
                                                                 self.change_sentence_parser(parser_name))
 
         self.word_text = self.Text(self, placeholder=self.lang_pack.word_text_placeholder, height=2)
-        self.alt_terms_field = self.Text(self, relief="ridge", state="disabled", height=1)
+        self.special_field = self.Text(self, relief="ridge", state="disabled", height=1)
         self.definition_text = self.Text(self, placeholder=self.lang_pack.definition_text_placeholder)
 
         self.sent_text_list = []
@@ -224,7 +224,7 @@ class App(Tk):
 
         self.word_text.grid(row=1, column=0, padx=Text_padx, pady=Text_pady, columnspan=8, sticky="news")
 
-        self.alt_terms_field.grid(row=2, column=0, padx=Text_padx, columnspan=8, sticky="news")
+        self.special_field.grid(row=2, column=0, padx=Text_padx, columnspan=8, sticky="news")
 
         self.find_image_button.grid(row=3, column=0, padx=(Text_padx, 0), pady=Text_pady, sticky="news", columnspan=4)
         self.image_parser_option_menu.grid(row=3, column=4, padx=(0, Text_padx), pady=Text_pady, columnspan=4,
@@ -554,7 +554,7 @@ class App(Tk):
     def get_query_language_help(self):
         standard_fields = f"""
 {FIELDS.word}: {self.lang_pack.word_field_help}
-{FIELDS.alt_terms}: {self.lang_pack.alt_terms_field_help}
+{FIELDS.special}: {self.lang_pack.special_field_help}
 {FIELDS.definition}: {self.lang_pack.definition_field_help}
 {FIELDS.sentences}: {self.lang_pack.sentences_field_help}
 {FIELDS.img_links}: {self.lang_pack.img_links_field_help}
@@ -1076,7 +1076,7 @@ class App(Tk):
                 label.grid(row=i, column=0)
                 b = self.Button(playsound_toplevel,
                                 text=self.lang_pack.sound_button_text,
-                                command=lambda src=audio_src[i]: play_command(src, str(i)))
+                                command=lambda x=i: play_command(audio_src[x], str(x)))
                 b.grid(row=i, column=1, sticky="news")
 
             playsound_toplevel.bind("<Escape>", lambda _: playsound_toplevel.destroy())
@@ -1093,10 +1093,10 @@ class App(Tk):
         def web_playsound(src: str, postfix: str = ""):
             audio_name = self.card_processor.get_save_audio_name(word,
                                                                  self.typed_word_parser_name,
-                                                                 "0",
+                                                                 postfix,
                                                                  dict_tags)
 
-            temp_audio_path = os.path.join(os.getcwd(), "temp", audio_name + postfix)
+            temp_audio_path = os.path.join(os.getcwd(), "temp", audio_name)
             success = True
             if not os.path.exists(temp_audio_path):
                 success = AudioDownloader.fetch_audio(url=src,
@@ -1215,7 +1215,7 @@ class App(Tk):
         self.word_text.focus()
 
         fill_additional_dict_data(self.dict_tags_field, Card.get_str_dict_tags(self.dict_card_data))
-        fill_additional_dict_data(self.alt_terms_field, " ".join(self.dict_card_data.get(FIELDS.alt_terms, [])))
+        fill_additional_dict_data(self.special_field, " ".join(self.dict_card_data.get(FIELDS.special, [])))
 
         self.definition_text.clear()
         self.definition_text.insert(1.0, self.dict_card_data.get(FIELDS.definition, ""))

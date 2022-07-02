@@ -97,7 +97,7 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
         object.__setattr__(self, "buttons_hotkeys_help_toplevel_title",
                            source_module.buttons_hotkeys_help_toplevel_title)
         object.__setattr__(self, "word_field_help", source_module.word_field_help)
-        object.__setattr__(self, "alt_terms_field_help", source_module.alt_terms_field_help)
+        object.__setattr__(self, "alt_terms_field_help", source_module.special_field_help)
         object.__setattr__(self, "definition_field_help", source_module.definition_field_help)
         object.__setattr__(self, "sentences_field_help", source_module.sentences_field_help)
         object.__setattr__(self, "img_links_field_help", source_module.img_links_field_help)

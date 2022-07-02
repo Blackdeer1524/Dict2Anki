@@ -679,7 +679,7 @@ class App(Tk):
     def find_dialog(self):
         @error_handler(self.show_errors)
         def go_to():
-            find_query = find_entry.get(1.0, "end").strip()
+            find_query = find_text.get(1.0, "end").strip()
             if not find_query:
                 messagebox.showerror(title=self.lang_pack.error_title,
                                      message=self.lang_pack.find_dialog_empty_query_message)
@@ -751,9 +751,9 @@ class App(Tk):
         find_frame.withdraw()
         find_frame.title(self.lang_pack.find_dialog_find_frame_title)
         find_frame.grid_columnconfigure(0, weight=1)
-        find_entry = self.Text(find_frame, height=5)
-        find_entry.grid(row=0, column=0, padx=5, pady=3, sticky="we")
-        find_entry.focus()
+        find_text = self.Text(find_frame, height=5)
+        find_text.grid(row=0, column=0, padx=5, pady=3, sticky="we")
+        find_text.focus()
 
         find_button = self.Button(find_frame,
                                   text=self.lang_pack.find_dialog_find_button_text,

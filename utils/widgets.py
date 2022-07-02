@@ -31,7 +31,7 @@ class TextWithPlaceholder(Text):
         self.remove_placeholder()
 
     def fill_placeholder(self, *args):
-        if not self.get(1.0).strip() and not self._is_under_focus:
+        if not self.get(1.0, "end").strip() and not self._is_under_focus:
             self.clear()
             self.insert(1.0, self._placeholder)
             self._placeholder_set_status = True

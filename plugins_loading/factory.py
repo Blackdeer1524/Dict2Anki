@@ -6,9 +6,8 @@ from typing import Callable
 from typing import ClassVar
 from typing import TypeVar, Generic
 
-import plugins.parsers.audio_getters.local
-
 import plugins.language_packages
+import plugins.parsers.audio_getters.local
 import plugins.parsers.image_parsers
 import plugins.parsers.sentence_parsers
 import plugins.parsers.word_parsers.local
@@ -16,9 +15,7 @@ import plugins.parsers.word_parsers.web
 import plugins.saving.card_processors
 import plugins.saving.format_processors
 import plugins.themes
-from app_utils.cards import WebCardGenerator, LocalCardGenerator
 from app_utils.storages import FrozenDict
-from consts.paths import LOCAL_MEDIA_DIR
 from plugins_loading.containers import CardProcessorContainer
 from plugins_loading.containers import DeckSavingFormatContainer
 from plugins_loading.containers import ImageParserContainer
@@ -166,19 +163,21 @@ class PluginFactory:
             raise UnknownPluginName(f"Unknown theme: {name}")
         return theme
 
-    def get_web_card_generator(self, name: str) -> WebCardGenerator:
-        if (args := self.web_word_parsers.get(name)) is None:
+    def get_web_word_parser(self, name: str) -> WebWordParserContainer:
+        if (web_parser := self.web_word_parsers.get(name)) is None:
             raise UnknownPluginName(f"Unknown WebCardGenerator: {name}")
-        return WebCardGenerator(parsing_function=args.define,
-                                item_converter=args.translate,
-                                scheme_docs=args.scheme_docs)
+        return web_parser
+        # return WebCardGenerator(parsing_function=args.define,
+        #                         item_converter=args.translate,
+        #                         scheme_docs=args.scheme_docs)
 
-    def get_local_card_generator(self, name: str) -> LocalCardGenerator:
-        if (args := self.local_word_parsers.get(name)) is None:
+    def get_local_word_parser(self, name: str) -> LocalWordParserContainer:
+        if (local_parser := self.local_word_parsers.get(name)) is None:
             raise UnknownPluginName(f"Unknown LocalCardGenerator: {name}")
-        return LocalCardGenerator(local_dict_path=f"{LOCAL_MEDIA_DIR}/{args.local_dict_name}.json",
-                                  item_converter=args.translate,
-                                  scheme_docs=args.scheme_docs)
+        return local_parser
+        # return LocalCardGenerator(local_dict_path=f"{LOCAL_MEDIA_DIR}/{args.local_dict_name}.json",
+        #                           item_converter=args.translate,
+        #                           scheme_docs=args.scheme_docs)
 
     def get_sentence_parser(self, name: str) -> WebSentenceParserContainer:
         if (gen := self.web_sent_parsers.get(name)) is None:

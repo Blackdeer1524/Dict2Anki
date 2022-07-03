@@ -14,19 +14,20 @@ tags: {
 }
 """
 
-CONFIG_DOCS = """
+_CONFIG_DOCS = """
 audio_region:
     Audio region 
     valid values: either of ["uk", "us"] 
 """
-
 
 _CONF_VALIDATION_SCHEME = \
     {
         "audio_region": ("us", (str,), ("us", "uk")),
     }
 
-config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__),
+                validation_scheme=_CONF_VALIDATION_SCHEME,
+                docs=_CONFIG_DOCS)
 
 
 def translate(word: str, word_dict: dict):

@@ -14,12 +14,11 @@ tags: {
 }
 """
 
-CONFIG_DOCS = """
-"""
-
 _CONF_VALIDATION_SCHEME = {}
 
-config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__),
+                validation_scheme=_CONF_VALIDATION_SCHEME,
+                docs="")
 
 
 def translate(word: str, word_dict: dict):

@@ -9,12 +9,11 @@ from plugins_management.parsers_return_types import SentenceGenerator
 
 FILE_PATH = os.path.basename(__file__)
 
-CONFIG_DOCS = """
-"""
-
 _CONF_VALIDATION_SCHEME = {}
 
-config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__),
+                validation_scheme=_CONF_VALIDATION_SCHEME,
+                docs="")
 
 
 def get_sentence_batch(word: str, size: int = 5) -> SentenceGenerator:

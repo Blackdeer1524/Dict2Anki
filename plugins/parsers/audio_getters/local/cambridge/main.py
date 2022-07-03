@@ -4,16 +4,26 @@ from app_utils.string_utils import remove_special_chars
 from consts.paths import LOCAL_MEDIA_DIR
 from plugins_management.config_management import Config
 
-CONFIG_DOCS = """
+_CONFIG_DOCS = \
 """
+type: 
+    Audio region 
+    valid values: either of ["uk", "us"] 
+pos_search:
+    Whether to search audio by Part Of Speach (pos) or not
+    valid values: (true, false) 
+"""
+
 
 _CONF_VALIDATION_SCHEME = \
     {
-        "type": ("us", [str], ["us", "uk"]),
+        "audio_region": ("us", [str], ["us", "uk"]),
         "pos_search": (False, [bool], [])
     }
 
-config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__),
+                validation_scheme=_CONF_VALIDATION_SCHEME,
+                docs=_CONFIG_DOCS)
 
 _LETTERS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _AUDIO_NAME_SPEC_CHARS = '/\\:*?\"<>| '
@@ -24,7 +34,7 @@ def get_local_audios(word, dict_tags: dict) -> list[str]:
     if not word:
         return []
 
-    audio_folder = f"{config['type']}_audios"
+    audio_folder = f"{config['audio_region']}_audios"
 
     letter_group = word[0] if word[0].lower() in _LETTERS else "0-9"
     name = f"{remove_special_chars(word, '-', _AUDIO_NAME_SPEC_CHARS)}.mp3"

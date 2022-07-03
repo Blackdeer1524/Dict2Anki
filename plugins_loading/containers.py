@@ -239,7 +239,6 @@ class WebWordParserContainer(_PluginContainer):
     def __init__(self, name: str, source_module: WebWordParserInterface):
         super(WebWordParserContainer, self).__init__(name)
         object.__setattr__(self, "scheme_docs", source_module.SCHEME_DOCS)
-        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
         object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "define", source_module.define)
         object.__setattr__(self, "translate", source_module.translate)
@@ -255,7 +254,6 @@ class LocalWordParserContainer(_PluginContainer):
     def __init__(self, name: str, source_module: LocalWordParserInterface):
         super(LocalWordParserContainer, self).__init__(name)
         object.__setattr__(self, "scheme_docs", source_module.SCHEME_DOCS)
-        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
         object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "local_dict_name", source_module.DICTIONARY_PATH)
         object.__setattr__(self, "translate", source_module.translate)
@@ -268,7 +266,6 @@ class WebSentenceParserContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: WebSentenceParserInterface):
         super(WebSentenceParserContainer, self).__init__(name)
-        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
         object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_sentence_batch", source_module.get_sentence_batch)
 
@@ -280,7 +277,6 @@ class ImageParserContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: ImageParserInterface):
         super(ImageParserContainer, self).__init__(name)
-        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
         object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_image_links", source_module.get_image_links)
 
@@ -316,6 +312,5 @@ class LocalAudioGetterContainer(_PluginContainer):
 
     def __init__(self, name: str, source_module: LocalAudioGetterInterface):
         super(LocalAudioGetterContainer, self).__init__(name)
-        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
         object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_local_audios", source_module.get_local_audios)

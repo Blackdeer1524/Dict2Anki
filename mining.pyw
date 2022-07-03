@@ -19,6 +19,7 @@ from tkinterdnd2 import Tk
 from app_utils.audio_utils import AudioDownloader
 from app_utils.cards import Card
 from app_utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
+from app_utils.cards import WebCardGenerator, LocalCardGenerator
 from app_utils.error_handling import create_exception_message
 from app_utils.error_handling import error_handler
 from app_utils.global_bindings import Binder
@@ -36,6 +37,7 @@ from consts.card_fields import FIELDS
 from consts.paths import *
 from plugins_loading.containers import LanguagePackageContainer
 from plugins_loading.factory import loaded_plugins
+from plugins_management.config_management import Config
 
 
 class App(Tk):
@@ -86,16 +88,26 @@ class App(Tk):
 
         wp_name = self.configurations["scrappers"]["word_parser_name"]
         if (wp_type := self.configurations["scrappers"]["word_parser_type"]) == "web":
-            self.cd = loaded_plugins.get_web_card_generator(wp_name)
+            self.word_parser = loaded_plugins.get_web_word_parser(wp_name)
+            self.card_generator = WebCardGenerator(
+                parsing_function=self.word_parser.define,
+                item_converter=self.word_parser.translate,
+                scheme_docs=self.word_parser.scheme_docs)
+
         elif wp_type == "local":
-            self.cd = loaded_plugins.get_local_card_generator(wp_name)
+            self.word_parser = loaded_plugins.get_local_word_parser(wp_name)
+            self.card_generator = LocalCardGenerator(
+                local_dict_path=f"{LOCAL_MEDIA_DIR}/{self.word_parser.local_dict_name}.json",
+                item_converter=self.word_parser.translate,
+                scheme_docs=self.word_parser.scheme_docs)
+
         else:
             raise NotImplemented("Unknown word_parser_type: {}!".format(self.configurations["scrappers"]["word_parser_type"]))
         self.typed_word_parser_name = f"[{wp_type}] {wp_name}"
 
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
                          current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
-                         card_generator=self.cd)
+                         card_generator=self.card_generator)
 
         self.card_processor = loaded_plugins.get_card_processor("Anki")
         self.dict_card_data: dict = {}
@@ -433,7 +445,7 @@ class App(Tk):
 
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
                          current_deck_pointer=self.history[self.configurations["directories"]["last_open_file"]],
-                         card_generator=self.cd)
+                         card_generator=self.card_generator)
         self.saved_cards_data = SavedDataDeck()
         self.refresh()
 
@@ -493,7 +505,7 @@ class App(Tk):
 
             self.deck = Deck(deck_path=new_file_path,
                              current_deck_pointer=self.history[new_file_path],
-                             card_generator=self.cd)
+                             card_generator=self.card_generator)
             self.saved_cards_data = SavedDataDeck()
             self.refresh()
 
@@ -561,7 +573,7 @@ class App(Tk):
 {FIELDS.audio_links}: {self.lang_pack.audio_links_field_help}
 {FIELDS.dict_tags}: {self.lang_pack.dict_tags_field_help}
 """
-        current_scheme = self.cd.scheme_docs
+        current_scheme = self.word_parser.scheme_docs
         lang_docs = self.lang_pack.query_language_docs
 
         self.show_window(self.lang_pack.query_language_toplevel_title,
@@ -887,6 +899,85 @@ class App(Tk):
     
     @error_handler(show_errors)
     def configure_dictionary(self):
+        def call_configuration_window(plugin_config: Config):
+            conf_window = self.Toplevel(self)
+            conf_text = self.Text(conf_window)
+            conf_text.insert(1.0, json.dumps(plugin_config.data, indent=4))
+            conf_text.grid(row=0, column=0, columnspan=3, rowspan=2, sticky="news")
+            conf_docs_label = self.Label(conf_window, text=plugin_config.docs, justify="left")
+            conf_docs_label.grid(row=0, column=1, columnspan=2, rowspan=2, sticky="news")
+
+            def restore_defaults():
+                plugin_config.restore_defaults()
+                plugin_config.save()
+                messagebox.showinfo(message="Saved")
+                conf_window.destroy()
+                return
+
+            conf_restore_defaults_button = self.Button(conf_window,
+                                                       text="Восстановить",
+                                                       command=restore_defaults)
+            conf_restore_defaults_button.grid(row=2, column=0, sticky="news")
+            conf_cancel_button = self.Button(conf_window,
+                                             text="Отмена",
+                                             command=conf_window.destroy)
+            conf_cancel_button.grid(row=2, column=3, sticky="news")
+
+            def done():
+                nonlocal plugin_config
+
+                new_config = conf_text.get(1.0, "end")
+                try:
+                    json_new_config = json.loads(new_config)
+                except ValueError:
+                    messagebox.showerror(self.lang_pack.error_title, "Неверная JSON схема")
+                    return
+                config_errors: Config.SchemeCheckResults = \
+                    plugin_config.validate_config(json_new_config, plugin_config.validation_scheme)
+
+                if not config_errors:
+                    plugin_config.data = json_new_config
+                    plugin_config.save()
+                    messagebox.showinfo(message="Saved")
+                    conf_window.destroy()
+                    return
+
+                config_error_message = ""
+                if config_errors.wrong_type:
+                    config_error_message += "Wrong type:\n"
+                    wrong_type_message = "\n".join((f" * {error[0]}: {error[1]}. Expected: {error[2]}"
+                                                       for error in config_errors.wrong_type))
+                    config_error_message += wrong_type_message + "\n"
+
+                if config_errors.wrong_value:
+                    config_error_message += "Wrong value:\n"
+                    wrong_value_message = "\n".join((f" * {error[0]}: {error[1]}. Expected: {error[2]}"
+                                                    for error in config_errors.wrong_value))
+                    config_error_message += wrong_value_message + "\n"
+
+                if config_errors.missing_keys:
+                    config_error_message += "Missing keys:\n"
+                    missing_keys_message = "\n".join((f" * {missing_key}"
+                                                      for missing_key in config_errors.missing_keys))
+                    config_error_message += missing_keys_message + "\n"
+
+                if config_errors.unknown_keys:
+                    config_error_message += "Unknown keys:\n"
+                    unknown_keys_message = "\n".join((f" * {unknown_key}"
+                                                      for unknown_key in config_errors.unknown_keys))
+                    config_error_message += unknown_keys_message + "\n"
+                self.show_window(title=self.lang_pack.error_title,
+                                 text=config_error_message)
+
+            conf_done_button = self.Button(conf_window,
+                                           text="Готово",
+                                           command=done)
+            conf_done_button.grid(row=2, column=4, sticky="news")
+
+            for i in range(5):
+                conf_window.grid_columnconfigure(i, weight=1)
+            conf_window.grab_set()
+
         WEB_PREF = "[web]"
         LOCAL_PREF = "[local]"
         DEFAULT_AUDIO_SRC = "default"
@@ -895,15 +986,25 @@ class App(Tk):
         def pick_parser(typed_parser: str):
             if typed_parser.startswith(WEB_PREF):
                 raw_name = typed_parser[len(WEB_PREF) + 1:]
-                self.cd = loaded_plugins.get_web_card_generator(typed_parser[len(WEB_PREF) + 1:])
+                self.word_parser = loaded_plugins.get_web_word_parser(typed_parser[len(WEB_PREF) + 1:])
+                self.card_generator = WebCardGenerator(
+                    parsing_function=self.word_parser.define,
+                    item_converter=self.word_parser.translate,
+                    scheme_docs=self.word_parser.scheme_docs)
                 self.configurations["scrappers"]["word_parser_type"] = "web"
             else:
                 raw_name = typed_parser[len(LOCAL_PREF) + 1:]
-                self.cd = loaded_plugins.get_local_card_generator(typed_parser[len(LOCAL_PREF) + 1:])
+                self.word_parser = loaded_plugins.get_local_word_parser(typed_parser[len(LOCAL_PREF) + 1:])
+                self.card_generator = LocalCardGenerator(
+                    local_dict_path=f"{LOCAL_MEDIA_DIR}/{self.word_parser.local_dict_name}.json",
+                    item_converter=self.word_parser.translate,
+                    scheme_docs=self.word_parser.scheme_docs)
                 self.configurations["scrappers"]["word_parser_type"] = "local"
             self.configurations["scrappers"]["word_parser_name"] = raw_name
             self.typed_word_parser_name = typed_parser
-            self.deck.update_card_generator(self.cd)
+            self.deck.update_card_generator(self.card_generator)
+            configure_word_parser_button["command"] = \
+                lambda plugin_conf=self.word_parser.config: call_configuration_window(plugin_conf)
 
         # dict
         dict_configuration_toplevel = self.Toplevel(self)
@@ -921,6 +1022,12 @@ class App(Tk):
             command=lambda typed_parser: pick_parser(typed_parser))
         choose_wp_option.grid(row=0, column=1, sticky="news")
 
+        configure_word_parser_button = self.Button(dict_configuration_toplevel,
+                                                   text="</>",
+                                                   command=lambda plugin_conf=self.word_parser.config:
+                                                           call_configuration_window(plugin_conf))
+        configure_word_parser_button.grid(row=0, column=2, sticky="news")
+
         # audio_getter
         audio_getter_label = self.Label(dict_configuration_toplevel,
                                         text=self.lang_pack.configure_dictionary_audio_getter_label_text)
@@ -932,10 +1039,14 @@ class App(Tk):
                 self.local_audio_getter = None
                 self.configurations["scrappers"]["local_audio"] = ""
                 self.sound_button["state"] = "normal" if self.dict_card_data.get(FIELDS.audio_links, []) else "disabled"
+                configure_audio_getter_button["state"] = "disabled"
                 return
             self.sound_button["state"] = "normal"
             self.configurations["scrappers"]["local_audio"] = name
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
+            configure_audio_getter_button["state"] = "normal"
+            configure_audio_getter_button["command"] = \
+                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(plugin_conf)
 
         choose_audio_option = self.get_option_menu(
             dict_configuration_toplevel,
@@ -943,6 +1054,17 @@ class App(Tk):
             values=[DEFAULT_AUDIO_SRC] + list(loaded_plugins.local_audio_getters.loaded),
             command=lambda getter: pick_audio_getter(getter))
         choose_audio_option.grid(row=1, column=1, sticky="news")
+
+        configure_audio_getter_button = self.Button(dict_configuration_toplevel,
+                                                   text="</>")
+        if self.local_audio_getter is not None:
+            configure_audio_getter_button["state"] = "normal"
+            configure_audio_getter_button["command"] = \
+                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(plugin_conf)
+        else:
+            configure_audio_getter_button["state"] = "disabled"
+
+        configure_audio_getter_button.grid(row=1, column=2, sticky="news")
 
         # card_processor
         card_processor_label = self.Label(dict_configuration_toplevel,

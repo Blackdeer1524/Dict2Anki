@@ -13,16 +13,25 @@ class Config(UserDict):
         unknown_keys: list = field(default_factory=list)
         missing_keys: list = field(default_factory=list)
 
+        def __bool__(self):
+            return bool(self.wrong_type) or \
+                   bool(self.wrong_value) or \
+                   bool(self.unknown_keys) or \
+                   bool(self.missing_keys)
+
     CONF_FILE_NAME: ClassVar[str] = "config.json"
     ENCODING: ClassVar[str] = "UTF-8"
 
     def __init__(self,
                  config_location: str,
-                 validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]]):
+                 validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],
+                 docs: str):
         super(Config, self).__init__(data={})
 
         self.default_scheme = {}
         self.validation_scheme = validation_scheme
+        self._conf_file_path = os.path.join(config_location, Config.CONF_FILE_NAME)
+        self.docs = docs
 
         def assign_default(entry: dict):
             for key in entry:
@@ -35,7 +44,6 @@ class Config(UserDict):
 
         assign_default(self.validation_scheme)
 
-        self._conf_file_path = os.path.join(config_location, Config.CONF_FILE_NAME)
         self.load()
 
     @staticmethod
@@ -71,7 +79,7 @@ class Config(UserDict):
                                 dst[s_key] = s_val[0]
                     checking_part[c_key] = {}
                     assign_recursively(checking_part, v_val)
-                    current_layer_res.wrong_type.append((c_key, type(c_val), type(v_val)))
+                    current_layer_res.wrong_type.append((c_key, type(c_val), dict))
             elif len(v_val[1]) and type(c_val) not in v_val[1]:
                 checking_part[c_key] = v_val[0]
                 current_layer_res.wrong_type.append((c_key, type(c_val), v_val[1]))
@@ -93,9 +101,12 @@ class Config(UserDict):
             return
 
         with open(self._conf_file_path, "w", encoding=Config.ENCODING) as conf_file:
-            json.dump(self.default_scheme, conf_file)
+            json.dump(self.default_scheme, conf_file, indent=4)
+        self.data = self.default_scheme
+
+    def restore_defaults(self):
         self.data = self.default_scheme
 
     def save(self):
         with open(self._conf_file_path, "w", encoding=Config.ENCODING) as conf_file:
-            json.dump(self.data, conf_file)
+            json.dump(self.data, conf_file, indent=4)

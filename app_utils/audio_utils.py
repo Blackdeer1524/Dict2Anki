@@ -7,10 +7,10 @@ from tkinter import ttk
 
 import requests
 
-from utils.cards import SavedDataDeck
-from utils.storages import FrozenDict
-from utils.window_utils import spawn_toplevel_in_center
-from plugins_management.containers import LanguagePackageContainer
+from app_utils.cards import SavedDataDeck
+from app_utils.storages import FrozenDict
+from app_utils.window_utils import spawn_toplevel_in_center
+from plugins_loading.containers import LanguagePackageContainer
 
 
 class AudioDownloader(Toplevel):

@@ -17,10 +17,9 @@ from PIL import Image, ImageTk
 from requests.exceptions import RequestException, ConnectTimeout
 from tkinterdnd2 import DND_FILES, DND_TEXT
 
+from app_utils.widgets import ScrolledFrame
 from consts.paths import SYSTEM
-from utils.widgets import ScrolledFrame
-from plugins_management.containers import LanguagePackageContainer
-
+from plugins_loading.containers import LanguagePackageContainer
 
 if SYSTEM == "Linux":
     import gi

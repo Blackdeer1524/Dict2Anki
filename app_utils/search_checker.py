@@ -210,8 +210,8 @@ from typing import Callable, Sized, ClassVar
 from typing import Iterable, Iterator, Generator
 from typing import Optional, Any, Union
 
+from app_utils.storages import FrozenDict
 from consts.card_fields import FIELDS
-from utils.storages import FrozenDict
 
 
 class ParsingException(Exception):

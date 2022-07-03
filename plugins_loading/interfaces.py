@@ -1,7 +1,8 @@
 from typing import Protocol, Callable
 
-from plugins.parsers.return_types import SentenceGenerator, ImageGenerator
-from utils.cards import SavedDataDeck, CardStatus
+from plugins_management.parsers_return_types import SentenceGenerator, ImageGenerator
+
+from app_utils.cards import SavedDataDeck, CardStatus
 
 
 class LanguagePackageInterface(Protocol):

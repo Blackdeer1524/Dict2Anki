@@ -1,11 +1,13 @@
 **
 !/consts/**
 !/plugins/**
-!/plugins_management/**
-!/utils/**
+!/plugins_loading/*
+!/app_utils/**
 !/.gitignore
 !/app_demonstration/**
 !mining.pyw
 !requirements.txt
 !linux_installation_gudie.txt
-**/__pycache__/
+!win_requirements.txt
+!LICENSE
+!README.md

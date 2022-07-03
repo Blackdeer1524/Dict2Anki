@@ -131,7 +131,7 @@ The main purpose of these new keys is to be used inside
 \[\[\<word>: str, \<data>: dict], ...]
 
 # [Plugins](#structure)
-To view every plugin interface, see **./plugins_management/interfaces.py**
+To view every plugin interface, see **./plugins_loading/interfaces.py**
 
 * [Parsers](#parsers)
     * [Word parsers](#word-parsers)
@@ -197,7 +197,7 @@ To create a format processor, create a python file inside **./plugins/saving/for
          saving_card_status: CardStatus,
          saving_path: str,
          image_names_wrapper: Callable\[\[str], str],
-         audio_names_wrapper: Callable\[\[str], str]) -> None function that iterates through SavedDataDeck (located in **./utils/cards.py**) and 
+         audio_names_wrapper: Callable\[\[str], str]) -> None function that iterates through SavedDataDeck (located in **./app_utils/cards.py**) and 
     pickes cards with saving_card_status from which the format is formed. image_names_wrapper and audio_names_wrapper are wrappers from current 
     card processor
 
@@ -216,7 +216,7 @@ To create a theme, create a python file inside **./plugins/themes/** with the fo
 
 ## [Language packages](#plugins)
 To create a language package, create a python file inside **./plugins/language_packages/** with the protocol listed inside 
-  **./plugins_management/interfaces.LanguagePackageInterface** class
+  **./plugins_loading/interfaces.LanguagePackageInterface** class
  
 # [Query language documentation](#structure)
 ```

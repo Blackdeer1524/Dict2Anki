@@ -1,10 +1,10 @@
 import csv
 from typing import Callable
 
+from app_utils.cards import CardStatus
+from app_utils.cards import SavedDataDeck
+from app_utils.string_utils import remove_special_chars
 from consts.card_fields import FIELDS
-from utils.cards import CardStatus
-from utils.cards import SavedDataDeck
-from utils.string_utils import remove_special_chars
 
 
 def save(deck: SavedDataDeck,

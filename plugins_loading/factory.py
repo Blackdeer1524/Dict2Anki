@@ -6,29 +6,30 @@ from typing import Callable
 from typing import ClassVar
 from typing import TypeVar, Generic
 
+import plugins.parsers.audio_getters.local
+
 import plugins.language_packages
 import plugins.parsers.image_parsers
-import plugins.parsers.local_audio_getters
 import plugins.parsers.sentence_parsers
 import plugins.parsers.word_parsers.local
 import plugins.parsers.word_parsers.web
 import plugins.saving.card_processors
 import plugins.saving.format_processors
 import plugins.themes
+from app_utils.cards import WebCardGenerator, LocalCardGenerator
+from app_utils.storages import FrozenDict
 from consts.paths import LOCAL_MEDIA_DIR
-from plugins_management.containers import LanguagePackageContainer
-from plugins_management.containers import CardProcessorContainer
-from plugins_management.containers import DeckSavingFormatContainer
-from plugins_management.containers import ImageParserContainer
-from plugins_management.containers import LocalAudioGetterContainer
-from plugins_management.containers import LocalWordParserContainer
-from plugins_management.containers import ThemeContainer
-from plugins_management.containers import WebSentenceParserContainer
-from plugins_management.containers import WebWordParserContainer
-from plugins_management.exceptions import LoaderError
-from plugins_management.exceptions import UnknownPluginName
-from utils.cards import WebCardGenerator, LocalCardGenerator
-from utils.storages import FrozenDict
+from plugins_loading.containers import CardProcessorContainer
+from plugins_loading.containers import DeckSavingFormatContainer
+from plugins_loading.containers import ImageParserContainer
+from plugins_loading.containers import LanguagePackageContainer
+from plugins_loading.containers import LocalAudioGetterContainer
+from plugins_loading.containers import LocalWordParserContainer
+from plugins_loading.containers import ThemeContainer
+from plugins_loading.containers import WebSentenceParserContainer
+from plugins_loading.containers import WebWordParserContainer
+from plugins_loading.exceptions import LoaderError
+from plugins_loading.exceptions import UnknownPluginName
 
 
 def parse_namespace(namespace) -> dict:
@@ -60,6 +61,7 @@ class PluginLoader(Generic[PluginContainer]):
     def __init__(self,
                  plugin_type: str,
                  module: ModuleType,
+                 configurable: bool,
                  container_type: PluginContainer,
                  error_callback: Callable[[Exception, str], None] = lambda *_: None):
         if (module_name := module.__name__) in PluginLoader._already_initialized:
@@ -69,12 +71,20 @@ class PluginLoader(Generic[PluginContainer]):
 
         _loaded_plugin_data = {}
         not_loaded = []
-        for name, module in parse_namespace(module).items():
-            try:
-                _loaded_plugin_data[name] = container_type(name, module)
-            except AttributeError as e:
-                error_callback(e, name)
-                not_loaded.append(name)
+        if configurable:
+            for name, module in parse_namespace(module).items():
+                try:
+                    _loaded_plugin_data[name] = container_type(name, importlib.import_module(f"{module_name}.{name}.main"))
+                except AttributeError as e:
+                    error_callback(e, name)
+                    not_loaded.append(name)
+        else:
+            for name, module in parse_namespace(module).items():
+                try:
+                    _loaded_plugin_data[name] = container_type(name, module)
+                except AttributeError as e:
+                    error_callback(e, name)
+                    not_loaded.append(name)
         object.__setattr__(self, "_loaded_plugin_data", FrozenDict(_loaded_plugin_data))
         object.__setattr__(self, "not_loaded", tuple(not_loaded))
 
@@ -109,30 +119,39 @@ class PluginFactory:
 
         object.__setattr__(self, "language_packages",   PluginLoader(plugin_type="language package",
                                                                      module=plugins.language_packages,
+                                                                     configurable=False,
                                                                      container_type=LanguagePackageContainer))
         object.__setattr__(self, "themes",              PluginLoader(plugin_type="theme",
                                                                      module=plugins.themes,
+                                                                     configurable=False,
                                                                      container_type=ThemeContainer))
         object.__setattr__(self, "web_word_parsers",    PluginLoader(plugin_type="web word parser",
                                                                      module=plugins.parsers.word_parsers.web,
+                                                                     configurable=True,
                                                                      container_type=WebWordParserContainer))
         object.__setattr__(self, "local_word_parsers",  PluginLoader(plugin_type="local word parser",
                                                                      module=plugins.parsers.word_parsers.local,
+                                                                     configurable=True,
                                                                      container_type=LocalWordParserContainer))
         object.__setattr__(self, "web_sent_parsers",    PluginLoader(plugin_type="web sentence parser",
                                                                      module=plugins.parsers.sentence_parsers,
+                                                                     configurable=True,
                                                                      container_type=WebSentenceParserContainer))
         object.__setattr__(self, "image_parsers",       PluginLoader(plugin_type="web image parser",
                                                                      module=plugins.parsers.image_parsers,
+                                                                     configurable=True,
                                                                      container_type=ImageParserContainer))
         object.__setattr__(self, "card_processors",     PluginLoader(plugin_type="card processor",
                                                                      module=plugins.saving.card_processors,
+                                                                     configurable=False,
                                                                      container_type=CardProcessorContainer))
         object.__setattr__(self, "deck_saving_formats", PluginLoader(plugin_type="deck plugins.saving format",
                                                                      module=plugins.saving.format_processors,
+                                                                     configurable=False,
                                                                      container_type=DeckSavingFormatContainer))
         object.__setattr__(self, "local_audio_getters", PluginLoader(plugin_type="local audio getter",
-                                                                     module=plugins.parsers.local_audio_getters,
+                                                                     module=plugins.parsers.audio_getters.local,
+                                                                     configurable=True,
                                                                      container_type=LocalAudioGetterContainer))
 
     def get_language_package(self, name: str) -> LanguagePackageContainer:

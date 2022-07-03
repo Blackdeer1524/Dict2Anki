@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, Union, Any
 
+from plugins_management.parsers_return_types import SentenceGenerator
+
+from app_utils.storages import FrozenDictJSONEncoder
+from app_utils.storages import PointerList, FrozenDict
 from consts.card_fields import FIELDS
-from plugins.parsers.return_types import SentenceGenerator
-from utils.storages import FrozenDictJSONEncoder
-from utils.storages import PointerList, FrozenDict
 
 
 class Card(FrozenDict):

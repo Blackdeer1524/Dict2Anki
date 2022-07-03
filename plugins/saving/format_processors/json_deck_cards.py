@@ -1,8 +1,8 @@
 import json
 from typing import Callable
 
-from utils.cards import SavedDataDeck, CardStatus
-from utils.storages import FrozenDictJSONEncoder
+from app_utils.cards import SavedDataDeck, CardStatus
+from app_utils.storages import FrozenDictJSONEncoder
 
 
 def save(deck: SavedDataDeck,

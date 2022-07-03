@@ -1,6 +1,6 @@
+from plugins_management.config_management import Config
+from app_utils.preprocessing import remove_empty_keys
 from consts.card_fields import FIELDS
-from utils.preprocessing import remove_empty_keys
-
 
 DICTIONARY_PATH = "cambridge"
 SCHEME_DOCS = """
@@ -13,11 +13,25 @@ tags: {
 }
 """
 
+CONFIG_DOCS = """
+audio_region:
+    Audio region 
+    valid values: either of ["uk", "us"] 
+"""
+
+_CONF_VALIDATION_SCHEME = \
+    {
+        "audio_region": ("us", (str,), ("us", "uk")),
+    }
+
+config = Config(validation_scheme=_CONF_VALIDATION_SCHEME)
+
 
 def translate(word: str, word_dict: dict):
+    audio_region_field = f"{config['audio_region'].upper()}__audio_link"
     word_list = []
     for pos in word_dict:
-        audio = word_dict[pos].get("UK_audio_link", "")
+        audio = word_dict[pos].get(audio_region_field, "")
         for definition, examples, domain, labels_and_codes, level, \
             region, usage, image, alt_terms in zip(word_dict[pos]["definitions"],
                                                    word_dict[pos]["examples"],
@@ -34,11 +48,11 @@ def translate(word: str, word_dict: dict):
                                  FIELDS.sentences: examples,
                                  FIELDS.audio_links: [audio] if audio else [],
                                  FIELDS.img_links: [image] if image else [],
-                                 FIELDS.dict_tags: {"pos": pos,
-                                                    "domain": domain,
+                                 FIELDS.dict_tags: {"domain": domain,
                                                     "level": level,
                                                     "region": region,
                                                     "usage": usage,
+                                                    "pos": pos
                                                     }
                                  }
             remove_empty_keys(current_word_dict)

@@ -16,26 +16,26 @@ from typing import Callable
 from playsound import playsound
 from tkinterdnd2 import Tk
 
-from plugins_management.containers import LanguagePackageContainer
+from app_utils.audio_utils import AudioDownloader
+from app_utils.cards import Card
+from app_utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
+from app_utils.error_handling import create_exception_message
+from app_utils.error_handling import error_handler
+from app_utils.global_bindings import Binder
+from app_utils.image_utils import ImageSearch
+from app_utils.preprocessing import validate_json
+from app_utils.search_checker import ParsingException
+from app_utils.search_checker import get_card_filter
+from app_utils.string_utils import remove_special_chars
+from app_utils.widgets import EntryWithPlaceholder as Entry
+from app_utils.widgets import ScrolledFrame
+from app_utils.widgets import TextWithPlaceholder as Text
+from app_utils.window_utils import get_option_menu
+from app_utils.window_utils import spawn_toplevel_in_center
 from consts.card_fields import FIELDS
 from consts.paths import *
-from plugins_management.factory import loaded_plugins
-from utils.audio_utils import AudioDownloader
-from utils.cards import Card
-from utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
-from utils.error_handling import create_exception_message
-from utils.error_handling import error_handler
-from utils.global_bindings import Binder
-from utils.image_utils import ImageSearch
-from utils.search_checker import ParsingException
-from utils.search_checker import get_card_filter
-from utils.storages import validate_json
-from utils.string_utils import remove_special_chars
-from utils.widgets import EntryWithPlaceholder as Entry
-from utils.widgets import ScrolledFrame
-from utils.widgets import TextWithPlaceholder as Text
-from utils.window_utils import get_option_menu
-from utils.window_utils import spawn_toplevel_in_center
+from plugins_loading.containers import LanguagePackageContainer
+from plugins_loading.factory import loaded_plugins
 
 
 class App(Tk):
@@ -940,7 +940,7 @@ class App(Tk):
         choose_audio_option = self.get_option_menu(
             dict_configuration_toplevel,
             init_text=DEFAULT_AUDIO_SRC if self.local_audio_getter is None else self.local_audio_getter.name,
-            values=list(loaded_plugins.local_audio_getters.loaded) + [DEFAULT_AUDIO_SRC],
+            values=[DEFAULT_AUDIO_SRC] + list(loaded_plugins.local_audio_getters.loaded),
             command=lambda getter: pick_audio_getter(getter))
         choose_audio_option.grid(row=1, column=1, sticky="news")
 

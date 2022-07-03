@@ -3,11 +3,17 @@ import re
 
 import bs4
 import requests
-
-from plugins.parsers.return_types import SentenceGenerator
+from plugins_management.config_management import Config
+from plugins_management.parsers_return_types import SentenceGenerator
 
 FILE_PATH = os.path.basename(__file__)
 
+CONFIG_DOCS = """
+"""
+
+_CONF_VALIDATION_SCHEME = {}
+
+config = Config(validation_scheme=_CONF_VALIDATION_SCHEME)
 
 def get_sentence_batch(word: str, size: int = 5) -> SentenceGenerator:
     re_pattern = re.compile("^(.?\d+.? )")

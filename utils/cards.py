@@ -77,7 +77,12 @@ class CardGenerator(ABC):
                 for item in self.item_converter(word, word_data):
                     if additional_filter(card := Card(item)):
                         res.append(card)
-        return res
+
+        def sorting_key(card: Card) -> tuple[int, str]:
+            word = card[FIELDS.word]
+            return len(word.split()), word
+
+        return sorted(res, key=sorting_key)
 
 
 class LocalCardGenerator(CardGenerator):

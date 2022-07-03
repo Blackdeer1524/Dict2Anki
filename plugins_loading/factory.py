@@ -74,7 +74,9 @@ class PluginLoader(Generic[PluginContainer]):
         if configurable:
             for name, module in parse_namespace(module).items():
                 try:
-                    _loaded_plugin_data[name] = container_type(name, importlib.import_module(f"{module_name}.{name}.main"))
+                    _loaded_plugin_data[name] = container_type(name,
+                                                               importlib.import_module(f"{module_name}.{name}.main"))
+                    _loaded_plugin_data[name].config.load()
                 except AttributeError as e:
                     error_callback(e, name)
                     not_loaded.append(name)

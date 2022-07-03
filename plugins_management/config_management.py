@@ -16,7 +16,9 @@ class Config(UserDict):
     CONF_FILE_NAME: ClassVar[str] = "config.json"
     ENCODING: ClassVar[str] = "UTF-8"
 
-    def __init__(self, validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]]):
+    def __init__(self,
+                 config_location: str,
+                 validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]]):
         super(Config, self).__init__(data={})
 
         self.default_scheme = {}
@@ -33,7 +35,7 @@ class Config(UserDict):
 
         assign_default(self.validation_scheme)
 
-        self._conf_file_path = os.path.join(os.path.dirname(__file__), Config.CONF_FILE_NAME)
+        self._conf_file_path = os.path.join(config_location, Config.CONF_FILE_NAME)
         self.load()
 
     @staticmethod

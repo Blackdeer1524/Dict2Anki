@@ -13,7 +13,7 @@ _CONF_VALIDATION_SCHEME = \
         "pos_search": (False, [bool], [])
     }
 
-config = Config(validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
 
 _LETTERS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _AUDIO_NAME_SPEC_CHARS = '/\\:*?\"<>| '

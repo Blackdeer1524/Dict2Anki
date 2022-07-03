@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from plugins_management.parsers_return_types import SentenceGenerator, ImageGenerator
-
 from app_utils.cards import CardStatus
 from app_utils.cards import SavedDataDeck
 from plugins_loading.interfaces import CardProcessorInterface
@@ -14,6 +12,8 @@ from plugins_loading.interfaces import LocalWordParserInterface
 from plugins_loading.interfaces import ThemeInterface
 from plugins_loading.interfaces import WebSentenceParserInterface
 from plugins_loading.interfaces import WebWordParserInterface
+from plugins_management.config_management import Config
+from plugins_management.parsers_return_types import SentenceGenerator, ImageGenerator
 
 
 @dataclass(init=False, repr=False, frozen=True, eq=False, order=False)
@@ -231,41 +231,57 @@ class ThemeContainer(_PluginContainer, ThemeInterface):
 
 class WebWordParserContainer(_PluginContainer):
     scheme_docs: str
+    config_docs: str
+    config: Config
     define: Callable[[str], list[(str, dict)]]
     translate: Callable[[str, dict], dict]
 
     def __init__(self, name: str, source_module: WebWordParserInterface):
         super(WebWordParserContainer, self).__init__(name)
         object.__setattr__(self, "scheme_docs", source_module.SCHEME_DOCS)
+        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
+        object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "define", source_module.define)
         object.__setattr__(self, "translate", source_module.translate)
 
 
 class LocalWordParserContainer(_PluginContainer):
     scheme_docs: str
+    config_docs: str
+    config: Config
     local_dict_name: str
     translate: Callable[[str], dict]
 
     def __init__(self, name: str, source_module: LocalWordParserInterface):
         super(LocalWordParserContainer, self).__init__(name)
         object.__setattr__(self, "scheme_docs", source_module.SCHEME_DOCS)
+        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
+        object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "local_dict_name", source_module.DICTIONARY_PATH)
         object.__setattr__(self, "translate", source_module.translate)
 
 
 class WebSentenceParserContainer(_PluginContainer):
+    config_docs: str
+    config: Config
     get_sentence_batch: Callable[[str, int], SentenceGenerator]
 
     def __init__(self, name: str, source_module: WebSentenceParserInterface):
         super(WebSentenceParserContainer, self).__init__(name)
+        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
+        object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_sentence_batch", source_module.get_sentence_batch)
 
 
 class ImageParserContainer(_PluginContainer):
+    config_docs: str
+    config: Config
     get_image_links: Callable[[str], ImageGenerator]
 
     def __init__(self, name: str, source_module: ImageParserInterface):
         super(ImageParserContainer, self).__init__(name)
+        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
+        object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_image_links", source_module.get_image_links)
 
 
@@ -294,8 +310,12 @@ class DeckSavingFormatContainer(_PluginContainer):
 
 
 class LocalAudioGetterContainer(_PluginContainer):
+    config_docs: str
+    config: Config
     get_local_audios: Callable[[str, dict], str]
 
     def __init__(self, name: str, source_module: LocalAudioGetterInterface):
         super(LocalAudioGetterContainer, self).__init__(name)
+        object.__setattr__(self, "config_docs", source_module.CONFIG_DOCS)
+        object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_local_audios", source_module.get_local_audios)

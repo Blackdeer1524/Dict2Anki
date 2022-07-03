@@ -1,7 +1,7 @@
 from typing import Protocol, Callable
 
 from plugins_management.parsers_return_types import SentenceGenerator, ImageGenerator
-
+from plugins_management.config_management import Config
 from app_utils.cards import SavedDataDeck, CardStatus
 
 
@@ -171,6 +171,8 @@ class ThemeInterface(Protocol):
 
 class WebWordParserInterface(Protocol):
     SCHEME_DOCS: str
+    CONFIG_DOCS: str
+    config: Config
 
     @staticmethod
     def define(word: str) -> dict:
@@ -183,6 +185,8 @@ class WebWordParserInterface(Protocol):
 
 class LocalWordParserInterface(Protocol):
     SCHEME_DOCS: str
+    CONFIG_DOCS: str
+    config: Config
     DICTIONARY_PATH: str
 
     @staticmethod
@@ -191,12 +195,18 @@ class LocalWordParserInterface(Protocol):
 
 
 class WebSentenceParserInterface(Protocol):
+    CONFIG_DOCS: str
+    config: Config
+
     @staticmethod
     def get_sentence_batch(word: str, size: int) -> SentenceGenerator:
         ...
 
 
 class ImageParserInterface(Protocol):
+    CONFIG_DOCS: str
+    config: Config
+
     @staticmethod
     def get_image_links(word: str) -> ImageGenerator:
         ...
@@ -241,6 +251,8 @@ class DeckSavingFormatInterface(Protocol):
 
 
 class LocalAudioGetterInterface(Protocol):
+    CONFIG_DOCS: str
+    config: Config
     AUDIO_FOLDER: str
 
     @staticmethod

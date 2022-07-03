@@ -1,3 +1,4 @@
+import os
 from plugins_management.config_management import Config
 from app_utils.preprocessing import remove_empty_keys
 from consts.card_fields import FIELDS
@@ -18,7 +19,7 @@ CONFIG_DOCS = """
 
 _CONF_VALIDATION_SCHEME = {}
 
-config = Config(validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
 
 
 def translate(word: str, word_dict: dict):

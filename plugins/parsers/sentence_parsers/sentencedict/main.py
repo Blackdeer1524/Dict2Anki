@@ -13,7 +13,7 @@ CONFIG_DOCS = """
 
 _CONF_VALIDATION_SCHEME = {}
 
-config = Config(validation_scheme=_CONF_VALIDATION_SCHEME)
+config = Config(config_location=os.path.dirname(__file__), validation_scheme=_CONF_VALIDATION_SCHEME)
 
 def get_sentence_batch(word: str, size: int = 5) -> SentenceGenerator:
     re_pattern = re.compile("^(.?\d+.? )")

@@ -7,7 +7,7 @@ import requests
 from plugins_management.config_management import Config
 from plugins_management.parsers_return_types import SentenceGenerator
 
-FILE_PATH = os.path.basename(__file__)
+FILE_PATH = os.path.split(os.path.dirname(__file__))[-1]
 
 _CONF_VALIDATION_SCHEME = {}
 

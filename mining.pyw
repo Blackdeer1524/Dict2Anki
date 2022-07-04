@@ -17,6 +17,7 @@ from playsound import playsound
 from tkinterdnd2 import Tk
 
 from app_utils.audio_utils import AudioDownloader
+from tkinter import PanedWindow
 from app_utils.cards import Card
 from app_utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
 from app_utils.cards import WebCardGenerator, LocalCardGenerator
@@ -483,6 +484,8 @@ class App(Tk):
                 rewrite_encounter_button.grid(row=2, column=0, padx=5, pady=5, sticky="news")
                 copy_encounter.deiconify()
                 spawn_toplevel_in_center(self, copy_encounter)
+                copy_encounter.resizable(0, 0)
+                copy_encounter.grab_set()
                 create_file_win.wait_window(copy_encounter)
 
             create_file_win.destroy()
@@ -524,6 +527,8 @@ class App(Tk):
         name_button.grid(row=1, column=0, padx=5, pady=3, sticky="ns")
         create_file_win.deiconify()
         spawn_toplevel_in_center(self, create_file_win)
+        create_file_win.resizable(0, 0)
+        create_file_win.grab_set()
         name_entry.focus()
         create_file_win.bind("<Escape>", lambda event: create_file_win.destroy())
         create_file_win.bind("<Return>", lambda event: create_file())
@@ -609,6 +614,8 @@ class App(Tk):
         if closing:
             audio_downloader.bind("<Destroy>", lambda event: self.destroy() if isinstance(event.widget, Toplevel) else None)
         spawn_toplevel_in_center(self, audio_downloader)
+        audio_downloader.resizable(0, 0)
+        audio_downloader.grab_set()
         audio_downloader.download_audio(audio_links_list)
 
     @error_handler(show_errors)
@@ -686,6 +693,8 @@ class App(Tk):
         add_word_frame.deiconify()
         spawn_toplevel_in_center(master=self, toplevel_widget=add_word_frame,
                                  desired_toplevel_width=self.winfo_width())
+        add_word_frame.resizable(0, 0)
+        add_word_frame.grab_set()
 
     @error_handler(show_errors)
     def find_dialog(self):
@@ -752,6 +761,8 @@ class App(Tk):
                                                command=lambda: rotate_frame.destroy())
                 done_button_text.grid(row=0, column=1, sticky="we")
                 spawn_toplevel_in_center(self, rotate_frame)
+                rotate_frame.resizable(0, 0)
+                rotate_frame.grab_set()
                 rotate_frame.bind("<Escape>", lambda _: rotate_frame.destroy())
                 return
             messagebox.showerror(title=self.lang_pack.error_title,
@@ -775,6 +786,8 @@ class App(Tk):
         find_frame.bind("<Escape>", lambda _: find_frame.destroy())
         find_frame.deiconify()
         spawn_toplevel_in_center(self, find_frame, desired_toplevel_width=self.winfo_width())
+        find_frame.resizable(0, 0)
+        find_frame.grab_set()
 
     @error_handler(show_errors)
     def statistics_dialog(self):
@@ -815,6 +828,8 @@ class App(Tk):
                             height=min(self.winfo_height(), current_frame_height))
         statistics_window.deiconify()
         spawn_toplevel_in_center(self, statistics_window)
+        statistics_window.resizable(0, 0)
+        statistics_window.grab_set()
 
     @error_handler(show_errors)
     def anki_dialog(self):
@@ -848,6 +863,8 @@ class App(Tk):
         anki_toplevel.bind("<Return>", lambda event: save_anki_settings_command())
         anki_toplevel.bind("<Escape>", lambda event: anki_toplevel.destroy())
         spawn_toplevel_in_center(self, anki_toplevel)
+        anki_toplevel.resizable(0, 0)
+        anki_toplevel.grab_set()
 
     @error_handler(show_errors)
     def change_theme(self):
@@ -864,6 +881,8 @@ class App(Tk):
             b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
         theme_toplevel.bind("<Escape>", lambda event: theme_toplevel.destroy())
         spawn_toplevel_in_center(self, theme_toplevel)
+        theme_toplevel.resizable(0, 0)
+        theme_toplevel.grab_set()
     
     def change_language(self):
         @error_handler(self.show_errors)
@@ -880,6 +899,8 @@ class App(Tk):
             b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
         lang_pack_toplevel.bind("<Escape>", lambda event: lang_pack_toplevel.destroy())
         spawn_toplevel_in_center(self, lang_pack_toplevel)
+        lang_pack_toplevel.resizable(0, 0)
+        lang_pack_toplevel.grab_set()
     
     @error_handler(show_errors)
     def on_closing(self):
@@ -899,29 +920,45 @@ class App(Tk):
     
     @error_handler(show_errors)
     def configure_dictionary(self):
-        def call_configuration_window(plugin_config: Config):
+        def call_configuration_window(plugin_name: str,
+                                      plugin_config: Config):
             conf_window = self.Toplevel(self)
-            conf_text = self.Text(conf_window)
+            conf_window.title(f"{plugin_name} {self.lang_pack.configuration_window_conf_window_title}")
+
+            text_pane_win = PanedWindow(conf_window, **self.theme.frame_cfg)
+            text_pane_win.pack(side="top", expand=1, fill="both", anchor="n")
+            conf_text = self.Text(text_pane_win)
             conf_text.insert(1.0, json.dumps(plugin_config.data, indent=4))
-            conf_text.grid(row=0, column=0, columnspan=3, rowspan=2, sticky="news")
-            conf_docs_label = self.Label(conf_window, text=plugin_config.docs, justify="left")
-            conf_docs_label.grid(row=0, column=1, columnspan=2, rowspan=2, sticky="news")
+            text_pane_win.add(conf_text, stretch="always", sticky="news", height=1)
+
+            label_pane_win = PanedWindow(text_pane_win, orient="vertical",
+                                         showhandle=True, **self.theme.frame_cfg)
+            conf_docs_label = self.Text(label_pane_win)
+            conf_docs_label.insert(1.0, plugin_config.docs)
+            conf_docs_label["state"] = "disabled"
+            label_pane_win.add(conf_docs_label, stretch="always", sticky="news")
+
+            text_pane_win.add(label_pane_win, stretch="always")
 
             def restore_defaults():
                 plugin_config.restore_defaults()
-                plugin_config.save()
-                messagebox.showinfo(message="Saved")
-                conf_window.destroy()
-                return
+                conf_text.clear()
+                conf_text.insert(1.0, json.dumps(plugin_config.data, indent=4))
+                messagebox.showinfo(message=self.lang_pack.configuration_window_restore_defaults_done_message)
 
-            conf_restore_defaults_button = self.Button(conf_window,
-                                                       text="Восстановить",
-                                                       command=restore_defaults)
-            conf_restore_defaults_button.grid(row=2, column=0, sticky="news")
-            conf_cancel_button = self.Button(conf_window,
-                                             text="Отмена",
-                                             command=conf_window.destroy)
-            conf_cancel_button.grid(row=2, column=3, sticky="news")
+            conf_window_control_panel = self.Frame(conf_window)
+            conf_window_control_panel.pack(side="bottom", fill="x", anchor="s")
+
+            conf_restore_defaults_button = self.Button(
+                conf_window_control_panel,
+                text=self.lang_pack.configuration_window_restore_defaults_button_text,
+                command=restore_defaults)
+            conf_restore_defaults_button.pack(side="left")
+            conf_cancel_button = self.Button(
+                conf_window_control_panel,
+                text=self.lang_pack.configuration_window_cancel_button_text,
+                command=conf_window.destroy)
+            conf_cancel_button.pack(side="right")
 
             def done():
                 nonlocal plugin_config
@@ -930,7 +967,8 @@ class App(Tk):
                 try:
                     json_new_config = json.loads(new_config)
                 except ValueError:
-                    messagebox.showerror(self.lang_pack.error_title, "Неверная JSON схема")
+                    messagebox.showerror(self.lang_pack.error_title,
+                                         self.lang_pack.configuration_window_bad_json_scheme_message)
                     return
                 config_errors: Config.SchemeCheckResults = \
                     plugin_config.validate_config(json_new_config, plugin_config.validation_scheme)
@@ -938,45 +976,54 @@ class App(Tk):
                 if not config_errors:
                     plugin_config.data = json_new_config
                     plugin_config.save()
-                    messagebox.showinfo(message="Saved")
                     conf_window.destroy()
+                    messagebox.showinfo(message=self.lang_pack.configuration_window_saved_message)
                     return
 
                 config_error_message = ""
                 if config_errors.wrong_type:
-                    config_error_message += "Wrong type:\n"
-                    wrong_type_message = "\n".join((f" * {error[0]}: {error[1]}. Expected: {error[2]}"
+                    config_error_message += f"{self.lang_pack.configuration_window_wrong_type_field}:\n"
+                    wrong_type_message = "\n".join((f" * {error[0]}: {error[1]}. "
+                                                    f"{self.lang_pack.configuration_window_expected_prefix}: {error[2]}"
                                                        for error in config_errors.wrong_type))
                     config_error_message += wrong_type_message + "\n"
 
                 if config_errors.wrong_value:
-                    config_error_message += "Wrong value:\n"
-                    wrong_value_message = "\n".join((f" * {error[0]}: {error[1]}. Expected: {error[2]}"
+                    config_error_message += f"{self.lang_pack.configuration_window_wrong_value_field}:\n"
+                    wrong_value_message = "\n".join((f" * {error[0]}: {error[1]}. "
+                                                     f"{self.lang_pack.configuration_window_expected_prefix}: {error[2]}"
                                                     for error in config_errors.wrong_value))
                     config_error_message += wrong_value_message + "\n"
 
                 if config_errors.missing_keys:
-                    config_error_message += "Missing keys:\n"
+                    config_error_message += f"{self.lang_pack.configuration_window_missing_keys_field}:\n"
                     missing_keys_message = "\n".join((f" * {missing_key}"
                                                       for missing_key in config_errors.missing_keys))
                     config_error_message += missing_keys_message + "\n"
 
                 if config_errors.unknown_keys:
-                    config_error_message += "Unknown keys:\n"
+                    config_error_message += f"{self.lang_pack.configuration_window_unknown_keys_field}:\n"
                     unknown_keys_message = "\n".join((f" * {unknown_key}"
                                                       for unknown_key in config_errors.unknown_keys))
                     config_error_message += unknown_keys_message + "\n"
                 self.show_window(title=self.lang_pack.error_title,
                                  text=config_error_message)
 
-            conf_done_button = self.Button(conf_window,
-                                           text="Готово",
+            conf_done_button = self.Button(conf_window_control_panel,
+                                           text=self.lang_pack.configuration_window_done_button_text,
                                            command=done)
-            conf_done_button.grid(row=2, column=4, sticky="news")
+            conf_done_button.pack(side="right")
 
-            for i in range(5):
+            for i in range(3):
                 conf_window.grid_columnconfigure(i, weight=1)
+
+            conf_window.bind("<Escape>", lambda event: conf_window.destroy())
+            conf_window.bind("<Return>", lambda event: done())
+            spawn_toplevel_in_center(self, conf_window,
+                                     desired_toplevel_width=self.winfo_width())
+            conf_window.resizable(0, 0)
             conf_window.grab_set()
+
 
         WEB_PREF = "[web]"
         LOCAL_PREF = "[local]"
@@ -1004,7 +1051,9 @@ class App(Tk):
             self.typed_word_parser_name = typed_parser
             self.deck.update_card_generator(self.card_generator)
             configure_word_parser_button["command"] = \
-                lambda plugin_conf=self.word_parser.config: call_configuration_window(plugin_conf)
+                lambda plugin_conf=self.word_parser.config: call_configuration_window(
+                    plugin_name=self.word_parser.name,
+                    plugin_config=plugin_conf)
 
         # dict
         dict_configuration_toplevel = self.Toplevel(self)
@@ -1025,7 +1074,9 @@ class App(Tk):
         configure_word_parser_button = self.Button(dict_configuration_toplevel,
                                                    text="</>",
                                                    command=lambda plugin_conf=self.word_parser.config:
-                                                           call_configuration_window(plugin_conf))
+                                                           call_configuration_window(
+                                                               plugin_name=self.word_parser.name,
+                                                               plugin_config=plugin_conf))
         configure_word_parser_button.grid(row=0, column=2, sticky="news")
 
         # audio_getter
@@ -1046,7 +1097,9 @@ class App(Tk):
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
-                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(plugin_conf)
+                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(
+                    plugin_name=self.local_audio_getter.name,
+                    plugin_config=plugin_conf)
 
         choose_audio_option = self.get_option_menu(
             dict_configuration_toplevel,
@@ -1060,7 +1113,9 @@ class App(Tk):
         if self.local_audio_getter is not None:
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
-                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(plugin_conf)
+                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(
+                    plugin_name=self.local_audio_getter.name,
+                    plugin_config=plugin_conf)
         else:
             configure_audio_getter_button["state"] = "disabled"
 
@@ -1101,6 +1156,8 @@ class App(Tk):
         dict_configuration_toplevel.bind("<Return>", lambda event: dict_configuration_toplevel.destroy())
         dict_configuration_toplevel.deiconify()
         spawn_toplevel_in_center(self, dict_configuration_toplevel)
+        dict_configuration_toplevel.resizable(0, 0)
+        dict_configuration_toplevel.grab_set()
     
     @error_handler(show_errors)
     def change_image_parser(self, given_image_parser_name: str):
@@ -1206,6 +1263,8 @@ class App(Tk):
             spawn_toplevel_in_center(self, playsound_toplevel,
                                      desired_toplevel_width=self.winfo_width()
                                      )
+            playsound_toplevel.resizable(0, 0)
+            playsound_toplevel.grab_set()
 
         @error_handler(self.show_errors)
         def show_download_error(exc):

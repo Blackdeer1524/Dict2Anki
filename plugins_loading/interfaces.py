@@ -131,6 +131,20 @@ class LanguagePackageInterface(Protocol):
     configure_dictionary_card_processor_label_text: str
     configure_dictionary_format_processor_label_text: str
 
+    # call_configuration_window
+    configuration_window_conf_window_title: str
+    configuration_window_restore_defaults_done_message: str
+    configuration_window_restore_defaults_button_text: str
+    configuration_window_cancel_button_text: str
+    configuration_window_bad_json_scheme_message: str
+    configuration_window_saved_message: str
+    configuration_window_wrong_type_field: str
+    configuration_window_wrong_value_field: str
+    configuration_window_missing_keys_field: str
+    configuration_window_unknown_keys_field: str
+    configuration_window_expected_prefix: str
+    configuration_window_done_button_text: str
+
     # play_sound
     play_sound_playsound_toplevel_title: str
     play_sound_local_audio_not_found_message: str

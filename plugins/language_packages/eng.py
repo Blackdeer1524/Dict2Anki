@@ -341,6 +341,20 @@ configure_dictionary_audio_getter_label_text = "Audio getter"
 configure_dictionary_card_processor_label_text = "Card format"
 configure_dictionary_format_processor_label_text = "Saving format"
 
+# call_configuration_window
+configuration_window_conf_window_title = "configuration"
+configuration_window_restore_defaults_done_message = "Done"
+configuration_window_restore_defaults_button_text = "Restore defaults"
+configuration_window_cancel_button_text = "Cancel"
+configuration_window_bad_json_scheme_message = "Bad JSON scheme"
+configuration_window_saved_message = "Saved"
+configuration_window_wrong_type_field = "Wrong field type"
+configuration_window_wrong_value_field = "Wrong filed value"
+configuration_window_missing_keys_field = "Missing keys"
+configuration_window_unknown_keys_field = "Unknown keys"
+configuration_window_expected_prefix = "Expected"
+configuration_window_done_button_text = "Done"
+
 # play_sound
 play_sound_playsound_toplevel_title = "Audio"
 play_sound_local_audio_not_found_message = "Local audio not found"

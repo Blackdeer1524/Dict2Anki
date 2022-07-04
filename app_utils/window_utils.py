@@ -23,8 +23,6 @@ def spawn_toplevel_in_center(master, toplevel_widget, desired_toplevel_width=0, 
     width = desired_toplevel_width if desired_toplevel_width else toplevel_widget.winfo_width()
     height = desired_toplevel_height if desired_toplevel_height else toplevel_widget.winfo_height()
     toplevel_widget.geometry(get_center_spawn_conf())
-    toplevel_widget.resizable(0, 0)
-    toplevel_widget.grab_set()
 
 
 def get_option_menu(master, init_text, values, command, option_menu_cfg=None, option_submenu_cfg=None):

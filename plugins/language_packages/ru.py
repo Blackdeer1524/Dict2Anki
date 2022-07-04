@@ -341,6 +341,20 @@ configure_dictionary_audio_getter_label_text = "Получение аудио"
 configure_dictionary_card_processor_label_text = "Формат карточки"
 configure_dictionary_format_processor_label_text = "Формат итогового файла"
 
+# call_configuration_window
+configuration_window_conf_window_title = "конфигурации"
+configuration_window_restore_defaults_done_message = "Готово"
+configuration_window_restore_defaults_button_text = "Восстановить"
+configuration_window_cancel_button_text = "Отмена"
+configuration_window_bad_json_scheme_message = "Плохая JSON схема"
+configuration_window_saved_message = "Сохранено"
+configuration_window_wrong_type_field = "Неверный тип поля"
+configuration_window_wrong_value_field = "Неверное значение поля"
+configuration_window_missing_keys_field = "Пропущенные поля"
+configuration_window_unknown_keys_field = "Неизвестные ключи"
+configuration_window_expected_prefix = "Ожидалось"
+configuration_window_done_button_text = "Готово"
+
 # play_sound
 play_sound_playsound_toplevel_title = "Аудио"
 play_sound_local_audio_not_found_message = "Локальный файл не найден"

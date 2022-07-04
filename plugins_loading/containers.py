@@ -173,6 +173,31 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
         object.__setattr__(self, "configure_dictionary_format_processor_label_text",
                            source_module.configure_dictionary_format_processor_label_text)
 
+        object.__setattr__(self, "configuration_window_conf_window_title",
+                           source_module.configuration_window_conf_window_title)
+        object.__setattr__(self, "configuration_window_restore_defaults_done_message",
+                           source_module.configuration_window_restore_defaults_done_message)
+        object.__setattr__(self, "configuration_window_restore_defaults_button_text",
+                           source_module.configuration_window_restore_defaults_button_text)
+        object.__setattr__(self, "configuration_window_cancel_button_text",
+                           source_module.configuration_window_cancel_button_text)
+        object.__setattr__(self, "configuration_window_bad_json_scheme_message",
+                           source_module.configuration_window_bad_json_scheme_message)
+        object.__setattr__(self, "configuration_window_saved_message",
+                           source_module.configuration_window_saved_message)
+        object.__setattr__(self, "configuration_window_wrong_type_field",
+                           source_module.configuration_window_wrong_type_field)
+        object.__setattr__(self, "configuration_window_wrong_value_field",
+                           source_module.configuration_window_wrong_value_field)
+        object.__setattr__(self, "configuration_window_missing_keys_field",
+                           source_module.configuration_window_missing_keys_field)
+        object.__setattr__(self, "configuration_window_unknown_keys_field",
+                           source_module.configuration_window_unknown_keys_field)
+        object.__setattr__(self, "configuration_window_expected_prefix",
+                           source_module.configuration_window_expected_prefix)
+        object.__setattr__(self, "configuration_window_done_button_text",
+                           source_module.configuration_window_done_button_text)
+
         # play_sound
         object.__setattr__(self, "play_sound_playsound_toplevel_title",
                            source_module.play_sound_playsound_toplevel_title)

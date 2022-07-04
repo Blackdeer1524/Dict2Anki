@@ -1371,6 +1371,7 @@ class App(Tk):
             self.sent_text_list[i].remove_placeholder()
             self.sent_text_list[i].insert(1.0, sent_batch[i])
         if error_message:
+            self.sentence_fetcher.fetch_local()
             messagebox.showerror(title=self.lang_pack.error_title,
                                  message=error_message)
         self.add_sentences_button["text"] = self.sentence_button_text if local_flag else self.sentence_button_text + " +"

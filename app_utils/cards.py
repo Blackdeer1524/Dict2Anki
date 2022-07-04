@@ -288,6 +288,9 @@ class SentenceFetcher:
         self._local_sentences_flag: bool = True
         self._update_status: bool = False
 
+    def fetch_local(self):
+        self._local_sentences_flag = True
+
     def is_local(self):
         return self._local_sentences_flag
 

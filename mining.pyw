@@ -121,6 +121,10 @@ class App(Tk):
 
         if (local_audio_getter_name := self.configurations["scrappers"]["local_audio"]):
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(local_audio_getter_name)
+            # self.local_audio_getter.config["audio_region"] = "uk"
+            # a = self.local_audio_getter.get_local_audios("insult", {})
+            # self.local_audio_getter.config["audio_region"] = "us"
+            # b = self.local_audio_getter.get_local_audios("insult", {})
         else:
             self.local_audio_getter = None
 
@@ -961,8 +965,6 @@ class App(Tk):
             conf_cancel_button.pack(side="right")
 
             def done():
-                nonlocal plugin_config
-
                 new_config = conf_text.get(1.0, "end")
                 try:
                     json_new_config = json.loads(new_config)
@@ -1051,9 +1053,9 @@ class App(Tk):
             self.typed_word_parser_name = typed_parser
             self.deck.update_card_generator(self.card_generator)
             configure_word_parser_button["command"] = \
-                lambda plugin_conf=self.word_parser.config: call_configuration_window(
+                lambda: call_configuration_window(
                     plugin_name=self.word_parser.name,
-                    plugin_config=plugin_conf)
+                    plugin_config=self.word_parser.config)
 
         # dict
         dict_configuration_toplevel = self.Toplevel(self)
@@ -1073,10 +1075,9 @@ class App(Tk):
 
         configure_word_parser_button = self.Button(dict_configuration_toplevel,
                                                    text="</>",
-                                                   command=lambda plugin_conf=self.word_parser.config:
-                                                           call_configuration_window(
-                                                               plugin_name=self.word_parser.name,
-                                                               plugin_config=plugin_conf))
+                                                   command=lambda: call_configuration_window(
+                                                       plugin_name=self.word_parser.name,
+                                                       plugin_config=self.word_parser.config))
         configure_word_parser_button.grid(row=0, column=2, sticky="news")
 
         # audio_getter
@@ -1097,9 +1098,9 @@ class App(Tk):
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
-                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(
+                lambda: call_configuration_window(
                     plugin_name=self.local_audio_getter.name,
-                    plugin_config=plugin_conf)
+                    plugin_config=self.local_audio_getter.config)
 
         choose_audio_option = self.get_option_menu(
             dict_configuration_toplevel,
@@ -1113,9 +1114,9 @@ class App(Tk):
         if self.local_audio_getter is not None:
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
-                lambda plugin_conf=self.local_audio_getter.config: call_configuration_window(
+                lambda: call_configuration_window(
                     plugin_name=self.local_audio_getter.name,
-                    plugin_config=plugin_conf)
+                    plugin_config=self.local_audio_getter.config)
         else:
             configure_audio_getter_button["state"] = "disabled"
 

@@ -29,7 +29,7 @@ from plugins_loading.exceptions import LoaderError
 from plugins_loading.exceptions import UnknownPluginName
 
 
-def parse_namespace(namespace) -> dict:
+def parse_namespace(namespace, postfix: str = "") -> dict:
     def iter_namespace(ns_pkg):
         # Specifying the second argument (prefix) to iter_modules makes the
         # returned name an absolute name instead of a relative one. This allows
@@ -40,7 +40,7 @@ def parse_namespace(namespace) -> dict:
     res = {}
     for finder, name, ispkg in iter_namespace(namespace):
         parser_trunc_name = name.split(sep=".")[-1]
-        res[parser_trunc_name] = importlib.import_module(name)
+        res[parser_trunc_name] = importlib.import_module(name + postfix)
     return res
 
 
@@ -68,23 +68,14 @@ class PluginLoader(Generic[PluginContainer]):
 
         _loaded_plugin_data = {}
         not_loaded = []
-        if configurable:
-            for name, module in parse_namespace(module).items():
-                try:
-                    _loaded_plugin_data[name] = container_type(name,
-                                                               importlib.import_module(f"{module_name}.{name}.main"))
-                    _loaded_plugin_data[name].config.load()
-                except AttributeError as e:
-                    error_callback(e, name)
-                    not_loaded.append(name)
-        else:
-            for name, module in parse_namespace(module).items():
-                try:
-                    _loaded_plugin_data[name] = container_type(name, module)
-                except AttributeError as e:
-                    error_callback(e, name)
-                    not_loaded.append(name)
-        object.__setattr__(self, "_loaded_plugin_data", FrozenDict(_loaded_plugin_data))
+        namespace_parsed_results = parse_namespace(module, postfix=".main") if configurable else parse_namespace(module)
+        for name, module in namespace_parsed_results.items():
+            try:
+                _loaded_plugin_data[name] = container_type(name, module)
+            except AttributeError as e:
+                error_callback(e, name)
+                not_loaded.append(name)
+        object.__setattr__(self, "_loaded_plugin_data", _loaded_plugin_data)  # FrozenDict
         object.__setattr__(self, "not_loaded", tuple(not_loaded))
 
     @property

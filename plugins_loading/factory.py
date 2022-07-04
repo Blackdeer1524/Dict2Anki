@@ -15,7 +15,6 @@ import plugins.parsers.word_parsers.web
 import plugins.saving.card_processors
 import plugins.saving.format_processors
 import plugins.themes
-from app_utils.storages import FrozenDict
 from plugins_loading.containers import CardProcessorContainer
 from plugins_loading.containers import DeckSavingFormatContainer
 from plugins_loading.containers import ImageParserContainer
@@ -50,7 +49,7 @@ PluginContainer = TypeVar("PluginContainer")
 @dataclass(slots=True, init=False, frozen=True)
 class PluginLoader(Generic[PluginContainer]):
     plugin_type: str
-    _loaded_plugin_data: FrozenDict[str, PluginContainer]
+    _loaded_plugin_data: dict[str, PluginContainer]
     not_loaded: tuple[str]
 
     _already_initialized: ClassVar[set[str]] = set()
@@ -75,7 +74,7 @@ class PluginLoader(Generic[PluginContainer]):
             except AttributeError as e:
                 error_callback(e, name)
                 not_loaded.append(name)
-        object.__setattr__(self, "_loaded_plugin_data", _loaded_plugin_data)  # FrozenDict
+        object.__setattr__(self, "_loaded_plugin_data", _loaded_plugin_data)
         object.__setattr__(self, "not_loaded", tuple(not_loaded))
 
     @property
@@ -106,7 +105,6 @@ class PluginFactory:
         if PluginFactory._is_initialized:
             raise LoaderError(f"{self.__class__.__name__} already exists!")
         PluginFactory._is_initialized = True
-
         object.__setattr__(self, "language_packages",   PluginLoader(plugin_type="language package",
                                                                      module=plugins.language_packages,
                                                                      configurable=False,

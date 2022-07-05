@@ -8,6 +8,7 @@ from plugins_loading.interfaces import DeckSavingFormatInterface
 from plugins_loading.interfaces import ImageParserInterface
 from plugins_loading.interfaces import LanguagePackageInterface
 from plugins_loading.interfaces import LocalAudioGetterInterface
+from plugins_loading.interfaces import WebAudioGetterInterface
 from plugins_loading.interfaces import LocalWordParserInterface
 from plugins_loading.interfaces import ThemeInterface
 from plugins_loading.interfaces import WebSentenceParserInterface
@@ -256,7 +257,6 @@ class ThemeContainer(_PluginContainer, ThemeInterface):
 
 class WebWordParserContainer(_PluginContainer):
     scheme_docs: str
-    config_docs: str
     config: Config
     define: Callable[[str], list[(str, dict)]]
     translate: Callable[[str, dict], dict]
@@ -271,7 +271,6 @@ class WebWordParserContainer(_PluginContainer):
 
 class LocalWordParserContainer(_PluginContainer):
     scheme_docs: str
-    config_docs: str
     config: Config
     local_dict_name: str
     translate: Callable[[str], dict]
@@ -285,7 +284,6 @@ class LocalWordParserContainer(_PluginContainer):
 
 
 class WebSentenceParserContainer(_PluginContainer):
-    config_docs: str
     config: Config
     get_sentence_batch: Callable[[str, int], SentenceGenerator]
 
@@ -296,7 +294,6 @@ class WebSentenceParserContainer(_PluginContainer):
 
 
 class ImageParserContainer(_PluginContainer):
-    config_docs: str
     config: Config
     get_image_links: Callable[[str], ImageGenerator]
 
@@ -331,7 +328,6 @@ class DeckSavingFormatContainer(_PluginContainer):
 
 
 class LocalAudioGetterContainer(_PluginContainer):
-    config_docs: str
     config: Config
     get_local_audios: Callable[[str, dict], str]
 
@@ -339,3 +335,13 @@ class LocalAudioGetterContainer(_PluginContainer):
         super(LocalAudioGetterContainer, self).__init__(name)
         object.__setattr__(self, "config", source_module.config)
         object.__setattr__(self, "get_local_audios", source_module.get_local_audios)
+
+
+class WebAudioGetterContainer(_PluginContainer):
+    config: Config
+    get_local_audios: Callable[[str, dict], str]
+
+    def __init__(self, name: str, source_module: WebAudioGetterInterface):
+        super(WebAudioGetterContainer, self).__init__(name)
+        object.__setattr__(self, "config", source_module.config)
+        object.__setattr__(self, "get_web_audios", source_module.get_web_audios)

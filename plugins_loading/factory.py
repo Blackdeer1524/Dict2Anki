@@ -8,6 +8,7 @@ from typing import TypeVar, Generic
 
 import plugins.language_packages
 import plugins.parsers.audio_getters.local
+import plugins.parsers.audio_getters.web
 import plugins.parsers.image_parsers
 import plugins.parsers.sentence_parsers
 import plugins.parsers.word_parsers.local
@@ -20,6 +21,7 @@ from plugins_loading.containers import DeckSavingFormatContainer
 from plugins_loading.containers import ImageParserContainer
 from plugins_loading.containers import LanguagePackageContainer
 from plugins_loading.containers import LocalAudioGetterContainer
+from plugins_loading.containers import WebAudioGetterContainer
 from plugins_loading.containers import LocalWordParserContainer
 from plugins_loading.containers import ThemeContainer
 from plugins_loading.containers import WebSentenceParserContainer
@@ -100,6 +102,7 @@ class PluginFactory:
     card_processors:     PluginLoader[CardProcessorContainer]
     deck_saving_formats: PluginLoader[DeckSavingFormatContainer]
     local_audio_getters: PluginLoader[LocalAudioGetterContainer]
+    web_audio_getters:   PluginLoader[WebAudioGetterContainer]
 
     def __init__(self):
         if PluginFactory._is_initialized:
@@ -141,6 +144,10 @@ class PluginFactory:
                                                                      module=plugins.parsers.audio_getters.local,
                                                                      configurable=True,
                                                                      container_type=LocalAudioGetterContainer))
+        object.__setattr__(self, "web_audio_getters",   PluginLoader(plugin_type="web audio getter",
+                                                                     module=plugins.parsers.audio_getters.web,
+                                                                     configurable=True,
+                                                                     container_type=WebAudioGetterContainer))
 
     def get_language_package(self, name: str) -> LanguagePackageContainer:
         if (lang_pack := self.language_packages.get(name)) is None:
@@ -156,17 +163,11 @@ class PluginFactory:
         if (web_parser := self.web_word_parsers.get(name)) is None:
             raise UnknownPluginName(f"Unknown WebCardGenerator: {name}")
         return web_parser
-        # return WebCardGenerator(parsing_function=args.define,
-        #                         item_converter=args.translate,
-        #                         scheme_docs=args.scheme_docs)
 
     def get_local_word_parser(self, name: str) -> LocalWordParserContainer:
         if (local_parser := self.local_word_parsers.get(name)) is None:
             raise UnknownPluginName(f"Unknown LocalCardGenerator: {name}")
         return local_parser
-        # return LocalCardGenerator(local_dict_path=f"{LOCAL_MEDIA_DIR}/{args.local_dict_name}.json",
-        #                           item_converter=args.translate,
-        #                           scheme_docs=args.scheme_docs)
 
     def get_sentence_parser(self, name: str) -> WebSentenceParserContainer:
         if (gen := self.web_sent_parsers.get(name)) is None:
@@ -192,7 +193,11 @@ class PluginFactory:
         if (getter := self.local_audio_getters.get(name)) is None:
             raise UnknownPluginName(f"Unknown local audio getter: {name}")
         return getter
-    
-        
-    
+
+    def get_web_audio_getter(self, name: str) -> WebAudioGetterContainer:
+        if (getter := self.web_audio_getters.get(name)) is None:
+            raise UnknownPluginName(f"Unknown web audio getter: {name}")
+        return getter
+
+
 loaded_plugins = PluginFactory()

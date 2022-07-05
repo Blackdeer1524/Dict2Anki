@@ -185,7 +185,6 @@ class ThemeInterface(Protocol):
 
 class WebWordParserInterface(Protocol):
     SCHEME_DOCS: str
-    CONFIG_DOCS: str
     config: Config
 
     @staticmethod
@@ -199,7 +198,6 @@ class WebWordParserInterface(Protocol):
 
 class LocalWordParserInterface(Protocol):
     SCHEME_DOCS: str
-    CONFIG_DOCS: str
     config: Config
     DICTIONARY_PATH: str
 
@@ -209,7 +207,6 @@ class LocalWordParserInterface(Protocol):
 
 
 class WebSentenceParserInterface(Protocol):
-    CONFIG_DOCS: str
     config: Config
 
     @staticmethod
@@ -218,7 +215,6 @@ class WebSentenceParserInterface(Protocol):
 
 
 class ImageParserInterface(Protocol):
-    CONFIG_DOCS: str
     config: Config
 
     @staticmethod
@@ -265,10 +261,18 @@ class DeckSavingFormatInterface(Protocol):
 
 
 class LocalAudioGetterInterface(Protocol):
-    CONFIG_DOCS: str
     config: Config
     AUDIO_FOLDER: str
 
     @staticmethod
     def get_local_audios(word: str, dict_tags: dict) -> list[str]:
+        ...
+
+
+class WebAudioGetterInterface(Protocol):
+    config: Config
+
+    @staticmethod
+    def get_web_audios(word: str, dict_tags: dict) -> tuple[tuple[list[str], list[str]], str]:
+        """returns ((<audio urls>, <additional information>), <error_message>)"""
         ...

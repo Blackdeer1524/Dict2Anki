@@ -87,8 +87,8 @@ class App(Tk):
                                        option_menu_cfg=self.theme.option_menu_cfg,
                                        option_submenu_cfg=self.theme.option_submenus_cfg)
 
-        wp_name = self.configurations["scrappers"]["word_parser_name"]
-        if (wp_type := self.configurations["scrappers"]["word_parser_type"]) == "web":
+        wp_name = self.configurations["scrappers"]["word"]["name"]
+        if (wp_type := self.configurations["scrappers"]["word"]["type"]) == "web":
             self.word_parser = loaded_plugins.get_web_word_parser(wp_name)
             self.card_generator = WebCardGenerator(
                 parsing_function=self.word_parser.define,
@@ -103,7 +103,7 @@ class App(Tk):
                 scheme_docs=self.word_parser.scheme_docs)
 
         else:
-            raise NotImplemented("Unknown word_parser_type: {}!".format(self.configurations["scrappers"]["word_parser_type"]))
+            raise NotImplemented("Unknown word_parser_type: {}!".format(self.configurations["scrappers"]["word"]["type"]))
         self.typed_word_parser_name = f"[{wp_type}] {wp_name}"
 
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
@@ -113,13 +113,13 @@ class App(Tk):
         self.card_processor = loaded_plugins.get_card_processor("Anki")
         self.dict_card_data: dict = {}
         self.sentence_batch_size = 5
-        self.sentence_parser = loaded_plugins.get_sentence_parser(self.configurations["scrappers"]["base_sentence_parser"])
+        self.sentence_parser = loaded_plugins.get_sentence_parser(self.configurations["scrappers"]["sentence"]["name"])
         self.sentence_fetcher = SentenceFetcher(sent_fetcher=self.sentence_parser.get_sentence_batch,
                                                 sentence_batch_size=self.sentence_batch_size)
 
-        self.image_parser = loaded_plugins.get_image_parser(self.configurations["scrappers"]["base_image_parser"])
+        self.image_parser = loaded_plugins.get_image_parser(self.configurations["scrappers"]["image"]["name"])
 
-        if (local_audio_getter_name := self.configurations["scrappers"]["local_audio"]):
+        if (local_audio_getter_name := self.configurations["scrappers"]["audio"]["name"]):
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(local_audio_getter_name)
             # self.local_audio_getter.config["audio_region"] = "uk"
             # a = self.local_audio_getter.get_local_audios("insult", {})
@@ -129,7 +129,7 @@ class App(Tk):
             self.local_audio_getter = None
 
         self.saved_cards_data = SavedDataDeck()
-        self.deck_saver = loaded_plugins.get_deck_saving_formats(self.configurations["deck_saving_format"])
+        self.deck_saver = loaded_plugins.get_deck_saving_formats(self.configurations["deck"]["saving_format"])
         self.audio_saver = loaded_plugins.get_deck_saving_formats("json_deck_audio")
         self.buried_saver = loaded_plugins.get_deck_saving_formats("json_deck_cards")
 
@@ -230,7 +230,7 @@ class App(Tk):
         self.user_tags_field.fill_placeholder()
 
         self.tag_prefix_field = self.Entry(self, justify="center", width=8)
-        self.tag_prefix_field.insert(0, self.configurations["tags_hierarchical_pref"])
+        self.tag_prefix_field.insert(0, self.configurations["deck"]["tags_hierarchical_pref"])
         self.dict_tags_field = self.Text(self, relief="ridge", state="disabled", height=2)
 
         Text_padx = 10
@@ -347,27 +347,66 @@ class App(Tk):
     @error_handler(show_errors)
     def save_conf_file(self):
         with open(CONFIG_FILE_PATH, "w") as f:
-            json.dump(self.configurations, f, indent=3)
+            json.dump(self.configurations, f, indent=4)
 
     def load_conf_file(self) -> tuple[dict[str, dict], LanguagePackageContainer, bool]:
-        standard_conf_file = {"app": {"theme": "dark",
-                                      "main_window_geometry": "500x800+0+0",
-                                      "image_search_position": "+0+0",
-                                      "language_package": "eng"},
-                              "card_processor": "Anki",
-                              "deck_saving_format": "csv",
-                              "scrappers": {"base_sentence_parser": "sentencedict",
-                                            "word_parser_type": "web",
-                                            "word_parser_name": "cambridge_US",
-                                            "base_image_parser": "google",
-                                            "local_audio": ""},
-                              "tags_hierarchical_pref": "",
-                              "directories": {"media_dir": "",
-                                              "last_open_file": "",
-                                              "last_save_dir": ""},
-                              "anki": {"anki_deck": "",
-                                       "anki_field": ""}
-                              }
+        # standard_conf_file = {"app": {"theme": "dark",
+        #                               "main_window_geometry": "500x800+0+0",
+        #                               "image_search_position": "+0+0",
+        #                               "language_package": "eng"},
+        #                       "card_processor": "Anki",
+        #                       "deck_saving_format": "csv",
+        #                       "scrappers": {"base_sentence_parser": "sentencedict",
+        #                                     "word_parser_type": "web",
+        #                                     "word_parser_name": "cambridge",
+        #                                     "base_image_parser": "google",
+        #                                     "local_audio": ""},
+        #                       "tags_hierarchical_pref": "",
+        #                       "directories": {"media_dir": "",
+        #                                       "last_open_file": "",
+        #                                       "last_save_dir": ""},
+        #                       "anki": {"anki_deck": "",
+        #                                "anki_field": ""}
+        #                       }
+        standard_conf_file = \
+        {
+            "scrappers": {
+                "word": {
+                    "type": "web",
+                    "name": "cambridge"
+                },
+                "sentence": {
+                    "name": "sentencedict"
+                },
+                "image": {
+                    "name": "google"
+                },
+                "audio": {
+                    "type": "default",
+                    "name": ""
+                }
+            },
+            "anki": {
+                "deck": "",
+                "field": ""
+            },
+            "directories": {
+                "media_dir": "",
+                "last_open_file": "",
+                "last_save_dir": ""
+            },
+            "app": {
+                "theme": "dark",
+                "main_window_geometry": "500x800+0+0",
+                "image_search_position": "+0+0",
+                "language_package": "eng"
+            },
+            "deck": {
+                "tags_hierarchical_pref": "eng",
+                "saving_format": "csv",
+                "card_processor": "Anki"
+            }
+        }
 
         conf_file: dict[str, dict[str, Any]]
         if not os.path.exists(CONFIG_FILE_PATH):
@@ -540,7 +579,7 @@ class App(Tk):
     @error_handler(show_errors)
     def save_files(self):
         self.configurations["app"]["main_window_geometry"] = self.geometry()
-        self.configurations["tags_hierarchical_pref"] = self.tag_prefix_field.get().strip()
+        self.configurations["deck"]["tags_hierarchical_pref"] = self.tag_prefix_field.get().strip()
         self.save_conf_file()
 
         self.history[self.configurations["directories"]["last_open_file"]] = self.deck.get_pointer_position() - 1
@@ -841,19 +880,19 @@ class App(Tk):
 
         @error_handler(self.show_errors)
         def save_anki_settings_command():
-            self.configurations["anki"]["anki_deck"] = anki_deck_entry.get().strip()
-            self.configurations["anki"]["anki_field"] = anki_field_entry.get().strip()
+            self.configurations["anki"]["deck"] = anki_deck_entry.get().strip()
+            self.configurations["anki"]["field"] = anki_field_entry.get().strip()
             anki_toplevel.destroy()
 
         anki_toplevel.title(self.lang_pack.anki_dialog_anki_toplevel_title)
         anki_deck_entry = self.Entry(anki_toplevel,
                                      placeholder=self.lang_pack.anki_dialog_anki_deck_entry_placeholder)
-        anki_deck_entry.insert(0, self.configurations["anki"]["anki_deck"])
+        anki_deck_entry.insert(0, self.configurations["anki"]["deck"])
         anki_deck_entry.fill_placeholder()
 
         anki_field_entry = self.Entry(anki_toplevel,
                                       placeholder=self.lang_pack.anki_dialog_anki_field_entry_placeholder)
-        anki_field_entry.insert(0, self.configurations["anki"]["anki_field"])
+        anki_field_entry.insert(0, self.configurations["anki"]["field"])
         anki_field_entry.fill_placeholder()
 
         save_anki_settings_button = self.Button(anki_toplevel,
@@ -1032,7 +1071,7 @@ class App(Tk):
         DEFAULT_AUDIO_SRC = "default"
 
         @error_handler(self.show_errors)
-        def pick_parser(typed_parser: str):
+        def pick_word_parser(typed_parser: str):
             if typed_parser.startswith(WEB_PREF):
                 raw_name = typed_parser[len(WEB_PREF) + 1:]
                 self.word_parser = loaded_plugins.get_web_word_parser(typed_parser[len(WEB_PREF) + 1:])
@@ -1040,7 +1079,7 @@ class App(Tk):
                     parsing_function=self.word_parser.define,
                     item_converter=self.word_parser.translate,
                     scheme_docs=self.word_parser.scheme_docs)
-                self.configurations["scrappers"]["word_parser_type"] = "web"
+                self.configurations["scrappers"]["word"]["type"] = "web"
             else:
                 raw_name = typed_parser[len(LOCAL_PREF) + 1:]
                 self.word_parser = loaded_plugins.get_local_word_parser(typed_parser[len(LOCAL_PREF) + 1:])
@@ -1048,8 +1087,8 @@ class App(Tk):
                     local_dict_path=f"{LOCAL_MEDIA_DIR}/{self.word_parser.local_dict_name}.json",
                     item_converter=self.word_parser.translate,
                     scheme_docs=self.word_parser.scheme_docs)
-                self.configurations["scrappers"]["word_parser_type"] = "local"
-            self.configurations["scrappers"]["word_parser_name"] = raw_name
+                self.configurations["scrappers"]["word"]["type"] = "local"
+            self.configurations["scrappers"]["word"]["name"] = raw_name
             self.typed_word_parser_name = typed_parser
             self.deck.update_card_generator(self.card_generator)
             configure_word_parser_button["command"] = \
@@ -1070,7 +1109,7 @@ class App(Tk):
             init_text=self.typed_word_parser_name,
             values=[f"{WEB_PREF} {item}" for item in loaded_plugins.web_word_parsers.loaded] +
                    [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_word_parsers.loaded],
-            command=lambda typed_parser: pick_parser(typed_parser))
+            command=lambda typed_parser: pick_word_parser(typed_parser))
         choose_wp_option.grid(row=0, column=1, sticky="news")
 
         configure_word_parser_button = self.Button(dict_configuration_toplevel,
@@ -1089,12 +1128,12 @@ class App(Tk):
         def pick_audio_getter(name: str):
             if name == DEFAULT_AUDIO_SRC:
                 self.local_audio_getter = None
-                self.configurations["scrappers"]["local_audio"] = ""
+                self.configurations["scrappers"]["audio"]["name"] = ""
                 self.sound_button["state"] = "normal" if self.dict_card_data.get(FIELDS.audio_links, []) else "disabled"
                 configure_audio_getter_button["state"] = "disabled"
                 return
             self.sound_button["state"] = "normal"
-            self.configurations["scrappers"]["local_audio"] = name
+            self.configurations["scrappers"]["audio"]["name"] = name
             self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
@@ -1129,7 +1168,7 @@ class App(Tk):
 
         @error_handler(self.show_errors)
         def choose_card_processor(name: str):
-            self.configurations["card_processor"] = name
+            self.configurations["deck"]["card_processor"] = name
             self.card_processor = loaded_plugins.get_card_processor(name)
 
         card_processor_option = self.get_option_menu(dict_configuration_toplevel,
@@ -1144,7 +1183,7 @@ class App(Tk):
 
         @error_handler(self.show_errors)
         def choose_format_processor(name: str):
-            self.configurations["deck_saving_format"] = name
+            self.configurations["deck"]["saving_format"] = name
             self.deck_saver = loaded_plugins.get_deck_saving_formats(name)
 
         format_processor_option = self.get_option_menu(dict_configuration_toplevel,
@@ -1163,14 +1202,14 @@ class App(Tk):
     @error_handler(show_errors)
     def change_image_parser(self, given_image_parser_name: str):
         self.image_parser = loaded_plugins.get_image_parser(given_image_parser_name)
-        self.configurations["scrappers"]["base_image_parser"] = given_image_parser_name
+        self.configurations["scrappers"]["image"]["name"] = given_image_parser_name
     
     @error_handler(show_errors)
     def change_sentence_parser(self, given_sentence_parser_name: str):
         self.sentence_parser = loaded_plugins.get_sentence_parser(given_sentence_parser_name)
         self.sentence_fetcher = SentenceFetcher(sent_fetcher=self.sentence_parser.get_sentence_batch,
                                                 sentence_batch_size=self.sentence_batch_size)
-        self.configurations["scrappers"]["base_sentence_parser"] = given_sentence_parser_name
+        self.configurations["scrappers"]["sentence"]["name"] = given_sentence_parser_name
     
     @error_handler(show_errors)
     def choose_sentence(self, sentence_number: int):
@@ -1346,10 +1385,10 @@ class App(Tk):
 
         word = self.word_text.get(1.0, "end").strip()
         query_list = []
-        if self.configurations["anki"]["anki_deck"]:
-            query_list.append("deck:\"{}\"".format(self.configurations["anki"]["anki_deck"]))
-        if self.configurations["anki"]["anki_field"]:
-            query_list.append("\"{}:*{}*\"".format(self.configurations["anki"]["anki_field"],
+        if self.configurations["anki"]["deck"]:
+            query_list.append("deck:\"{}\"".format(self.configurations["anki"]["deck"]))
+        if self.configurations["anki"]["field"]:
+            query_list.append("\"{}:*{}*\"".format(self.configurations["anki"]["field"],
                                                    word))
         else:
             query_list.append(f"*{word}*")
@@ -1409,7 +1448,7 @@ class App(Tk):
         if not self.dict_card_data:
             # normal
             self.find_image_button["text"] = self.lang_pack.find_image_button_normal_text
-            if not self.configurations["scrappers"]["local_audio"]:
+            if not self.configurations["scrappers"]["audio"]["name"]:
                 self.sound_button["state"] = "disabled"
             return False
 
@@ -1419,7 +1458,7 @@ class App(Tk):
         else:
             self.find_image_button["text"] = self.lang_pack.find_image_button_normal_text
 
-        if self.configurations["scrappers"]["local_audio"] or self.dict_card_data.get(FIELDS.audio_links, []):
+        if self.configurations["scrappers"]["audio"]["name"] or self.dict_card_data.get(FIELDS.audio_links, []):
             self.sound_button["state"] = "normal"
         else:
             self.sound_button["state"] = "disabled"
@@ -1448,7 +1487,7 @@ class App(Tk):
                                 self.card_processor
                                 .get_save_image_name(word,
                                                      instance.images_source[i],
-                                                     self.configurations["scrappers"]["base_image_parser"],
+                                                     self.configurations["scrappers"]["image"]["name"],
                                                      dict_tags))
                     instance.saving_images[i].save(saving_name)
                     names.append(saving_name)

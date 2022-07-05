@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from .consts import _HEADERS, _PLUGIN_NAME
 
 
-def get_forvo_page(url: str) -> tuple[Optional[BeautifulSoup], str]:
+def get_forvo_page(url: str, timeout: int = 1) -> tuple[Optional[BeautifulSoup], str]:
     try:
         r = requests.get(url, headers=_HEADERS)
         r.raise_for_status()

@@ -14,10 +14,14 @@ _CONFIG_DOCS = """
 language_code
     audio language to fetch
     type: string
+timeout
+    request timeout in seconds.
+    default value: 1
 """
 
 _VALIDATION_SCHEME = {
-    "language_code": ("en", [str], [])
+    "language_code": ("en", [str], []),
+    "timeout": (1, [int, float], [])
 }
 
 config = Config(config_location=_PLUGIN_LOCATION,
@@ -25,11 +29,11 @@ config = Config(config_location=_PLUGIN_LOCATION,
                 docs=_CONFIG_DOCS)
 
 
-def get_web_audios(word: str) -> tuple[tuple[list[str], list[str]], str]:
+def get_web_audios(word: str, dict_tags: dict) -> tuple[tuple[list[str], list[str]], str]:
     audio_links = []
     additional_info = []
     wordEncoded = requests.utils.requote_uri(word)
-    forvoPage, error_message = get_forvo_page("https://forvo.com/word/" + wordEncoded)
+    forvoPage, error_message = get_forvo_page("https://forvo.com/word/" + wordEncoded, config["timeout"])
     if error_message:
         return (([], []), error_message)
     speachSections = forvoPage.select("div#language-container-" + config["language_code"])

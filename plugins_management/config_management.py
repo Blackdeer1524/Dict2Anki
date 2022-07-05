@@ -48,6 +48,7 @@ class Config(UserDict):
 
     @staticmethod
     def validate_config(checking_part: dict, validating_part: dict) -> "Config.SchemeCheckResults":
+        """INPLACE!!!"""
         current_layer_res = Config.SchemeCheckResults()
 
         checking_keys = set(checking_part)
@@ -88,21 +89,32 @@ class Config(UserDict):
                 checking_part[c_key] = v_val[0]
             validating_keys.remove(c_key)
 
+        def assign_default_recursively(dst: dict, src: dict):
+            for key in src:
+                if isinstance((s_val := src[key]), dict):
+                    dst[key] = {}
+                    assign_default_recursively(dst[key], s_val)
+                else:
+                    dst[key] = s_val[0]
+
         current_layer_res.missing_keys.extend(validating_keys)
-        for v_key in validating_keys:
-            checking_part[v_key] = validating_part[v_key][0]
+        assign_default_recursively(checking_part, {key: validating_part[key] for key in validating_keys})
         return current_layer_res
 
     def load(self):
-        if os.path.exists(self._conf_file_path):
-            with open(self._conf_file_path, "r", encoding=Config.ENCODING) as conf_file:
-                self.data = json.load(conf_file)
-            self.validate_config(self.data, self.validation_scheme)
+        if not os.path.exists(self._conf_file_path):
+            self.restore_defaults()
+            self.save()
             return
 
-        with open(self._conf_file_path, "w", encoding=Config.ENCODING) as conf_file:
-            json.dump(self.default_scheme, conf_file, indent=4)
-        self.data = self.default_scheme
+        try:
+            with open(self._conf_file_path, "r", encoding=Config.ENCODING) as conf_file:
+                self.data = json.load(conf_file)
+        except (ValueError, TypeError):  # Catches JSON decoding exceptions
+            self.restore_defaults()
+            self.save()
+            return
+        self.validate_config(self.data, self.validation_scheme)
 
     def restore_defaults(self):
         self.data = self.default_scheme

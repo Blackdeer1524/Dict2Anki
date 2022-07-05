@@ -92,7 +92,7 @@ def updateForvoLanguages():
     # You can't get all pagination numbers displayed on 1 page, I check page 1 and go up untill the page returns None (404)
     pageNumber = 1
     while(True): #TODO: Forvo has a single page with all languages and lang-codes. Use that instead of this
-        page, error_message = get_forvo_page("https://forvo.com/languages/alphabetically/" + "page-" + str(pageNumber))
+        page, error_message = get_forvo_page("https://forvo.com/languages/alphabetically/" + "page-" + str(pageNumber), 1)
         if page is None:
             break
         print("fetching languages from page: " + str(pageNumber))

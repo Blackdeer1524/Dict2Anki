@@ -7,17 +7,16 @@ from tkinter import BooleanVar
 from tkinter import Button, Menu
 from tkinter import Frame
 from tkinter import Label
+from tkinter import PanedWindow
 from tkinter import Toplevel
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename, askdirectory
-from typing import Any
 from typing import Callable
 
 from playsound import playsound
 from tkinterdnd2 import Tk
 
 from app_utils.audio_utils import AudioDownloader
-from tkinter import PanedWindow
 from app_utils.cards import Card
 from app_utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
 from app_utils.cards import WebCardGenerator, LocalCardGenerator
@@ -25,7 +24,6 @@ from app_utils.error_handling import create_exception_message
 from app_utils.error_handling import error_handler
 from app_utils.global_bindings import Binder
 from app_utils.image_utils import ImageSearch
-from app_utils.preprocessing import validate_json
 from app_utils.search_checker import ParsingException
 from app_utils.search_checker import get_card_filter
 from app_utils.string_utils import remove_special_chars
@@ -65,7 +63,7 @@ class App(Tk):
         if error_code:
             self.destroy()
             return
-        self.save_conf_file()
+        self.configurations.save()
         self.history = App.load_history_file()
 
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'}
@@ -120,13 +118,16 @@ class App(Tk):
         self.image_parser = loaded_plugins.get_image_parser(self.configurations["scrappers"]["image"]["name"])
 
         if (local_audio_getter_name := self.configurations["scrappers"]["audio"]["name"]):
-            self.local_audio_getter = loaded_plugins.get_local_audio_getter(local_audio_getter_name)
-            # self.local_audio_getter.config["audio_region"] = "uk"
-            # a = self.local_audio_getter.get_local_audios("insult", {})
-            # self.local_audio_getter.config["audio_region"] = "us"
-            # b = self.local_audio_getter.get_local_audios("insult", {})
+            if self.configurations["scrappers"]["audio"]["type"] == "local":
+                self.audio_getter = loaded_plugins.get_local_audio_getter(local_audio_getter_name)
+            elif self.configurations["scrappers"]["audio"]["type"] == "web":
+                self.audio_getter = loaded_plugins.get_web_audio_getter(local_audio_getter_name)
+            else:
+                self.configurations["scrappers"]["audio"]["type"] = "default"
+                self.configurations["scrappers"]["audio"]["name"] = ""
+                self.audio_getter = None
         else:
-            self.local_audio_getter = None
+            self.audio_getter = None
 
         self.saved_cards_data = SavedDataDeck()
         self.deck_saver = loaded_plugins.get_deck_saving_formats(self.configurations["deck"]["saving_format"])
@@ -344,78 +345,51 @@ class App(Tk):
         error_toplevel = self.show_window(title=self.lang_pack.error_title, text=error_log)
         error_toplevel.grab_set()
 
-    @error_handler(show_errors)
-    def save_conf_file(self):
-        with open(CONFIG_FILE_PATH, "w") as f:
-            json.dump(self.configurations, f, indent=4)
-
-    def load_conf_file(self) -> tuple[dict[str, dict], LanguagePackageContainer, bool]:
-        # standard_conf_file = {"app": {"theme": "dark",
-        #                               "main_window_geometry": "500x800+0+0",
-        #                               "image_search_position": "+0+0",
-        #                               "language_package": "eng"},
-        #                       "card_processor": "Anki",
-        #                       "deck_saving_format": "csv",
-        #                       "scrappers": {"base_sentence_parser": "sentencedict",
-        #                                     "word_parser_type": "web",
-        #                                     "word_parser_name": "cambridge",
-        #                                     "base_image_parser": "google",
-        #                                     "local_audio": ""},
-        #                       "tags_hierarchical_pref": "",
-        #                       "directories": {"media_dir": "",
-        #                                       "last_open_file": "",
-        #                                       "last_save_dir": ""},
-        #                       "anki": {"anki_deck": "",
-        #                                "anki_field": ""}
-        #                       }
-        standard_conf_file = \
+    def load_conf_file(self) -> tuple[Config, LanguagePackageContainer, bool]:
+        validation_scheme = \
         {
             "scrappers": {
                 "word": {
-                    "type": "web",
-                    "name": "cambridge"
+                    "type": ("web", [str], ["web", "local"]),
+                    "name": ("cambridge", [str], [])
                 },
                 "sentence": {
-                    "name": "sentencedict"
+                    "name": ("sentencedict", [str], [])
                 },
                 "image": {
-                    "name": "google"
+                    "name": ("google", [str], [])
                 },
                 "audio": {
-                    "type": "default",
-                    "name": ""
+                    "type": ("default", [str], ["default", "web", "local"]),
+                    "name": ("", [str], [])
                 }
             },
             "anki": {
-                "deck": "",
-                "field": ""
+                "deck": ("", [str], []),
+                "field": ("", [str], [])
             },
             "directories": {
-                "media_dir": "",
-                "last_open_file": "",
-                "last_save_dir": ""
+                "media_dir": ("", [str], []),
+                "last_open_file": ("", [str], []),
+                "last_save_dir": ("", [str], [])
             },
             "app": {
-                "theme": "dark",
-                "main_window_geometry": "500x800+0+0",
-                "image_search_position": "+0+0",
-                "language_package": "eng"
+                "theme": ("dark", [str], []),
+                "main_window_geometry": ("500x800+0+0", [str], []),
+                "image_search_position": ("+0+0", [str], []),
+                "language_package": ("eng", [str], [])
             },
             "deck": {
-                "tags_hierarchical_pref": "eng",
-                "saving_format": "csv",
-                "card_processor": "Anki"
+                "tags_hierarchical_pref": ("", [str], []),
+                "saving_format": ("csv", [str], []),
+                "card_processor": ("Anki", [str], [])
             }
         }
+        conf_file = Config(config_location=os.path.dirname(__file__),
+                           validation_scheme=validation_scheme,  # type: ignore
+                           docs="")
+        conf_file.load()
 
-        conf_file: dict[str, dict[str, Any]]
-        if not os.path.exists(CONFIG_FILE_PATH):
-            conf_file = {}  # type: ignore
-        else:
-            with open(CONFIG_FILE_PATH, "r", encoding="UTF-8") as f:
-                conf_file = json.load(f)
-
-        validate_json(checking_scheme=conf_file, default_scheme=standard_conf_file)
         lang_pack = loaded_plugins.get_language_package(conf_file["app"]["language_package"])
 
         if not conf_file["directories"]["media_dir"] or not os.path.isdir(conf_file["directories"]["media_dir"]):
@@ -580,7 +554,7 @@ class App(Tk):
     def save_files(self):
         self.configurations["app"]["main_window_geometry"] = self.geometry()
         self.configurations["deck"]["tags_hierarchical_pref"] = self.tag_prefix_field.get().strip()
-        self.save_conf_file()
+        self.configurations.save()
 
         self.history[self.configurations["directories"]["last_open_file"]] = self.deck.get_pointer_position() - 1
         self.deck.save()
@@ -1065,7 +1039,6 @@ class App(Tk):
             conf_window.resizable(0, 0)
             conf_window.grab_set()
 
-
         WEB_PREF = "[web]"
         LOCAL_PREF = "[local]"
         DEFAULT_AUDIO_SRC = "default"
@@ -1074,7 +1047,7 @@ class App(Tk):
         def pick_word_parser(typed_parser: str):
             if typed_parser.startswith(WEB_PREF):
                 raw_name = typed_parser[len(WEB_PREF) + 1:]
-                self.word_parser = loaded_plugins.get_web_word_parser(typed_parser[len(WEB_PREF) + 1:])
+                self.word_parser = loaded_plugins.get_web_word_parser(raw_name)
                 self.card_generator = WebCardGenerator(
                     parsing_function=self.word_parser.define,
                     item_converter=self.word_parser.translate,
@@ -1082,7 +1055,7 @@ class App(Tk):
                 self.configurations["scrappers"]["word"]["type"] = "web"
             else:
                 raw_name = typed_parser[len(LOCAL_PREF) + 1:]
-                self.word_parser = loaded_plugins.get_local_word_parser(typed_parser[len(LOCAL_PREF) + 1:])
+                self.word_parser = loaded_plugins.get_local_word_parser(raw_name)
                 self.card_generator = LocalCardGenerator(
                     local_dict_path=f"{LOCAL_MEDIA_DIR}/{self.word_parser.local_dict_name}.json",
                     item_converter=self.word_parser.translate,
@@ -1093,7 +1066,7 @@ class App(Tk):
             self.deck.update_card_generator(self.card_generator)
             configure_word_parser_button["command"] = \
                 lambda: call_configuration_window(
-                    plugin_name=self.word_parser.name,
+                    plugin_name=typed_parser,
                     plugin_config=self.word_parser.config)
 
         # dict
@@ -1125,37 +1098,51 @@ class App(Tk):
         audio_getter_label.grid(row=1, column=0, sticky="news")
 
         @error_handler(self.show_errors)
-        def pick_audio_getter(name: str):
-            if name == DEFAULT_AUDIO_SRC:
-                self.local_audio_getter = None
+        def pick_audio_getter(typed_getter: str):
+            if typed_getter == DEFAULT_AUDIO_SRC:
+                self.audio_getter = None
+                self.configurations["scrappers"]["audio"]["type"] = DEFAULT_AUDIO_SRC
                 self.configurations["scrappers"]["audio"]["name"] = ""
                 self.sound_button["state"] = "normal" if self.dict_card_data.get(FIELDS.audio_links, []) else "disabled"
                 configure_audio_getter_button["state"] = "disabled"
                 return
+
             self.sound_button["state"] = "normal"
-            self.configurations["scrappers"]["audio"]["name"] = name
-            self.local_audio_getter = loaded_plugins.get_local_audio_getter(name)
+            if typed_getter.startswith(WEB_PREF):
+                raw_name = typed_getter[len(WEB_PREF) + 1:]
+                self.audio_getter = loaded_plugins.get_web_audio_getter(raw_name)
+                self.configurations["scrappers"]["audio"]["type"] = "web"
+            else:
+                raw_name = typed_getter[len(LOCAL_PREF) + 1:]
+                self.audio_getter = loaded_plugins.get_local_audio_getter(raw_name)
+                self.configurations["scrappers"]["audio"]["type"] = "local"
+
+            self.configurations["scrappers"]["audio"]["name"] = raw_name
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
                 lambda: call_configuration_window(
-                    plugin_name=self.local_audio_getter.name,
-                    plugin_config=self.local_audio_getter.config)
+                    plugin_name=typed_getter,
+                    plugin_config=self.audio_getter.config)
 
         choose_audio_option = self.get_option_menu(
             dict_configuration_toplevel,
-            init_text=DEFAULT_AUDIO_SRC if self.local_audio_getter is None else self.local_audio_getter.name,
-            values=[DEFAULT_AUDIO_SRC] + list(loaded_plugins.local_audio_getters.loaded),
+            init_text=DEFAULT_AUDIO_SRC if self.audio_getter is None
+                                        else "[{}] {}".format(self.configurations["scrappers"]["audio"]["type"],
+                                                              self.audio_getter.name),
+            values=[DEFAULT_AUDIO_SRC] +
+                   [f"{WEB_PREF} {item}" for item in loaded_plugins.web_audio_getters.loaded] +
+                   [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_audio_getters.loaded],
             command=lambda getter: pick_audio_getter(getter))
         choose_audio_option.grid(row=1, column=1, sticky="news")
 
         configure_audio_getter_button = self.Button(dict_configuration_toplevel,
                                                    text="</>")
-        if self.local_audio_getter is not None:
+        if self.audio_getter is not None:
             configure_audio_getter_button["state"] = "normal"
             configure_audio_getter_button["command"] = \
                 lambda: call_configuration_window(
-                    plugin_name=self.local_audio_getter.name,
-                    plugin_config=self.local_audio_getter.config)
+                    plugin_name=self.audio_getter.name,
+                    plugin_config=self.audio_getter.config)
         else:
             configure_audio_getter_button["state"] = "disabled"
 
@@ -1228,19 +1215,41 @@ class App(Tk):
         if user_tags:
             additional[SavedDataDeck.USER_TAGS] = user_tags
 
-        if self.local_audio_getter is not None and (local_audios := self.local_audio_getter.get_local_audios(word, dict_tags)):
-            additional[SavedDataDeck.AUDIO_DATA] = {}
-            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = local_audios
-            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_LOCAL
-            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
-                os.path.join(self.configurations["directories"]["media_dir"],
-                             self.card_processor.get_save_audio_name(word,
-                                                                     self.local_audio_getter.name,
-                                                                     f"{i}",
-                                                                     dict_tags))
-                for i in range(len(local_audios))
-            ]
-        elif self.local_audio_getter is None and (web_audios := self.dict_card_data.get(FIELDS.audio_links, [])):
+        if self.audio_getter is not None:
+            if self.configurations["scrappers"]["audio"]["type"] == "local" and \
+                    (local_audios := self.audio_getter.get_local_audios(word, dict_tags)):
+                additional[SavedDataDeck.AUDIO_DATA] = {}
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = local_audios
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_LOCAL
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
+                    os.path.join(self.configurations["directories"]["media_dir"],
+                                 self.card_processor
+                                     .get_save_audio_name(word,
+                                                          "[{}] {}".format(
+                                                              self.configurations["scrappers"]["audio"]["type"],
+                                                              self.audio_getter.name),
+                                                          f"{i}",
+                                                          dict_tags))
+                    for i in range(len(local_audios))
+                ]
+            elif self.configurations["scrappers"]["audio"]["type"] == "web" and \
+                    not (web_audio_data := self.audio_getter.get_web_audios(word, dict_tags))[1]:
+                ((web_audio_links, additional_data), error_message) = web_audio_data
+                additional[SavedDataDeck.AUDIO_DATA] = {}
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = [web_audio_links[0]]
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_WEB
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
+                    os.path.join(self.configurations["directories"]["media_dir"],
+                                 self.card_processor
+                                      .get_save_audio_name(word,
+                                                           "[{}] {}".format(
+                                                               self.configurations["scrappers"]["audio"]["type"],
+                                                               self.audio_getter.name),
+                                                           f"{i}",
+                                                           dict_tags))
+                    for i in range(len(web_audio_links))
+                ]
+        elif (web_audios := self.dict_card_data.get(FIELDS.audio_links, [])):
             additional[SavedDataDeck.AUDIO_DATA] = {}
             additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = web_audios
             additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_WEB
@@ -1334,13 +1343,28 @@ class App(Tk):
 
         word = self.word
         dict_tags = self.dict_card_data.get(FIELDS.dict_tags, {})
-        if self.local_audio_getter is not None:
-            audio_file_paths = self.local_audio_getter.get_local_audios(word, dict_tags)
-            if audio_file_paths:
-                if len(audio_file_paths) == 1:
-                    local_playsound(audio_file_paths[0])
+        if self.audio_getter is not None:
+            if self.configurations["scrappers"]["audio"]["type"] == "local":
+                audio_sources = self.audio_getter.get_local_audios(word, dict_tags)
+                playsound_function = local_playsound
+                additional_info = audio_sources
+            elif self.configurations["scrappers"]["audio"]["type"] == "web":
+                ((audio_sources, additional_info), error_message) = self.audio_getter.get_web_audios(word, dict_tags)
+                if error_message:
+                    messagebox.showerror(title=self.lang_pack.error_title,
+                                         message=error_message)
                     return
-                sound_dialog(audio_file_paths, audio_file_paths, local_playsound)
+                playsound_function = web_playsound
+                additional_info = additional_info
+            else:
+                raise NotImplementedError("Unknown audio parser type: {}"
+                                          .format(self.configurations["scrappers"]["audio"]["type"]))
+
+            if audio_sources:
+                if len(audio_sources) == 1:
+                    local_playsound(audio_sources[0])
+                    return
+                sound_dialog(audio_sources, additional_info, playsound_function)
                 return
             messagebox.showerror(title=self.lang_pack.error_title,
                                  message=self.lang_pack.play_sound_local_audio_not_found_message)

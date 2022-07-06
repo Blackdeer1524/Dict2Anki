@@ -8,11 +8,20 @@ from plugins_management.parsers_return_types import ImageGenerator
 
 FILE_PATH = os.path.basename(__file__)
 
-_CONF_VALIDATION_SCHEME = {}
+_CONF_VALIDATION_SCHEME = {
+    "timeout": (1, [int, float], [])
+}
+
+_CONF_DOCS = """
+timeout:
+    Request timeout in seconds
+    type: integer
+    default value: 1
+"""
 
 config = LoadableConfig(config_location=os.path.dirname(__file__),
-                validation_scheme=_CONF_VALIDATION_SCHEME,
-                docs="")
+                        validation_scheme=_CONF_VALIDATION_SCHEME,
+                        docs=_CONF_DOCS)
 
 
 def get_image_links(word: str) -> ImageGenerator:
@@ -21,7 +30,7 @@ def get_image_links(word: str) -> ImageGenerator:
     headers = {'User-Agent': user_agent}
     link = "https://www.gettyimages.com/photos/{}".format(word)
     try:
-        r = requests.get(link, headers=headers, timeout=5)
+        r = requests.get(link, headers=headers, timeout=config["timeout"])
         r.raise_for_status()
     except Exception:
         return [], f"{FILE_PATH} couldn't get a web page!"

@@ -9,7 +9,7 @@ import requests
 
 from app_utils.cards import SavedDataDeck
 from app_utils.storages import FrozenDict
-from app_utils.window_utils import spawn_toplevel_in_center
+from app_utils.window_utils import spawn_window_in_center
 from plugins_loading.containers import LanguagePackageContainer
 
 
@@ -71,7 +71,7 @@ class AudioDownloader(Toplevel):
         self.current_word_label.grid(column=0, row=1, sticky="news")
         self.label_cfg.pop("relief", None)
         self.deiconify()
-        spawn_toplevel_in_center(master, self)
+        spawn_window_in_center(master, self)
 
     def catch_fetching_error(self, exception):
         exception_type = str(exception)
@@ -185,7 +185,7 @@ class AudioDownloader(Toplevel):
                     apply_to_all_button.grid(row=3, column=0, padx=5, pady=5, sticky="news")
 
                     copy_encounter_tl.deiconify()
-                    spawn_toplevel_in_center(self, copy_encounter_tl)
+                    spawn_window_in_center(self, copy_encounter_tl)
 
                     copy_encounter_tl.bind("<Escape>", lambda event: copy_encounter_tl.destroy())
                     self.wait_window(copy_encounter_tl)

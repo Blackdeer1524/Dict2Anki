@@ -40,7 +40,7 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
         object.__setattr__(self, "save_files_menu_label", source_module.save_files_menu_label)
         object.__setattr__(self, "hotkeys_and_buttons_help_menu_label",
                            source_module.hotkeys_and_buttons_help_menu_label)
-        object.__setattr__(self, "query_language_menu_label", source_module.query_language_menu_label)
+        object.__setattr__(self, "query_settings_language_label_text", source_module.query_settings_language_label_text)
         object.__setattr__(self, "help_master_menu_label", source_module.help_master_menu_label)
         object.__setattr__(self, "download_audio_menu_label", source_module.download_audio_menu_label)
         object.__setattr__(self, "change_media_folder_menu_label", source_module.change_media_folder_menu_label)
@@ -49,9 +49,12 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
         object.__setattr__(self, "add_card_menu_label", source_module.add_card_menu_label)
         object.__setattr__(self, "search_inside_deck_menu_label", source_module.search_inside_deck_menu_label)
         object.__setattr__(self, "statistics_menu_label", source_module.statistics_menu_label)
-        object.__setattr__(self, "themes_menu_label", source_module.themes_menu_label)
-        object.__setattr__(self, "language_menu_label", source_module.language_menu_label)
-        object.__setattr__(self, "anki_config_menu_label", source_module.anki_config_menu_label)
+        object.__setattr__(self, "settings_themes_label_text", source_module.settings_themes_label_text)
+        object.__setattr__(self, "settings_language_label_text", source_module.settings_language_label_text)
+        object.__setattr__(self, "settings_configure_anki_button_text", source_module.settings_configure_anki_button_text)
+        object.__setattr__(self, "settings_menu_label", source_module.settings_menu_label)
+
+        object.__setattr__(self, "settings_image_search_configuration_label_text", source_module.settings_image_search_configuration_label_text)
         object.__setattr__(self, "exit_menu_label", source_module.exit_menu_label)
 
         # widgets
@@ -96,17 +99,17 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
 
         # help
         object.__setattr__(self, "buttons_hotkeys_help_message", source_module.buttons_hotkeys_help_message)
-        object.__setattr__(self, "buttons_hotkeys_help_toplevel_title",
-                           source_module.buttons_hotkeys_help_toplevel_title)
+        object.__setattr__(self, "buttons_hotkeys_help_window_title",
+                           source_module.buttons_hotkeys_help_window_title)
         object.__setattr__(self, "word_field_help", source_module.word_field_help)
-        object.__setattr__(self, "alt_terms_field_help", source_module.special_field_help)
+        object.__setattr__(self, "special_field_help", source_module.special_field_help)
         object.__setattr__(self, "definition_field_help", source_module.definition_field_help)
         object.__setattr__(self, "sentences_field_help", source_module.sentences_field_help)
         object.__setattr__(self, "img_links_field_help", source_module.img_links_field_help)
         object.__setattr__(self, "audio_links_field_help", source_module.audio_links_field_help)
         object.__setattr__(self, "dict_tags_field_help", source_module.dict_tags_field_help)
         object.__setattr__(self, "query_language_docs", source_module.query_language_docs)
-        object.__setattr__(self, "query_language_toplevel_title", source_module.query_language_toplevel_title)
+        object.__setattr__(self, "query_language_window_title", source_module.query_language_window_title)
         object.__setattr__(self, "general_scheme_label", source_module.general_scheme_label)
         object.__setattr__(self, "current_scheme_label", source_module.current_scheme_label)
         object.__setattr__(self, "query_language_label", source_module.query_language_label)
@@ -122,7 +125,7 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
                            source_module.define_word_query_language_error_message_title)
 
         # add_word_dialog
-        object.__setattr__(self, "add_word_frame_title", source_module.add_word_frame_title)
+        object.__setattr__(self, "add_word_window_title", source_module.add_word_window_title)
         object.__setattr__(self, "add_word_entry_placeholder", source_module.add_word_entry_placeholder)
         object.__setattr__(self, "add_word_additional_filter_entry_placeholder",
                            source_module.add_word_additional_filter_entry_placeholder)
@@ -133,7 +136,7 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
         object.__setattr__(self, "find_dialog_wrong_move_message", source_module.find_dialog_wrong_move_message)
         object.__setattr__(self, "find_dialog_done_button_text", source_module.find_dialog_done_button_text)
         object.__setattr__(self, "find_dialog_nothing_found_message", source_module.find_dialog_nothing_found_message)
-        object.__setattr__(self, "find_dialog_find_frame_title", source_module.find_dialog_find_frame_title)
+        object.__setattr__(self, "find_dialog_find_window_title", source_module.find_dialog_find_window_title)
         object.__setattr__(self, "find_dialog_find_button_text", source_module.find_dialog_find_button_text)
 
         # statistics dialog
@@ -149,7 +152,7 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
         object.__setattr__(self, "statistics_dialog_media_dir_label", source_module.statistics_dialog_media_dir_label)
 
         # anki dialog
-        object.__setattr__(self, "anki_dialog_anki_toplevel_title", source_module.anki_dialog_anki_toplevel_title)
+        object.__setattr__(self, "anki_dialog_anki_window_title", source_module.anki_dialog_anki_window_title)
         object.__setattr__(self, "anki_dialog_anki_deck_entry_placeholder",
                            source_module.anki_dialog_anki_deck_entry_placeholder)
         object.__setattr__(self, "anki_dialog_anki_field_entry_placeholder",
@@ -200,8 +203,8 @@ class LanguagePackageContainer(_PluginContainer, LanguagePackageInterface):
                            source_module.configuration_window_done_button_text)
 
         # play_sound
-        object.__setattr__(self, "play_sound_playsound_toplevel_title",
-                           source_module.play_sound_playsound_toplevel_title)
+        object.__setattr__(self, "play_sound_playsound_window_title",
+                           source_module.play_sound_playsound_window_title)
         object.__setattr__(self, "play_sound_local_audio_not_found_message",
                            source_module.play_sound_local_audio_not_found_message)
         object.__setattr__(self, "play_sound_no_audio_source_found_message",

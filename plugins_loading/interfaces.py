@@ -17,7 +17,7 @@ class LanguagePackageInterface(Protocol):
     open_file_menu_label: str
     save_files_menu_label: str
     hotkeys_and_buttons_help_menu_label: str
-    query_language_menu_label: str
+    query_settings_language_label_text: str
     help_master_menu_label: str
     download_audio_menu_label: str
     change_media_folder_menu_label: str
@@ -26,9 +26,12 @@ class LanguagePackageInterface(Protocol):
     add_card_menu_label: str
     search_inside_deck_menu_label: str
     statistics_menu_label: str
-    themes_menu_label: str
-    language_menu_label: str
-    anki_config_menu_label: str
+
+    settings_menu_label: str
+    settings_themes_label_text: str
+    settings_language_label_text: str
+    settings_configure_anki_button_text: str
+    settings_image_search_configuration_label_text: str
     exit_menu_label: str
 
     # widgets
@@ -66,7 +69,7 @@ class LanguagePackageInterface(Protocol):
 
     # help
     buttons_hotkeys_help_message: str
-    buttons_hotkeys_help_toplevel_title: str
+    buttons_hotkeys_help_window_title: str
     word_field_help: str
     special_field_help: str
     definition_field_help: str
@@ -75,7 +78,7 @@ class LanguagePackageInterface(Protocol):
     audio_links_field_help: str
     dict_tags_field_help: str
     query_language_docs: str
-    query_language_toplevel_title: str
+    query_language_window_title: str
     general_scheme_label: str
     current_scheme_label: str
     query_language_label: str
@@ -89,7 +92,7 @@ class LanguagePackageInterface(Protocol):
     define_word_query_language_error_message_title: str
 
     # add_word_dialog
-    add_word_frame_title: str
+    add_word_window_title: str
     add_word_entry_placeholder: str
     add_word_additional_filter_entry_placeholder: str
     add_word_start_parsing_button_text: str
@@ -99,7 +102,7 @@ class LanguagePackageInterface(Protocol):
     find_dialog_wrong_move_message: str
     find_dialog_done_button_text: str
     find_dialog_nothing_found_message: str
-    find_dialog_find_frame_title: str
+    find_dialog_find_window_title: str
     find_dialog_find_button_text: str
 
     # statistics dialog
@@ -113,7 +116,7 @@ class LanguagePackageInterface(Protocol):
     statistics_dialog_media_dir_label: str
 
     # anki dialog
-    anki_dialog_anki_toplevel_title: str
+    anki_dialog_anki_window_title: str
     anki_dialog_anki_deck_entry_placeholder: str
     anki_dialog_anki_field_entry_placeholder: str
     anki_dialog_save_anki_settings_button_text: str
@@ -146,7 +149,7 @@ class LanguagePackageInterface(Protocol):
     configuration_window_done_button_text: str
 
     # play_sound
-    play_sound_playsound_toplevel_title: str
+    play_sound_playsound_window_title: str
     play_sound_local_audio_not_found_message: str
     play_sound_no_audio_source_found_message: str
 

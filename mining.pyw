@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 import webbrowser
@@ -31,7 +32,7 @@ from app_utils.widgets import EntryWithPlaceholder as Entry
 from app_utils.widgets import ScrolledFrame
 from app_utils.widgets import TextWithPlaceholder as Text
 from app_utils.window_utils import get_option_menu
-from app_utils.window_utils import spawn_toplevel_in_center
+from app_utils.window_utils import spawn_window_in_center
 from consts.card_fields import FIELDS
 from consts.paths import *
 from plugins_loading.containers import LanguagePackageContainer
@@ -143,7 +144,7 @@ class App(Tk):
 
         help_menu = Menu(filemenu, tearoff=0)
         help_menu.add_command(label=self.lang_pack.hotkeys_and_buttons_help_menu_label, command=self.help_command)
-        help_menu.add_command(label=self.lang_pack.query_language_menu_label, command=self.get_query_language_help)
+        help_menu.add_command(label=self.lang_pack.query_settings_language_label_text, command=self.get_query_language_help)
         filemenu.add_cascade(label=self.lang_pack.help_master_menu_label, menu=help_menu)
 
         filemenu.add_separator()
@@ -156,9 +157,162 @@ class App(Tk):
         main_menu.add_command(label=self.lang_pack.add_card_menu_label, command=self.add_word_dialog)
         main_menu.add_command(label=self.lang_pack.search_inside_deck_menu_label, command=self.find_dialog)
         main_menu.add_command(label=self.lang_pack.statistics_menu_label, command=self.statistics_dialog)
-        main_menu.add_command(label=self.lang_pack.themes_menu_label, command=self.change_theme)
-        main_menu.add_command(label=self.lang_pack.language_menu_label, command=self.change_language)
-        main_menu.add_command(label=self.lang_pack.anki_config_menu_label, command=self.anki_dialog)
+
+        def settings_dialog():
+            settings_window = self.Toplevel(self)
+            settings_window.title(self.lang_pack.settings_menu_label)
+
+            @error_handler(self.show_errors)
+            def change_theme(name: str):
+                self.configurations["app"]["theme"] = name
+                messagebox.showinfo(message=self.lang_pack.restart_app_text)
+
+            theme_label = self.Label(settings_window, text=self.lang_pack.settings_themes_label_text)
+            theme_label.grid(row=0, column=0, sticky="news")
+            theme_option_menu = self.get_option_menu(settings_window,
+                                                     init_text=self.configurations["app"]["theme"],
+                                                     values=loaded_plugins.themes.loaded,
+                                                     command=lambda theme_name:
+                                                             change_theme(theme_name))
+            theme_option_menu.grid(row=0, column=1, sticky="news")
+
+            @error_handler(self.show_errors)
+            def change_language(name: str):
+                self.configurations["app"]["language_package"] = name
+                self.lang_pack = loaded_plugins.get_language_package(self.configurations["app"]["language_package"])
+                messagebox.showinfo(message=self.lang_pack.restart_app_text)
+
+            language_label = self.Label(settings_window, text=self.lang_pack.settings_language_label_text)
+            language_label.grid(row=1, column=0, sticky="news")
+            language_option_menu = self.get_option_menu(settings_window,
+                                                        init_text=self.configurations["app"]["language_package"],
+                                                        values=loaded_plugins.language_packages.loaded,
+                                                        command=lambda language:
+                                                                change_language(language))
+            language_option_menu.grid(row=1, column=1, sticky="news")
+
+            @error_handler(self.show_errors)
+            def anki_dialog():
+                anki_window = self.Toplevel(settings_window)
+
+                @error_handler(self.show_errors)
+                def save_anki_settings_command():
+                    self.configurations["anki"]["deck"] = anki_deck_entry.get().strip()
+                    self.configurations["anki"]["field"] = anki_field_entry.get().strip()
+                    anki_window.destroy()
+
+                anki_window.title(self.lang_pack.anki_dialog_anki_window_title)
+                anki_deck_entry = self.Entry(anki_window,
+                                             placeholder=self.lang_pack.anki_dialog_anki_deck_entry_placeholder)
+                anki_deck_entry.insert(0, self.configurations["anki"]["deck"])
+                anki_deck_entry.fill_placeholder()
+
+                anki_field_entry = self.Entry(anki_window,
+                                              placeholder=self.lang_pack.anki_dialog_anki_field_entry_placeholder)
+                anki_field_entry.insert(0, self.configurations["anki"]["field"])
+                anki_field_entry.fill_placeholder()
+
+                save_anki_settings_button = self.Button(anki_window,
+                                                        text=self.lang_pack.anki_dialog_save_anki_settings_button_text,
+                                                        command=save_anki_settings_command)
+
+                padx = pady = 5
+                anki_deck_entry.grid(row=0, column=0, sticky="we", padx=padx, pady=pady)
+                anki_field_entry.grid(row=1, column=0, sticky="we", padx=padx, pady=pady)
+                save_anki_settings_button.grid(row=2, column=0, sticky="ns", padx=padx)
+                anki_window.bind("<Return>", lambda event: save_anki_settings_command())
+                anki_window.bind("<Escape>", lambda event: anki_window.destroy())
+                spawn_window_in_center(self, anki_window)
+                anki_window.resizable(0, 0)
+                anki_window.grab_set()
+
+            image_search_configuration_label = self.Label(settings_window,
+                                                          text=self.lang_pack
+                                                                   .settings_image_search_configuration_label_text)
+            image_search_configuration_label.grid(row=2, column=0, sticky="news")
+
+            validation_scheme = copy.deepcopy(self.configurations.validation_scheme["image_search"])
+            validation_scheme.pop("starting_position", None)  # type: ignore
+            docs = """
+timeout
+    Image request timeout
+    type: integer | float
+    default: 1
+    
+max_request_tries
+    Max image request retries per one <Show more> rotation
+    type: integer
+    default: 5
+    
+n_images_in_row
+    Maximum images in one row per one <Show more> rotation
+    type: integer
+    default: 3
+    
+n_rows
+    Maximum number of rows per one <Show more> rotation
+    type: integer
+    default: 2
+    
+show_image_width
+    Maximum button image width to which image would be scaled
+    type: integer | null
+    no scaling if null
+    default: 250
+    
+show_image_height
+    Maximum button image height to which image would be scaled
+    type: integer | null
+    no scaling if null
+    
+saving_image_width
+    Maximum saving image width to which image would be scaled
+    type: integer | null
+    no scaling if null
+    default: 300
+    
+saving_image_height
+    Maximum saving image height to which image would be scaled
+    type: integer | null
+    no scaling if null
+"""
+
+            def get_image_search_conf() -> Config:
+                image_search_conf = copy.deepcopy(self.configurations["image_search"])
+                image_search_conf.pop("starting_position", None)
+                conf = Config(validation_scheme=validation_scheme,  # type: ignore
+                              docs=docs,
+                              initial_value=image_search_conf)
+                return conf
+
+            def save_image_search_conf(config):
+                for key, value in config.items():
+                    self.configurations["image_search"][key] = value
+
+            image_search_configuration_button = self.Button(settings_window,
+                                                            text="</>",
+                                                            command=lambda: self.call_configuration_window(
+                                                                plugin_name=self.lang_pack
+                                                                   .settings_image_search_configuration_label_text,
+                                                                plugin_config=get_image_search_conf(),
+                                                                saving_action=lambda config:
+                                                                    save_image_search_conf(config))
+                                                            )
+            image_search_configuration_button.grid(row=2, column=1, sticky="news")
+
+            configure_anki_button = self.Button(settings_window,
+                                                text=self.lang_pack.settings_configure_anki_button_text,
+                                                command=anki_dialog)
+            configure_anki_button.grid(row=3, column=0, columnspan=2, sticky="news")
+
+            spawn_window_in_center(self, settings_window)
+            settings_window.resizable(0, 0)
+            settings_window.grab_set()
+            settings_window.bind("<Escape>", lambda event: settings_window.destroy())
+            settings_window.bind("<Return>", lambda event: settings_window.destroy())
+
+
+        main_menu.add_command(label=self.lang_pack.settings_menu_label, command=settings_dialog)
         main_menu.add_command(label=self.lang_pack.exit_menu_label, command=self.on_closing)
         self.config(menu=main_menu)
 
@@ -346,24 +500,24 @@ class App(Tk):
         self.configure()
 
     def show_window(self, title: str, text: str) -> Toplevel:
-        text_toplevel = self.Toplevel(self)
-        text_toplevel.title(title)
-        message_display_text = self.Text(text_toplevel, **self.theme.label_cfg)
+        text_window = self.Toplevel(self)
+        text_window.title(title)
+        message_display_text = self.Text(text_window, **self.theme.label_cfg)
         message_display_text.insert(1.0, text)
         message_display_text["state"] = "disabled"
         message_display_text.pack(expand=1, fill="both")
         message_display_text.update()
-        text_toplevel.config(width=min(1000, message_display_text.winfo_width()),
+        text_window.config(width=min(1000, message_display_text.winfo_width()),
                              height=min(500, message_display_text.winfo_height()))
-        text_toplevel.bind("<Escape>", lambda event: text_toplevel.destroy())
-        return text_toplevel
+        text_window.bind("<Escape>", lambda event: text_window.destroy())
+        return text_window
 
     def show_errors(self, *args, **kwargs) -> None:
         error_log = create_exception_message()
         self.clipboard_clear()
         self.clipboard_append(error_log)
-        error_toplevel = self.show_window(title=self.lang_pack.error_title, text=error_log)
-        error_toplevel.grab_set()
+        error_window = self.show_window(title=self.lang_pack.error_title, text=error_log)
+        error_window.grab_set()
 
     def load_conf_file(self) -> tuple[LoadableConfig, LanguagePackageContainer, bool]:
         validation_scheme = \
@@ -400,8 +554,8 @@ class App(Tk):
             },
             "image_search": {
                 "starting_position":   ("+0+0", [str], []),
-                "saving_image_width":  (300, [int], []),
-                "saving_image_height": (300, [int], []),
+                "saving_image_width":  (300, [int, type(None)], []),
+                "saving_image_height": (None, [int, type(None)], []),
                 "max_request_tries":   (5, [int], []),
                 "timeout":             (1, [int, float], []),
                 "show_image_width":    (250, [int, type(None)], []),
@@ -530,7 +684,7 @@ class App(Tk):
                 skip_encounter_button.grid(row=1, column=0, padx=5, pady=5, sticky="news")
                 rewrite_encounter_button.grid(row=2, column=0, padx=5, pady=5, sticky="news")
                 copy_encounter.deiconify()
-                spawn_toplevel_in_center(self, copy_encounter)
+                spawn_window_in_center(self, copy_encounter)
                 copy_encounter.resizable(0, 0)
                 copy_encounter.grab_set()
                 create_file_win.wait_window(copy_encounter)
@@ -562,7 +716,7 @@ class App(Tk):
         new_file_dir = askdirectory(title=self.lang_pack.create_file_choose_dir_message, initialdir="./")
         if not new_file_dir:
             return
-        create_file_win = self.Toplevel()
+        create_file_win = self.Toplevel(self)
         create_file_win.withdraw()
         name_entry = self.Entry(create_file_win,
                                 placeholder=self.lang_pack.create_file_name_entry_placeholder,
@@ -573,7 +727,7 @@ class App(Tk):
         name_entry.grid(row=0, column=0, padx=5, pady=3, sticky="news")
         name_button.grid(row=1, column=0, padx=5, pady=3, sticky="ns")
         create_file_win.deiconify()
-        spawn_toplevel_in_center(self, create_file_win)
+        spawn_window_in_center(self, create_file_win)
         create_file_win.resizable(0, 0)
         create_file_win.grab_set()
         name_entry.focus()
@@ -611,7 +765,7 @@ class App(Tk):
     @error_handler(show_errors)
     def help_command(self):
         mes = self.lang_pack.buttons_hotkeys_help_message
-        self.show_window(title=self.lang_pack.buttons_hotkeys_help_toplevel_title,
+        self.show_window(title=self.lang_pack.buttons_hotkeys_help_window_title,
                          text=mes)
 
     @error_handler(show_errors)
@@ -628,7 +782,7 @@ class App(Tk):
         current_scheme = self.word_parser.scheme_docs
         lang_docs = self.lang_pack.query_language_docs
 
-        self.show_window(self.lang_pack.query_language_toplevel_title,
+        self.show_window(self.lang_pack.query_language_window_title,
                          f"{self.lang_pack.general_scheme_label}:\n{standard_fields}\n"
                          f"{self.lang_pack.current_scheme_label}:\n{current_scheme}\n"
                          f"{self.lang_pack.query_language_label}:\n{lang_docs}")
@@ -660,7 +814,7 @@ class App(Tk):
                                            lang_pack=self.lang_pack)
         if closing:
             audio_downloader.bind("<Destroy>", lambda event: self.destroy() if isinstance(event.widget, Toplevel) else None)
-        spawn_toplevel_in_center(self, audio_downloader)
+        spawn_window_in_center(self, audio_downloader)
         audio_downloader.resizable(0, 0)
         audio_downloader.grab_set()
         audio_downloader.download_audio(audio_links_list)
@@ -709,39 +863,39 @@ class App(Tk):
             clean_word = add_word_entry.get().strip()
             additional_query = additional_filter_entry.get(1.0, "end").strip()
             if not self.define_word(clean_word, additional_query):
-                add_word_frame.destroy()
+                add_word_window.destroy()
             else:
-                add_word_frame.withdraw()
-                add_word_frame.deiconify()
+                add_word_window.withdraw()
+                add_word_window.deiconify()
 
-        add_word_frame = self.Toplevel(self)
-        add_word_frame.withdraw()
+        add_word_window = self.Toplevel(self)
+        add_word_window.withdraw()
 
-        add_word_frame.grid_columnconfigure(0, weight=1)
-        add_word_frame.title(self.lang_pack.add_word_frame_title)
+        add_word_window.grid_columnconfigure(0, weight=1)
+        add_word_window.title(self.lang_pack.add_word_window_title)
 
-        add_word_entry = self.Entry(add_word_frame,
+        add_word_entry = self.Entry(add_word_window,
                                     placeholder=self.lang_pack.add_word_entry_placeholder)
         add_word_entry.focus()
         add_word_entry.grid(row=0, column=0, padx=5, pady=3, sticky="we")
 
-        additional_filter_entry = self.Text(add_word_frame,
+        additional_filter_entry = self.Text(add_word_window,
                                             placeholder=self.lang_pack.add_word_additional_filter_entry_placeholder,
                                             height=5)
         additional_filter_entry.grid(row=1, column=0, padx=5, pady=3, sticky="we")
 
-        start_parsing_button = self.Button(add_word_frame,
+        start_parsing_button = self.Button(add_word_window,
                                            text=self.lang_pack.add_word_start_parsing_button_text,
                                            command=get_word)
         start_parsing_button.grid(row=2, column=0, padx=5, pady=3, sticky="ns")
 
-        add_word_frame.bind("<Escape>", lambda event: add_word_frame.destroy())
-        add_word_frame.bind("<Return>", lambda event: get_word())
-        add_word_frame.deiconify()
-        spawn_toplevel_in_center(master=self, toplevel_widget=add_word_frame,
-                                 desired_toplevel_width=self.winfo_width())
-        add_word_frame.resizable(0, 0)
-        add_word_frame.grab_set()
+        add_word_window.bind("<Escape>", lambda event: add_word_window.destroy())
+        add_word_window.bind("<Return>", lambda event: get_word())
+        add_word_window.deiconify()
+        spawn_window_in_center(master=self, toplevel_widget=add_word_window,
+                                 desired_window_width=self.winfo_width())
+        add_word_window.resizable(0, 0)
+        add_word_window.grab_set()
 
     @error_handler(show_errors)
     def find_dialog(self):
@@ -759,7 +913,7 @@ class App(Tk):
                                          message=self.lang_pack.find_dialog_wrong_move_message)
                 else:
                     self.replace_decks_pointers(int(move_quotient))
-                find_frame.destroy()
+                find_window.destroy()
                 return
 
             try:
@@ -767,8 +921,8 @@ class App(Tk):
             except ParsingException as e:
                 messagebox.showerror(title=self.lang_pack.error_title,
                                      message=str(e))
-                find_frame.withdraw()
-                find_frame.deiconify()
+                find_window.withdraw()
+                find_window.deiconify()
                 return
 
             if (move_list := self.deck.find_card(searching_func=searching_filter)):
@@ -776,7 +930,7 @@ class App(Tk):
                     nonlocal move_list, found_item_number
 
                     found_item_number += n
-                    rotate_frame.title(f"{found_item_number}/{len(move_list) + 1}")
+                    rotate_window.title(f"{found_item_number}/{len(move_list) + 1}")
 
                     if n > 0:
                         current_offset = move_list.get_pointed_item()
@@ -790,51 +944,51 @@ class App(Tk):
 
                     self.replace_decks_pointers(current_offset)
 
-                find_frame.destroy()
+                find_window.destroy()
 
                 found_item_number = 1
-                rotate_frame = self.Toplevel(self)
-                rotate_frame.title(f"{found_item_number}/{len(move_list) + 1}")
+                rotate_window = self.Toplevel(self)
+                rotate_window.title(f"{found_item_number}/{len(move_list) + 1}")
 
-                left = self.Button(rotate_frame, text="<", command=lambda: rotate(-1))
+                left = self.Button(rotate_window, text="<", command=lambda: rotate(-1))
                 left["state"] = "disabled"
                 left.grid(row=0, column=0, sticky="we")
 
-                right = self.Button(rotate_frame, text=">", command=lambda: rotate(1))
+                right = self.Button(rotate_window, text=">", command=lambda: rotate(1))
                 right.grid(row=0, column=2, sticky="we")
 
-                done_button_text = self.Button(rotate_frame,
+                done_button_text = self.Button(rotate_window,
                                                text=self.lang_pack.find_dialog_done_button_text,
-                                               command=lambda: rotate_frame.destroy())
+                                               command=lambda: rotate_window.destroy())
                 done_button_text.grid(row=0, column=1, sticky="we")
-                spawn_toplevel_in_center(self, rotate_frame)
-                rotate_frame.resizable(0, 0)
-                rotate_frame.grab_set()
-                rotate_frame.bind("<Escape>", lambda _: rotate_frame.destroy())
+                spawn_window_in_center(self, rotate_window)
+                rotate_window.resizable(0, 0)
+                rotate_window.grab_set()
+                rotate_window.bind("<Escape>", lambda _: rotate_window.destroy())
                 return
             messagebox.showerror(title=self.lang_pack.error_title,
                                  message=self.lang_pack.find_dialog_nothing_found_message)
-            find_frame.withdraw()
-            find_frame.deiconify()
+            find_window.withdraw()
+            find_window.deiconify()
 
-        find_frame = self.Toplevel(self)
-        find_frame.withdraw()
-        find_frame.title(self.lang_pack.find_dialog_find_frame_title)
-        find_frame.grid_columnconfigure(0, weight=1)
-        find_text = self.Text(find_frame, height=5)
+        find_window = self.Toplevel(self)
+        find_window.withdraw()
+        find_window.title(self.lang_pack.find_dialog_find_window_title)
+        find_window.grid_columnconfigure(0, weight=1)
+        find_text = self.Text(find_window, height=5)
         find_text.grid(row=0, column=0, padx=5, pady=3, sticky="we")
         find_text.focus()
 
-        find_button = self.Button(find_frame,
+        find_button = self.Button(find_window,
                                   text=self.lang_pack.find_dialog_find_button_text,
                                   command=go_to)
         find_button.grid(row=1, column=0, padx=5, pady=3, sticky="ns")
-        find_frame.bind("<Return>", lambda _: go_to())
-        find_frame.bind("<Escape>", lambda _: find_frame.destroy())
-        find_frame.deiconify()
-        spawn_toplevel_in_center(self, find_frame, desired_toplevel_width=self.winfo_width())
-        find_frame.resizable(0, 0)
-        find_frame.grab_set()
+        find_window.bind("<Return>", lambda _: go_to())
+        find_window.bind("<Escape>", lambda _: find_window.destroy())
+        find_window.deiconify()
+        spawn_window_in_center(self, find_window, desired_window_width=self.winfo_width())
+        find_window.resizable(0, 0)
+        find_window.grab_set()
 
     @error_handler(show_errors)
     def statistics_dialog(self):
@@ -874,81 +1028,10 @@ class App(Tk):
         scroll_frame.config(width=min(self.winfo_width(), current_frame_width),
                             height=min(self.winfo_height(), current_frame_height))
         statistics_window.deiconify()
-        spawn_toplevel_in_center(self, statistics_window)
+        spawn_window_in_center(self, statistics_window)
         statistics_window.resizable(0, 0)
         statistics_window.grab_set()
 
-    @error_handler(show_errors)
-    def anki_dialog(self):
-        anki_toplevel = self.Toplevel(self)
-
-        @error_handler(self.show_errors)
-        def save_anki_settings_command():
-            self.configurations["anki"]["deck"] = anki_deck_entry.get().strip()
-            self.configurations["anki"]["field"] = anki_field_entry.get().strip()
-            anki_toplevel.destroy()
-
-        anki_toplevel.title(self.lang_pack.anki_dialog_anki_toplevel_title)
-        anki_deck_entry = self.Entry(anki_toplevel,
-                                     placeholder=self.lang_pack.anki_dialog_anki_deck_entry_placeholder)
-        anki_deck_entry.insert(0, self.configurations["anki"]["deck"])
-        anki_deck_entry.fill_placeholder()
-
-        anki_field_entry = self.Entry(anki_toplevel,
-                                      placeholder=self.lang_pack.anki_dialog_anki_field_entry_placeholder)
-        anki_field_entry.insert(0, self.configurations["anki"]["field"])
-        anki_field_entry.fill_placeholder()
-
-        save_anki_settings_button = self.Button(anki_toplevel,
-                                                text=self.lang_pack.anki_dialog_save_anki_settings_button_text,
-                                                command=save_anki_settings_command)
-
-        padx = pady = 5
-        anki_deck_entry.grid(row=0, column=0, sticky="we", padx=padx, pady=pady)
-        anki_field_entry.grid(row=1, column=0, sticky="we", padx=padx, pady=pady)
-        save_anki_settings_button.grid(row=2, column=0, sticky="ns", padx=padx)
-        anki_toplevel.bind("<Return>", lambda event: save_anki_settings_command())
-        anki_toplevel.bind("<Escape>", lambda event: anki_toplevel.destroy())
-        spawn_toplevel_in_center(self, anki_toplevel)
-        anki_toplevel.resizable(0, 0)
-        anki_toplevel.grab_set()
-
-    @error_handler(show_errors)
-    def change_theme(self):
-        @error_handler(self.show_errors)
-        def pick(name: str):
-            self.configurations["app"]["theme"] = name
-            messagebox.showinfo(message=self.lang_pack.restart_app_text)
-            theme_toplevel.destroy()
-
-        theme_toplevel = self.Toplevel(self)
-        theme_toplevel.grid_columnconfigure(0, weight=1)
-        for i, theme_name in enumerate(loaded_plugins.themes.loaded):
-            b = self.Button(theme_toplevel, text=theme_name, command=lambda x=theme_name: pick(x))
-            b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
-        theme_toplevel.bind("<Escape>", lambda event: theme_toplevel.destroy())
-        spawn_toplevel_in_center(self, theme_toplevel)
-        theme_toplevel.resizable(0, 0)
-        theme_toplevel.grab_set()
-    
-    def change_language(self):
-        @error_handler(self.show_errors)
-        def pick(name: str):
-            self.configurations["app"]["language_package"] = name
-            self.lang_pack = loaded_plugins.get_language_package(self.configurations["app"]["language_package"])
-            messagebox.showinfo(message=self.lang_pack.restart_app_text)
-            lang_pack_toplevel.destroy()
-
-        lang_pack_toplevel = self.Toplevel(self)
-        lang_pack_toplevel.grid_columnconfigure(0, weight=1)
-        for i, lang_pack_name in enumerate(loaded_plugins.language_packages.loaded):
-            b = self.Button(lang_pack_toplevel, text=lang_pack_name, command=lambda x=lang_pack_name: pick(x))
-            b.grid(row=i, column=0, sticky="we", padx=5, pady=5)
-        lang_pack_toplevel.bind("<Escape>", lambda event: lang_pack_toplevel.destroy())
-        spawn_toplevel_in_center(self, lang_pack_toplevel)
-        lang_pack_toplevel.resizable(0, 0)
-        lang_pack_toplevel.grab_set()
-    
     @error_handler(show_errors)
     def on_closing(self):
         if messagebox.askokcancel(title=self.lang_pack.on_closing_message_title,
@@ -977,7 +1060,7 @@ class App(Tk):
         text_pane_win.pack(side="top", expand=1, fill="both", anchor="n")
         conf_text = self.Text(text_pane_win)
         conf_text.insert(1.0, json.dumps(plugin_config.data, indent=4))
-        text_pane_win.add(conf_text, stretch="always", sticky="news", height=1)
+        text_pane_win.add(conf_text, stretch="always", sticky="news")
 
         label_pane_win = PanedWindow(text_pane_win, orient="vertical",
                                      showhandle=True, **self.theme.frame_cfg)
@@ -1067,8 +1150,8 @@ class App(Tk):
 
         conf_window.bind("<Escape>", lambda event: conf_window.destroy())
         conf_window.bind("<Return>", lambda event: done())
-        spawn_toplevel_in_center(self, conf_window,
-                                 desired_toplevel_width=self.winfo_width())
+        spawn_window_in_center(self, conf_window,
+                                 desired_window_width=self.winfo_width())
         conf_window.resizable(0, 0)
         conf_window.grab_set()
 
@@ -1107,22 +1190,22 @@ class App(Tk):
                     )
 
         # dict
-        dict_configuration_toplevel = self.Toplevel(self)
-        dict_configuration_toplevel.grid_columnconfigure(1, weight=1)
-        dict_configuration_toplevel.withdraw()
+        dict_configuration_window = self.Toplevel(self)
+        dict_configuration_window.grid_columnconfigure(1, weight=1)
+        dict_configuration_window.withdraw()
 
-        dict_label = self.Label(dict_configuration_toplevel, text=self.lang_pack.configure_dictionary_dict_label_text)
+        dict_label = self.Label(dict_configuration_window, text=self.lang_pack.configure_dictionary_dict_label_text)
         dict_label.grid(row=0, column=0, sticky="news")
 
         choose_wp_option = self.get_option_menu(
-            dict_configuration_toplevel,
+            dict_configuration_window,
             init_text=self.typed_word_parser_name,
             values=[f"{WEB_PREF} {item}" for item in loaded_plugins.web_word_parsers.loaded] +
                    [f"{LOCAL_PREF} {item}" for item in loaded_plugins.local_word_parsers.loaded],
             command=lambda typed_parser: pick_word_parser(typed_parser))
         choose_wp_option.grid(row=0, column=1, sticky="news")
 
-        configure_word_parser_button = self.Button(dict_configuration_toplevel,
+        configure_word_parser_button = self.Button(dict_configuration_window,
                                                    text="</>",
                                                    command=lambda: self.call_configuration_window(
                                                        plugin_name=self.word_parser.name,
@@ -1131,7 +1214,7 @@ class App(Tk):
         configure_word_parser_button.grid(row=0, column=2, sticky="news")
 
         # audio_getter
-        audio_getter_label = self.Label(dict_configuration_toplevel,
+        audio_getter_label = self.Label(dict_configuration_window,
                                         text=self.lang_pack.configure_dictionary_audio_getter_label_text)
         audio_getter_label.grid(row=1, column=0, sticky="news")
 
@@ -1164,7 +1247,7 @@ class App(Tk):
                     saving_action=lambda conf: conf.save())
 
         choose_audio_option = self.get_option_menu(
-            dict_configuration_toplevel,
+            dict_configuration_window,
             init_text=DEFAULT_AUDIO_SRC if self.audio_getter is None
                                         else "[{}] {}".format(self.configurations["scrappers"]["audio"]["type"],
                                                               self.audio_getter.name),
@@ -1174,7 +1257,7 @@ class App(Tk):
             command=lambda getter: pick_audio_getter(getter))
         choose_audio_option.grid(row=1, column=1, sticky="news")
 
-        configure_audio_getter_button = self.Button(dict_configuration_toplevel,
+        configure_audio_getter_button = self.Button(dict_configuration_window,
                                                    text="</>")
         if self.audio_getter is not None:
             configure_audio_getter_button["state"] = "normal"
@@ -1189,7 +1272,7 @@ class App(Tk):
         configure_audio_getter_button.grid(row=1, column=2, sticky="news")
 
         # card_processor
-        card_processor_label = self.Label(dict_configuration_toplevel,
+        card_processor_label = self.Label(dict_configuration_window,
                                           text=self.lang_pack.configure_dictionary_card_processor_label_text)
         card_processor_label.grid(row=2, column=0, sticky="news")
 
@@ -1198,13 +1281,13 @@ class App(Tk):
             self.configurations["deck"]["card_processor"] = name
             self.card_processor = loaded_plugins.get_card_processor(name)
 
-        card_processor_option = self.get_option_menu(dict_configuration_toplevel,
+        card_processor_option = self.get_option_menu(dict_configuration_window,
                                                 init_text=self.card_processor.name,
                                                 values=loaded_plugins.card_processors.loaded,
                                                 command=lambda processor: choose_card_processor(processor))
         card_processor_option.grid(row=2, column=1, sticky="news")
 
-        format_processor_label = self.Label(dict_configuration_toplevel,
+        format_processor_label = self.Label(dict_configuration_window,
                                             text=self.lang_pack.configure_dictionary_format_processor_label_text)
         format_processor_label.grid(row=3, column=0, sticky="news")
 
@@ -1213,19 +1296,19 @@ class App(Tk):
             self.configurations["deck"]["saving_format"] = name
             self.deck_saver = loaded_plugins.get_deck_saving_formats(name)
 
-        format_processor_option = self.get_option_menu(dict_configuration_toplevel,
+        format_processor_option = self.get_option_menu(dict_configuration_window,
                                                   init_text=self.deck_saver.name,
                                                   values=loaded_plugins.deck_saving_formats.loaded,
                                                   command=lambda format: choose_format_processor(format))
         format_processor_option.grid(row=3, column=1, sticky="news")
 
-        dict_configuration_toplevel.bind("<Escape>", lambda event: dict_configuration_toplevel.destroy())
-        dict_configuration_toplevel.bind("<Return>", lambda event: dict_configuration_toplevel.destroy())
-        dict_configuration_toplevel.deiconify()
-        spawn_toplevel_in_center(self, dict_configuration_toplevel)
-        dict_configuration_toplevel.resizable(0, 0)
-        dict_configuration_toplevel.grab_set()
-    
+        dict_configuration_window.bind("<Escape>", lambda event: dict_configuration_window.destroy())
+        dict_configuration_window.bind("<Return>", lambda event: dict_configuration_window.destroy())
+        dict_configuration_window.deiconify()
+        spawn_window_in_center(self, dict_configuration_window)
+        dict_configuration_window.resizable(0, 0)
+        dict_configuration_window.grab_set()
+
     @error_handler(show_errors)
     def change_image_parser(self, given_image_parser_name: str):
         self.image_parser = loaded_plugins.get_image_parser(given_image_parser_name)
@@ -1331,29 +1414,29 @@ class App(Tk):
         def sound_dialog(audio_src: list[str], info: list[str], play_command: Callable[[str, str], None]):
             assert len(audio_src) == len(info)
 
-            playsound_toplevel = self.Toplevel(self)
-            playsound_toplevel.withdraw()
-            playsound_toplevel.title(self.lang_pack.play_sound_playsound_toplevel_title)
-            playsound_toplevel.columnconfigure(0, weight=1)
+            playsound_window = self.Toplevel(self)
+            playsound_window.withdraw()
+            playsound_window.title(self.lang_pack.play_sound_playsound_window_title)
+            playsound_window.columnconfigure(0, weight=1)
 
             for i in range(len(audio_src)):
-                playsound_toplevel.rowconfigure(i, weight=1)
-                label = self.Text(playsound_toplevel, relief="ridge", height=3)
+                playsound_window.rowconfigure(i, weight=1)
+                label = self.Text(playsound_window, relief="ridge", height=3)
                 label.insert(1.0, info[i])
                 label["state"] = "disabled"
                 label.grid(row=i, column=0)
-                b = self.Button(playsound_toplevel,
+                b = self.Button(playsound_window,
                                 text=self.lang_pack.sound_button_text,
                                 command=lambda x=i: play_command(audio_src[x], str(x)))
                 b.grid(row=i, column=1, sticky="news")
 
-            playsound_toplevel.bind("<Escape>", lambda _: playsound_toplevel.destroy())
-            playsound_toplevel.deiconify()
-            spawn_toplevel_in_center(self, playsound_toplevel,
-                                     desired_toplevel_width=self.winfo_width()
+            playsound_window.bind("<Escape>", lambda _: playsound_window.destroy())
+            playsound_window.deiconify()
+            spawn_window_in_center(self, playsound_window,
+                                     desired_window_width=self.winfo_width()
                                      )
-            playsound_toplevel.resizable(0, 0)
-            playsound_toplevel.grab_set()
+            playsound_window.resizable(0, 0)
+            playsound_window.grab_set()
 
         @error_handler(self.show_errors)
         def show_download_error(exc):
@@ -1553,7 +1636,10 @@ class App(Tk):
                                                      instance.images_source[i],
                                                      self.configurations["scrappers"]["image"]["name"],
                                                      dict_tags))
-                    instance.saving_images[i].save(saving_name)
+                    instance.preprocess_image(img=instance.saving_images[i],
+                                              width=self.configurations["image_search"]["saving_image_width"],
+                                              height=self.configurations["image_search"]["saving_image_height"])\
+                        .save(saving_name)
                     names.append(saving_name)
 
             if names:
@@ -1565,7 +1651,6 @@ class App(Tk):
             self.configurations["image_search"]["starting_position"] = f"+{x}+{y}"
 
         word = self.word
-        show_image_width = 250
         button_pady = button_padx = 10
         height_lim = self.winfo_height() * 7 // 8
         image_finder = ImageSearch(master=self,
@@ -1579,8 +1664,12 @@ class App(Tk):
                                                     .get(SavedDataDeck.ADDITIONAL_DATA, {})
                                                     .get(self.saved_cards_data.SAVED_IMAGES_PATHS, []),
                                    headers=self.headers,
-                                   on_close_action=connect_images_to_card,
-                                   show_image_width=show_image_width,
+                                   timeout=self.configurations["image_search"]["timeout"],
+                                   max_request_tries=self.configurations["image_search"]["max_request_tries"],
+                                   n_images_in_row=self.configurations["image_search"]["n_images_in_row"],
+                                   n_rows=self.configurations["image_search"]["n_rows"],
+                                   show_image_width=self.configurations["image_search"]["show_image_width"],
+                                   show_image_height=self.configurations["image_search"]["show_image_height"],
                                    # saving_image_width=300,
                                    button_padx=button_padx,
                                    button_pady=button_pady,
@@ -1590,7 +1679,6 @@ class App(Tk):
                                    entry_params=self.theme.entry_cfg,
                                    frame_params=self.theme.frame_cfg,
                                    lang_pack=self.lang_pack)
-        image_finder.focus()
         image_finder.grab_set()
         image_finder.geometry(self.configurations["image_search"]["starting_position"])
         image_finder.start()

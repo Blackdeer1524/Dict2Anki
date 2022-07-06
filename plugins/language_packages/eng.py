@@ -9,7 +9,7 @@ create_file_menu_label = "Create"
 open_file_menu_label = "Open"
 save_files_menu_label = "Save"
 hotkeys_and_buttons_help_menu_label = "Buttons/Hotkeys"
-query_language_menu_label = "Query language"
+query_settings_language_label_text = "Query language"
 help_master_menu_label = "Help"
 download_audio_menu_label = "Download audio"
 change_media_folder_menu_label = "Change downloading media directory"
@@ -18,9 +18,11 @@ file_master_menu_label = "File"
 add_card_menu_label = "Add"
 search_inside_deck_menu_label = "Find"
 statistics_menu_label = "Statistics"
-themes_menu_label = "Theme"
-language_menu_label = "Language"
-anki_config_menu_label = "Anki"
+settings_themes_label_text = "Theme"
+settings_language_label_text = "Language"
+settings_configure_anki_button_text = "Anki"
+settings_menu_label = "Settings"
+settings_image_search_configuration_label_text = "Image search"
 exit_menu_label = "Exit"
 
 # widgets
@@ -80,7 +82,7 @@ Hotkeys (local):
 Hotkeys (global):
 * Ctrl + c + space: adds selected word to deck
 """
-buttons_hotkeys_help_toplevel_title = "Help"
+buttons_hotkeys_help_window_title = "Help"
 word_field_help = "word (str)"
 special_field_help = "special term (list[str])"
 definition_field_help = "definition (str)"
@@ -285,7 +287,7 @@ Evaluation precedence:
 3) unary operators
 4) binary operators
 """
-query_language_toplevel_title = "Help"
+query_language_window_title = "Help"
 general_scheme_label = "Standard scheme"
 current_scheme_label = "Current dictionary scheme"
 query_language_label = "Query language syntax"
@@ -299,7 +301,7 @@ define_word_word_not_found_message = "Word not found!"
 define_word_query_language_error_message_title = "Query error"
 
 # add_word_dialog
-add_word_frame_title = "Add"
+add_word_window_title = "Add"
 add_word_entry_placeholder = "Word"
 add_word_additional_filter_entry_placeholder = "Additional filter"
 add_word_start_parsing_button_text = "Add"
@@ -309,7 +311,7 @@ find_dialog_empty_query_message = "Empty query!"
 find_dialog_wrong_move_message = "Wrong move expression!"
 find_dialog_done_button_text = "Done"
 find_dialog_nothing_found_message = "Nothing found!"
-find_dialog_find_frame_title = "Move"
+find_dialog_find_window_title = "Move"
 find_dialog_find_button_text = "Move"
 
 # statistics dialog
@@ -323,7 +325,7 @@ statistics_dialog_saving_dir_label = "Saving directory"
 statistics_dialog_media_dir_label = "Downloading media directory"
 
 # anki dialog
-anki_dialog_anki_toplevel_title = "Anki settings"
+anki_dialog_anki_window_title = "Anki settings"
 anki_dialog_anki_deck_entry_placeholder = "Deck"
 anki_dialog_anki_field_entry_placeholder = "Field"
 anki_dialog_save_anki_settings_button_text = "Save"
@@ -356,7 +358,7 @@ configuration_window_expected_prefix = "Expected"
 configuration_window_done_button_text = "Done"
 
 # play_sound
-play_sound_playsound_toplevel_title = "Audio"
+play_sound_playsound_window_title = "Audio"
 play_sound_local_audio_not_found_message = "Local audio not found"
 play_sound_no_audio_source_found_message = "No audio source found"
 

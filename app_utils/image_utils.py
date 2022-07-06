@@ -113,7 +113,7 @@ class ImageSearch(Toplevel):
         self.optimal_visual_width = kwargs.get("show_image_width")
         self.optimal_visual_height = kwargs.get("show_image_height")
 
-        self._pool: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=self._n_images_per_cycle)
+        self._pool: ThreadPoolExecutor = ThreadPoolExecutor()
 
         self.saving_images: list[Image] = []
         self.images_source: list[str] = []

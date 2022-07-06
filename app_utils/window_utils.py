@@ -1,7 +1,7 @@
 from tkinter import StringVar, OptionMenu
 
 
-def spawn_toplevel_in_center(master, toplevel_widget, desired_toplevel_width=0, desired_toplevel_height=0):
+def spawn_window_in_center(master, toplevel_widget, desired_window_width=0, desired_window_height=0):
     def get_center_spawn_conf():
         """
         :param master: master of placing widget
@@ -20,8 +20,8 @@ def spawn_toplevel_in_center(master, toplevel_widget, desired_toplevel_width=0, 
         return window_size + spawn_cords
 
     toplevel_widget.update()
-    width = desired_toplevel_width if desired_toplevel_width else toplevel_widget.winfo_width()
-    height = desired_toplevel_height if desired_toplevel_height else toplevel_widget.winfo_height()
+    width = desired_window_width if desired_window_width else toplevel_widget.winfo_width()
+    height = desired_window_height if desired_window_height else toplevel_widget.winfo_height()
     toplevel_widget.geometry(get_center_spawn_conf())
 
 

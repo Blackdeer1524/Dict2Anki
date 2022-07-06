@@ -29,9 +29,9 @@ class Config(UserDict):
         self.docs = docs
 
         if initial_value is None:
-            super(Config, self).__init__(data=self.default_scheme)
+            super(Config, self).__init__(self.default_scheme)
         else:
-            super(Config, self).__init__(data=initial_value)
+            super(Config, self).__init__(initial_value)
             self.validate_config(self.data, self.validation_scheme)
 
     @staticmethod

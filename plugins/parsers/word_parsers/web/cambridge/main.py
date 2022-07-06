@@ -31,7 +31,7 @@ config = LoadableConfig(config_location=os.path.dirname(__file__),
 
 
 def translate(word: str, word_dict: dict):
-    audio_region_field = f"{config['audio_region'].upper()}__audio_link"
+    audio_region_field = f"{config['audio_region'].upper()}_audio_links"
     word_list = []
     for pos in word_dict:
         audio = word_dict[pos].get(audio_region_field, [])

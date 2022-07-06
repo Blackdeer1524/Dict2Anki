@@ -176,7 +176,7 @@ def get_irregular_forms(word_header_block) -> list[str]:
         text = []
         for containing_tag in (x for x in irreg_form_block if isinstance(x, bs4.Tag)):
             tag_class = containing_tag.get("class")
-            if not any("dpron" in x for x in tag_class):
+            if tag_class is not None and not any("dpron" in x for x in tag_class):
                 text.append(containing_tag.text.strip())
         if (joined_text := " ".join(text)):
             forms.append(joined_text)
@@ -329,8 +329,6 @@ def define(word, dictionary_index=0, headers=None):
                              uk_audio_links=uk_audio_links,
                              us_audio_links=us_audio_links)
     return list(word_info.items())
-
-
 
 
 if __name__ == "__main__":

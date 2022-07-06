@@ -2,7 +2,7 @@ import json
 import os
 from collections import UserDict
 from dataclasses import dataclass, field
-from typing import ClassVar, Any, Type, Sequence
+from typing import ClassVar, Any, Type, Sequence, Optional
 
 
 class Config(UserDict):
@@ -32,19 +32,17 @@ class Config(UserDict):
         self.validation_scheme = validation_scheme
         self._conf_file_path = os.path.join(config_location, Config.CONF_FILE_NAME)
         self.docs = docs
-
-        def assign_default(entry: dict):
-            for key in entry:
-                value = entry[key]
-                if isinstance(value, dict):
-                    self.default_scheme[key] = {}
-                    assign_default(value)
-                    continue
-                self.default_scheme[key] = entry[key][0]
-
-        assign_default(self.validation_scheme)
-
+        Config.__assign_recursively(self.default_scheme, self.validation_scheme)
         self.load()
+
+    @staticmethod
+    def __assign_recursively(dst: dict, src: dict):
+        for key in src:
+            if isinstance((s_val := src[key]), dict):
+                dst[key] = {}
+                Config.__assign_recursively(dst[key], s_val)
+            else:
+                dst[key] = s_val[0]
 
     @staticmethod
     def validate_config(checking_part: dict, validating_part: dict) -> "Config.SchemeCheckResults":
@@ -89,24 +87,15 @@ class Config(UserDict):
                 checking_part[c_key] = v_val[0]
             validating_keys.remove(c_key)
 
-        def assign_default_recursively(dst: dict, src: dict):
-            for key in src:
-                if isinstance((s_val := src[key]), dict):
-                    dst[key] = {}
-                    assign_default_recursively(dst[key], s_val)
-                else:
-                    dst[key] = s_val[0]
-
         current_layer_res.missing_keys.extend(validating_keys)
-        assign_default_recursively(checking_part, {key: validating_part[key] for key in validating_keys})
+        Config.__assign_recursively(checking_part, {key: validating_part[key] for key in validating_keys})
         return current_layer_res
 
-    def load(self):
+    def load(self) -> Optional["Config.SchemeCheckResults"]:
         if not os.path.exists(self._conf_file_path):
             self.restore_defaults()
             self.save()
             return
-
         try:
             with open(self._conf_file_path, "r", encoding=Config.ENCODING) as conf_file:
                 self.data = json.load(conf_file)
@@ -114,7 +103,7 @@ class Config(UserDict):
             self.restore_defaults()
             self.save()
             return
-        self.validate_config(self.data, self.validation_scheme)
+        return self.validate_config(self.data, self.validation_scheme)
 
     def restore_defaults(self):
         self.data = self.default_scheme

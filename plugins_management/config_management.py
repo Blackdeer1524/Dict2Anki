@@ -8,8 +8,8 @@ from typing import ClassVar, Any, Type, Sequence, Optional
 class Config(UserDict):
     @dataclass(slots=True, frozen=True)
     class SchemeCheckResults:
-        wrong_type: list = field(default_factory=list)
-        wrong_value: list = field(default_factory=list)
+        wrong_type: list =   field(default_factory=list)
+        wrong_value: list =  field(default_factory=list)
         unknown_keys: list = field(default_factory=list)
         missing_keys: list = field(default_factory=list)
 
@@ -19,21 +19,20 @@ class Config(UserDict):
                    bool(self.unknown_keys) or \
                    bool(self.missing_keys)
 
-    CONF_FILE_NAME: ClassVar[str] = "config.json"
-    ENCODING: ClassVar[str] = "UTF-8"
-
     def __init__(self,
-                 config_location: str,
                  validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],
-                 docs: str):
-        super(Config, self).__init__(data={})
-
+                 docs: str,
+                 initial_value: Optional[dict] = None):
         self.default_scheme = {}
         self.validation_scheme = validation_scheme
-        self._conf_file_path = os.path.join(config_location, Config.CONF_FILE_NAME)
-        self.docs = docs
         Config.__assign_recursively(self.default_scheme, self.validation_scheme)
-        self.load()
+        self.docs = docs
+
+        if initial_value is None:
+            super(Config, self).__init__(data=self.default_scheme)
+        else:
+            super(Config, self).__init__(data=initial_value)
+            self.validate_config(self.data, self.validation_scheme)
 
     @staticmethod
     def __assign_recursively(dst: dict, src: dict):
@@ -91,13 +90,31 @@ class Config(UserDict):
         Config.__assign_recursively(checking_part, {key: validating_part[key] for key in validating_keys})
         return current_layer_res
 
+    def restore_defaults(self):
+        self.data = self.default_scheme
+
+
+class LoadableConfig(Config):
+    CONF_FILE_NAME: ClassVar[str] = "config.json"
+    ENCODING: ClassVar[str] = "UTF-8"
+
+    def __init__(self,
+                 config_location: str,
+                 validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],
+                 docs: str):
+        super(LoadableConfig, self).__init__(validation_scheme=validation_scheme,
+                                             docs=docs,
+                                             initial_value={})
+        self._conf_file_path = os.path.join(config_location, LoadableConfig.CONF_FILE_NAME)
+        self.load()
+
     def load(self) -> Optional["Config.SchemeCheckResults"]:
         if not os.path.exists(self._conf_file_path):
             self.restore_defaults()
             self.save()
             return
         try:
-            with open(self._conf_file_path, "r", encoding=Config.ENCODING) as conf_file:
+            with open(self._conf_file_path, "r", encoding=LoadableConfig.ENCODING) as conf_file:
                 self.data = json.load(conf_file)
         except (ValueError, TypeError):  # Catches JSON decoding exceptions
             self.restore_defaults()
@@ -105,9 +122,6 @@ class Config(UserDict):
             return
         return self.validate_config(self.data, self.validation_scheme)
 
-    def restore_defaults(self):
-        self.data = self.default_scheme
-
     def save(self):
-        with open(self._conf_file_path, "w", encoding=Config.ENCODING) as conf_file:
+        with open(self._conf_file_path, "w", encoding=LoadableConfig.ENCODING) as conf_file:
             json.dump(self.data, conf_file, indent=4)

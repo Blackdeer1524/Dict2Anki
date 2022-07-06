@@ -1,7 +1,7 @@
 import os
 from app_utils.preprocessing import remove_empty_keys
 from consts.card_fields import FIELDS
-from plugins_management.config_management import Config
+from plugins_management.config_management import LoadableConfig
 from .utils import define as _define
 
 SCHEME_DOCS = """
@@ -25,7 +25,7 @@ _CONF_VALIDATION_SCHEME = \
         "audio_region": ("us", (str,), ("us", "uk")),
     }
 
-config = Config(config_location=os.path.dirname(__file__),
+config = LoadableConfig(config_location=os.path.dirname(__file__),
                 validation_scheme=_CONF_VALIDATION_SCHEME,
                 docs=_CONFIG_DOCS)
 

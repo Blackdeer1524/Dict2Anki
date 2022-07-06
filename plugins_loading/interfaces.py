@@ -1,7 +1,7 @@
 from typing import Protocol, Callable
 
 from plugins_management.parsers_return_types import SentenceGenerator, ImageGenerator
-from plugins_management.config_management import Config
+from plugins_management.config_management import LoadableConfig
 from app_utils.cards import SavedDataDeck, CardStatus
 
 
@@ -185,7 +185,7 @@ class ThemeInterface(Protocol):
 
 class WebWordParserInterface(Protocol):
     SCHEME_DOCS: str
-    config: Config
+    config: LoadableConfig
 
     @staticmethod
     def define(word: str) -> dict:
@@ -198,7 +198,7 @@ class WebWordParserInterface(Protocol):
 
 class LocalWordParserInterface(Protocol):
     SCHEME_DOCS: str
-    config: Config
+    config: LoadableConfig
     DICTIONARY_PATH: str
 
     @staticmethod
@@ -207,7 +207,7 @@ class LocalWordParserInterface(Protocol):
 
 
 class WebSentenceParserInterface(Protocol):
-    config: Config
+    config: LoadableConfig
 
     @staticmethod
     def get_sentence_batch(word: str, size: int) -> SentenceGenerator:
@@ -215,7 +215,7 @@ class WebSentenceParserInterface(Protocol):
 
 
 class ImageParserInterface(Protocol):
-    config: Config
+    config: LoadableConfig
 
     @staticmethod
     def get_image_links(word: str) -> ImageGenerator:
@@ -261,7 +261,7 @@ class DeckSavingFormatInterface(Protocol):
 
 
 class LocalAudioGetterInterface(Protocol):
-    config: Config
+    config: LoadableConfig
     AUDIO_FOLDER: str
 
     @staticmethod
@@ -270,7 +270,7 @@ class LocalAudioGetterInterface(Protocol):
 
 
 class WebAudioGetterInterface(Protocol):
-    config: Config
+    config: LoadableConfig
 
     @staticmethod
     def get_web_audios(word: str, dict_tags: dict) -> tuple[tuple[list[str], list[str]], str]:

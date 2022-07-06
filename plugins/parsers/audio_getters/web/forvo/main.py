@@ -6,7 +6,7 @@ Credits:
 
 import requests.utils
 
-from plugins_management.config_management import Config
+from plugins_management.config_management import LoadableConfig
 from .consts import _PLUGIN_NAME, _PLUGIN_LOCATION
 from .page_processing import get_forvo_page, get_forvo_audio_link
 
@@ -24,7 +24,7 @@ _VALIDATION_SCHEME = {
     "timeout": (1, [int, float], [])
 }
 
-config = Config(config_location=_PLUGIN_LOCATION,
+config = LoadableConfig(config_location=_PLUGIN_LOCATION,
                 validation_scheme=_VALIDATION_SCHEME,
                 docs=_CONFIG_DOCS)
 

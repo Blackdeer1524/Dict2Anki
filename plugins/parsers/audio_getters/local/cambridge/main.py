@@ -2,7 +2,7 @@ import os
 
 from app_utils.string_utils import remove_special_chars
 from consts.paths import LOCAL_MEDIA_DIR
-from plugins_management.config_management import Config
+from plugins_management.config_management import LoadableConfig
 
 _CONFIG_DOCS = \
 """
@@ -21,7 +21,7 @@ _CONF_VALIDATION_SCHEME = \
         "pos_search": (False, [bool], [])
     }
 
-config = Config(config_location=os.path.dirname(__file__),
+config = LoadableConfig(config_location=os.path.dirname(__file__),
                 validation_scheme=_CONF_VALIDATION_SCHEME,
                 docs=_CONFIG_DOCS)
 

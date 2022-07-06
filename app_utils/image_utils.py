@@ -59,28 +59,26 @@ class ImageSearch(Toplevel):
 
     def __init__(self, master, search_term: str, lang_pack: LanguagePackageContainer, **kwargs):
         """
-        master: \n
+        master:
         main_params: toplevel config
         frame_params: Frame config
-        search_term: \n
-        self.__url_scrapper: function that returns image urls by given query\n
-        max_request_tries: how many retries allowed per one image-showing cycle\n
-        init_urls: custom urls to be displayed\n
-        init_images: custom images to be displayed\n
-        headers: request headers\n
-        timeout: request timeout\n
-        show_image_width: maximum image display width\n
-        show_image_height: maximum image display height\n
-        saving_image_width: maximum image saving width\n
-        saving_image_height: maximum image saving height\n
-        n_images_in_row: \n
-        n_rows: \n
-        button_padx: \n
-        button_pady: \n
-        window_width_limit: maximum width of the window\n
-        window_height_limit: maximum height of the window\n
-        entry_params(**kwargs)s: entry widget params\n
-        command_button_params(**kwargs): "Show more" and "Download" buttons params\n
+        search_term:
+        url_scrapper: function that returns image urls by given query
+        max_request_tries: how many retries allowed per one image-showing cycle
+        init_urls: custom urls to be displayed
+        init_images: custom images to be displayed
+        headers: request headers
+        timeout: request timeout
+        show_image_width: maximum image display width
+        show_image_height: maximum image display height
+        n_images_in_row:
+        n_rows:
+        button_padx:
+        button_pady:
+        window_width_limit: maximum width of the window
+        window_height_limit: maximum height of the window
+        entry_params(**kwargs)s: entry widget params
+        command_button_params(**kwargs): "Show more" and "Download" buttons params
         on_close_action(**kwargs): additional action performed on closing.
         """
         super(ImageSearch, self).__init__(master, **kwargs.get("main_params", {}))
@@ -112,17 +110,15 @@ class ImageSearch(Toplevel):
         self._n_rows = kwargs.get("n_rows", 2)
         self._n_images_per_cycle = self._n_rows * self._n_images_in_row
 
+        self.optimal_visual_width = kwargs.get("show_image_width")
+        self.optimal_visual_height = kwargs.get("show_image_height")
+
         self._pool: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=self._n_images_per_cycle)
 
         self.saving_images: list[Image] = []
         self.images_source: list[str] = []
         self.working_state: list[bool] = []  # indices of picked buttons
         self.button_list: list[Button] = []
-
-        self.optimal_visual_width = kwargs.get("show_image_width")
-        self.optimal_visual_height = kwargs.get("show_image_height")
-        self.optimal_result_width = kwargs.get("saving_image_width")
-        self.optimal_result_height = kwargs.get("saving_image_height")
 
         self.title(self.lang_pack.image_search_title)
         self._search_field = Entry(self, justify="center", **self._entry_params)

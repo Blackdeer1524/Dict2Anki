@@ -9,6 +9,7 @@ _CONFIG_DOCS = \
 type: 
     Audio region 
     valid values: either of ["uk", "us"] 
+
 pos_search:
     Whether to search audio by Part Of Speach (pos) or not
     valid values: (true, false) 

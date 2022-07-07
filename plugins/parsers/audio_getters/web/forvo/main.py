@@ -14,6 +14,7 @@ _CONFIG_DOCS = """
 language_code
     audio language to fetch
     type: string
+
 timeout
     request timeout in seconds.
     default value: 1

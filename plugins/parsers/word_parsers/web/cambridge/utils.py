@@ -195,7 +195,7 @@ def get_alt_terms(word_header_block) -> list[str]:
     return alt_terms
 
 
-def define(word, dictionary_index=0, headers=None):
+def define(word, dictionary_index=0, headers=None, timeout=5):
     """
     :param word: word to be parsed
     :param headers: request headers
@@ -210,7 +210,7 @@ def define(word, dictionary_index=0, headers=None):
 
     link = f"{LINK_PREFIX}/dictionary/english/{word}"
     # will raise error if headers are None
-    page = requests.get(link, headers=headers, timeout=5)
+    page = requests.get(link, headers=headers, timeout=timeout)
     word_info = {}
 
     soup = bs4.BeautifulSoup(page.content, "html.parser")

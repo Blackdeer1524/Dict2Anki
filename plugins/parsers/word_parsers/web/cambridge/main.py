@@ -15,14 +15,20 @@ tags: {
 """
 
 _CONFIG_DOCS = """
-audio_region:
+audio_region
     Audio region 
     valid values: either of ["uk", "us"] 
+
+timeout
+    Request timeout in seconds
+    type: integer | float
+    default value: 1
 """
 
 _CONF_VALIDATION_SCHEME = \
     {
-        "audio_region": ("us", (str,), ("us", "uk")),
+        "audio_region": ("us", [str], ["us", "uk"]),
+        "timeout": (1, [int, float], [])
     }
 
 config = LoadableConfig(config_location=os.path.dirname(__file__),
@@ -66,4 +72,4 @@ def translate(word: str, word_dict: dict):
 
 
 def define(word: str) -> list[tuple[str, dict]]:
-    return _define(word=word)
+    return _define(word=word, timeout=config["timeout"])

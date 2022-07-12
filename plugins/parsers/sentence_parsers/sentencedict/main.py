@@ -15,7 +15,7 @@ _CONF_VALIDATION_SCHEME = {
 _CONF_DOCS = """
 timeout:
     Request timeout in seconds
-    type: integer
+    type: integer, float
     default value: 1
 """
 

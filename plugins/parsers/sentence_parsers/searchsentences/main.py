@@ -1,5 +1,4 @@
 import os
-import re
 
 import bs4
 import requests
@@ -16,7 +15,7 @@ _CONF_VALIDATION_SCHEME = {
 _CONF_DOCS = """
 timeout:
     Request timeout in seconds
-    type: integer
+    type: integer, float
     default value: 1
 """
 

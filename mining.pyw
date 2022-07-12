@@ -492,6 +492,14 @@ saving_image_height
         self.gb.bind("Control", "c", "space",
                      action=lambda: self.define_word(word_query=self.clipboard_get(), additional_query="")
                      )
+
+        def paste_in_sentence_field():
+            clipboard_text = self.clipboard_get()
+            self.sent_text_list[0].clear()
+            self.sent_text_list[0].insert(1.0, clipboard_text)
+
+        self.gb.bind("Control", "c", "Alt",
+                     action=paste_in_sentence_field)
         self.gb.start()
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)

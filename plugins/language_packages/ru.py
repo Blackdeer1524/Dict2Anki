@@ -80,7 +80,8 @@ buttons_hotkeys_help_message = """
 * Ctrl + f: вызов окна поиска по колоде
 
 Горячие клавиши (глобальные):
-* Ctrl + c + space: добавить выделенного слова в колоду
+* Ctrl + c + Space: добавить выделенного слова в колоду
+* Ctrl + c + Alt: вставляет выделенный текст в первое поле предложений
 """
 buttons_hotkeys_help_window_title = "Справка"
 word_field_help = "слово (строка)"

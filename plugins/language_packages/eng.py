@@ -80,7 +80,8 @@ Hotkeys (local):
 * Ctrl + f: calls <find> window
 
 Hotkeys (global):
-* Ctrl + c + space: adds selected word to deck
+* Ctrl + c + Space: adds currently highlighted word to deck
+* Ctrl + c + Alt: adds currently highlighted text to the first sentence field
 """
 buttons_hotkeys_help_window_title = "Help"
 word_field_help = "word (str)"

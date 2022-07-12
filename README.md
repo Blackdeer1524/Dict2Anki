@@ -115,7 +115,7 @@ By default, resulting file has CSV extention, is located at saving directory tha
 # [Card format](#structure)
 A Card is essentially a Python dictionary with the following keys:
   * word
-  * alt_terms
+  * special
   * definition
   * examples
   * image_links
@@ -135,29 +135,48 @@ To view every plugin interface, see **./plugins_loading/interfaces.py**
 
 * [Parsers](#parsers)
     * [Word parsers](#word-parsers)
-        * [web](#web)
-        * [local](#local)
-* [Local audio getters](#local-audio-getters)
+        * Web
+        * Local
+* [Audio getters](#audio-getters)
+    * Web
+    * Local
 * [Saving](#saving)
     * [Card processors](#card-processors)
     * [Format processors](#format-processors)
 * [Themes](#themes)
 * [Language packages](#language-packages) 
  
+Every plugin has to have **config** cariable of **LoadableConfig** class 
+```
+LoadableConfig(config_location: str,
+               validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],
+               docs: str)
+```
+* config_location has to be os.path.dirname(__file__)
+* validation_scheme:
+```
+{
+   <field>: (<default_value>, [supported_type, ...], [valid_value, ...])
+   ...
+}
+```
+suppotred_types and valid values can be empty. **In that case, all types/values are valid**
+* docs: config documentation
+
 ## [Parsers](#plugins)
-### [Word parsers](#parsers)
+### [Word parsers](#parsers) 
+#### [Web](#word-parsers)  
+To create a web parser, create a python file inside **./plugins/parsers/word_parsers/web/** with the following protocol:
+  * SCHEME_DOCS: str - documentation to the resulting scheme
+  * define(word: str) function that returns [dictionary format](#dictionary-format)
+  * translate(word: str, word_dict: dict) function that converts [dictionary entry](#dictionary-format) to [card format](#card-format)
+
 #### [Local](#word-parsers)
 Parses local JSON dictionary, that is located in **./media** folder
 
 To register a local dictionary, create a python file inside **./plugins/parsers/word_parsers/local/** with the following protocol:
   * DICTIONARY_PATH: str - relative path to the JSON dictionary of [dictionary format](#dictionary-format) that is located inside **./media** folder
   * SCHEME_DOCS: str - documentation to the resulting scheme
-  * translate(word: str, word_dict: dict) function that converts [dictionary entry](#dictionary-format) to [card format](#card-format)
- 
-#### [Web](#word-parsers)  
-To create a web parser, create a python file inside **./plugins/parsers/word_parsers/web/** with the following protocol:
-  * SCHEME_DOCS: str - documentation to the resulting scheme
-  * define(word: str) function that returns [dictionary format](#dictionary-format)
   * translate(word: str, word_dict: dict) function that converts [dictionary entry](#dictionary-format) to [card format](#card-format)
 
 ### [Sentence parsers](#parsers)
@@ -173,8 +192,13 @@ To create an image parser, create a python file inside **./plugins/parsers/image
     * initialization on first next() call
     * current step batch size initialization on <gen>.send(batch_size) that returns batch_size image links 
  
-### [Local audio getters](#parsers)
-To register folder with audio files,, create a python file inside **./plugins/parsers/local_audio_getters/** with the following protocol:
+### [Audio getters](#parsers)
+#### [Web](#audio-getters)
+To register web audio getter, create a python file inside **./plugins/parsers/audio_getters/web/** with the following protocol:
+  * get_web_audios(word: str, dict_tags: dict) -> tuple[tuple[list[str], list[str]], str] function that takes word to whick audio is needed and dict_tags for the additional info and returns ((audio_urls, additional_information_to_be_displayed), error_message). len(audio_urls) = len(additional_information_to_be_displayed)!
+
+#### [Local](#audio-getters)
+To register folder with audio files, create a python file inside **./plugins/parsers/audio_getters/local/** with the following protocol:
   * AUDIO_FOLDER: str - relative path to the folder with audio files that is located inside ./media folder
   * get_local_audios(word: str, dict_tags: dict) -> list\[str] function that takes word to whick audio is needed and dict_tags for the additional info
   and returns a list of paths.

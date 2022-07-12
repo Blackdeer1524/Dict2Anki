@@ -94,9 +94,13 @@ Hotkey: **Ctrl + V**
 * Ctrl + f: calls \<find> window
 
 ## [Global](#hotkeys)
-* Ctrl + c + space: adds selected word to deck
+* Ctrl + c + Space: adds currently highlighted word to deck
 
 ![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/Add_option/global_hotkey.gif)
+
+* Ctrl + c + Alt: adds currently highlighted text to the first sentence field
+
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/add_highlighted_sentence_global_hotkey.gif)
 
 # [Resulting file](#structure)
 By default, resulting file has CSV extention, is located at saving directory that you choosed, and has the following naming convention:
@@ -146,7 +150,7 @@ To view every plugin interface, see **./plugins_loading/interfaces.py**
 * [Themes](#themes)
 * [Language packages](#language-packages) 
  
-Every plugin has to have **config** cariable of **LoadableConfig** class 
+Every plugin has to have **config** variable of **LoadableConfig** class 
 ```
 LoadableConfig(config_location: str,
                validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],

@@ -1647,7 +1647,7 @@ saving_image_height
                     instance.preprocess_image(img=instance.saving_images[i],
                                               width=self.configurations["image_search"]["saving_image_width"],
                                               height=self.configurations["image_search"]["saving_image_height"])\
-                        .save(saving_name)
+                            .save(saving_name)
                     names.append(saving_name)
 
             if names:
@@ -1678,7 +1678,6 @@ saving_image_height
                                    n_rows=self.configurations["image_search"]["n_rows"],
                                    show_image_width=self.configurations["image_search"]["show_image_width"],
                                    show_image_height=self.configurations["image_search"]["show_image_height"],
-                                   # saving_image_width=300,
                                    button_padx=button_padx,
                                    button_pady=button_pady,
                                    window_height_limit=height_lim,

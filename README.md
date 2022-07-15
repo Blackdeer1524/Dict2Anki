@@ -162,9 +162,11 @@ To view every plugin interface, see **./plugins_loading/interfaces.py**
     * [Word parsers](#word-parsers)
         * Web
         * Local
-* [Audio getters](#audio-getters)
-    * Web
-    * Local
+    * [Sentence parsers](#sentence-parsers)
+    * [Image parsers](#image-parsers)
+    * [Audio getters](#audio-getters)
+        * Web
+        * Local
 * [Saving](#saving)
     * [Card processors](#card-processors)
     * [Format processors](#format-processors)

@@ -3,7 +3,8 @@ Sentence-mining app written in Python using Tkinter.
 
 # Structure
 * [Demonstration](#demonstration)
-* [Requirements](#requirements)
+* [Installation](#installation)
+* [Launch](#launch)
 * [Hotkeys](#hotkeys)
 * [Resulting file](#resulting-file)
 * [Plugins](#plugins)
@@ -78,9 +79,27 @@ Hotkey: **Ctrl + V**
 ## [Multiple languages support](#demonstration)
 ![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/language_packs.gif)
 
-# [Requirements](#structure)
-* Python 3.10+
-* Libraries from corresponding {SYSTEM}\_requirements.txt files 
+# [Installation](#structure)
+## [Windows](#installation)
+1. Install [Python3.10+](https://www.python.org/downloads/) and add it in PATH.
+2. Open downloaded directory with mining.pyw in it.
+3. Open command line in this directory
+4. Run \<pip install -r win_requirements.txt> to install required libraries
+
+## [Linux](#installation)
+1. Install Python3.10+
+   * sudo apt install python3.10
+2. Install Tkinter
+   * sudo apt install python3-tk
+3. Install PyGObject
+   * sudo apt install python3-gi
+4. Install required libraries
+   * pip3 install -r linux_requirements.txt
+
+# [Launch](#structure)
+To launch this app, open command line in the directory where mining.pyw is located and run
+* if you are on Windows: python mining.pyw
+* if you are on Linux: python3 mining.pyw
 
 # [Hotkeys](#structure)
 ## [Local](#hotkeys)
@@ -118,16 +137,18 @@ By default, resulting file has CSV extention, is located at saving directory tha
 
 # [Card format](#structure)
 A Card is essentially a Python dictionary with the following keys:
-  * word
-  * special
-  * definition
-  * examples
-  * image_links
-  * audio_links
-  * tags
+  * word: str
+  * special: list[str]
+  * definition: str
+  * examples: list[str]
+  * image_links: list[str]
+  * audio_links: list[str]
+  * tags: dict[str, str | list | dict]
 
-These keys can be extended, although new keys will not be displayed.
-The main purpose of these new keys is to be used inside
+![](https://github.com/Blackdeer1524/Dict2Anki/blob/main/app_demonstration/card_fiields_usage.png)
+
+Cards can have other fields, although they will not be displayed.
+But they could be used inside
 [format](#format-processors) and [card](#card-processors) processors.
 
 # [Dictionary format](#structure)
@@ -406,7 +427,7 @@ Methods:
             {
                 "field_1": ["ABC", "abc", "AbC", 1],
                 "field_2": [["1", "2", "3"]],
-                "field_3": "abc"
+                "field_3": "abc"Linux
             }
         upper(field_1) will return ["ABC", "ABC", "ABC", ""]
         upper(field_2) will return [""]

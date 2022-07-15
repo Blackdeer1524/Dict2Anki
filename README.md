@@ -179,7 +179,7 @@ LoadableConfig(config_location: str,
                validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],
                docs: str)
 ```
-* config_location has to be os.path.dirname(__file__)
+* config_location has to be os.path.dirname(\__file__)
 * validation_scheme:
 ```
 {

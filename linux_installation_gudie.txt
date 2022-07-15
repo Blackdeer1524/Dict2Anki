@@ -1,15 +1,17 @@
+* sudo apt install python3.10
 * sudo apt install python3-tk
 * sudo apt install python3-gi
+* pip3 install -r linux_requirements.txt
+==================
+[Dev] 
+Setting up virtual environment:
+   1) cd to your venv
+   cd ./venv/lib/python3.10/
 
-============
-virtual envs:
-   * cd to your venv
-   cd /venv/lib/python3.9/
+   !!you may also have to find tkitner and gi location yourself!!
+ 
+   2) ln -s /usr/lib/python3.10/tkinter tkinter
 
-   !!you may also have to find tkitner and gi location yourself!! 
-   * ln -s /usr/lib/python3.9/tkinter tkinter
-
-   * cd to the main folder where mining.pyw is located
+   3) cd to the main folder where mining.pyw is located and
    ln -s /usr/lib/python3/dist-packages/gi gi
-
-   * pip install -r requirements.txt
+==================

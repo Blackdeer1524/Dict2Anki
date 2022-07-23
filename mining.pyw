@@ -1329,39 +1329,28 @@ saving_image_height
         if user_tags:
             additional[SavedDataDeck.USER_TAGS] = user_tags
 
-        if self.audio_getter is not None:
-            if self.configurations["scrappers"]["audio"]["type"] == DataSourceType.LOCAL and \
-                    (local_audios := self.audio_getter.get_local_audios(word, dict_tags)):
+        audio_getter_type = self.configurations["scrappers"]["audio"]["type"]
+        if self.audio_getter is not None and audio_getter_type in (DataSourceType.WEB, DataSourceType.LOCAL):
+            if audio_getter_type == DataSourceType.WEB:
+                audio_data = self.audio_getter.get_web_audios(word, dict_tags)
+            else:
+                audio_data = self.audio_getter.get_local_audios(word, dict_tags)
+            ((audio_links, additional_data), error_message) = audio_data
+            if audio_links:
                 additional[SavedDataDeck.AUDIO_DATA] = {}
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = local_audios
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = DataSourceType.LOCAL
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = audio_links
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = \
+                    audio_getter_type
                 additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
                     os.path.join(self.configurations["directories"]["media_dir"],
                                  self.card_processor
-                                     .get_save_audio_name(word,
-                                                          "[{}] {}".format(
-                                                              self.configurations["scrappers"]["audio"]["type"],
-                                                              self.audio_getter.name),
-                                                          f"{i}",
-                                                          dict_tags))
-                    for i in range(len(local_audios))
-                ]
-            elif self.configurations["scrappers"]["audio"]["type"] == DataSourceType.WEB and \
-                    not (web_audio_data := self.audio_getter.get_web_audios(word, dict_tags))[1]:
-                ((web_audio_links, additional_data), error_message) = web_audio_data
-                additional[SavedDataDeck.AUDIO_DATA] = {}
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = [web_audio_links[0]]
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = DataSourceType.WEB
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
-                    os.path.join(self.configurations["directories"]["media_dir"],
-                                 self.card_processor
-                                      .get_save_audio_name(word,
-                                                           "[{}] {}".format(
-                                                               self.configurations["scrappers"]["audio"]["type"],
-                                                               self.audio_getter.name),
-                                                           f"{i}",
-                                                           dict_tags))
-                    for i in range(len(web_audio_links))
+                                 .get_save_audio_name(word,
+                                                      "[{}] {}".format(
+                                                          audio_getter_type,
+                                                          self.audio_getter.name),
+                                                      str(i),
+                                                      dict_tags))
+                    for i in range(len(audio_links))
                 ]
         elif (web_audios := self.dict_card_data.get(FIELDS.audio_links, [])):
             additional[SavedDataDeck.AUDIO_DATA] = {}
@@ -1458,21 +1447,20 @@ saving_image_height
         word = self.word
         dict_tags = self.dict_card_data.get(FIELDS.dict_tags, {})
         if self.audio_getter is not None:
-            if self.configurations["scrappers"]["audio"]["type"] == DataSourceType.LOCAL:
-                audio_sources = self.audio_getter.get_local_audios(word, dict_tags)
-                playsound_function = local_playsound
-                additional_info = audio_sources
-            elif self.configurations["scrappers"]["audio"]["type"] == DataSourceType.WEB:
+            audio_getter_type = self.configurations["scrappers"]["audio"]["type"]
+            if audio_getter_type not in (DataSourceType.WEB, DataSourceType.LOCAL):
+                raise NotImplementedError("Unknown audio parser type: {}".format(audio_getter_type))
+
+            if audio_getter_type == DataSourceType.WEB:
                 ((audio_sources, additional_info), error_message) = self.audio_getter.get_web_audios(word, dict_tags)
-                if error_message:
-                    messagebox.showerror(title=self.lang_pack.error_title,
-                                         message=error_message)
-                    return
                 playsound_function = web_playsound
-                additional_info = additional_info
             else:
-                raise NotImplementedError("Unknown audio parser type: {}"
-                                          .format(self.configurations["scrappers"]["audio"]["type"]))
+                ((audio_sources, additional_info), error_message) = self.audio_getter.get_local_audios(word, dict_tags)
+                playsound_function = local_playsound
+
+            if error_message:
+                messagebox.showerror(title=self.lang_pack.error_title, message=error_message)
+                return
 
             if audio_sources:
                 if len(audio_sources) == 1:

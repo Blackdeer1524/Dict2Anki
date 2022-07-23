@@ -30,10 +30,10 @@ _LETTERS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _AUDIO_NAME_SPEC_CHARS = '/\\:*?\"<>| '
 
 
-def get_local_audios(word, dict_tags: dict) -> list[str]:
+def get_local_audios(word, dict_tags: dict) -> tuple[tuple[list[str], list[str]], str]:
     word = word.strip()
     if not word:
-        return []
+        return ([], []), ""
 
     audio_folder = f"{config['audio_region']}_audios"
 
@@ -46,17 +46,27 @@ def get_local_audios(word, dict_tags: dict) -> list[str]:
         res = os.path.join(search_root, pos, name)
         if os.path.exists(res):
             if os.path.isfile(res):
-                return [res]
+                return ([res], [name]), ""
             if os.path.isdir(res):
-                return [str(file_path) for item in os.listdir(res)
-                        if os.path.isfile((file_path := os.path.join(res, item)))]
-        return []
+                file_paths = []
+                additional_info = []
+                for item in os.listdir(res):
+                    if os.path.isfile((file_path := os.path.join(res, item))):
+                        file_paths.append(file_path)
+                        additional_info.append(item)
+        return ([], []), ""
 
     for current_dir_path, dirs, files in os.walk(search_root):
         if name in files:
-            return [os.path.join(str(current_dir_path), name)]
+            return ([os.path.join(str(current_dir_path), name)], [name]), ""
         elif name in dirs:
             dir = os.path.join(str(current_dir_path), name)
-            return [file_path for item in os.listdir(dir)
-                    if os.path.isfile((file_path := os.path.join(dir, item)))]
-    return []
+            file_paths = []
+            additional_info = []
+            for item in os.listdir(dir):
+                if os.path.isfile((file_path := os.path.join(dir, item))):
+                    file_paths.append(file_path)
+                    additional_info.append(item)
+            return (file_paths, additional_info), ""
+    return ([], []), ""
+

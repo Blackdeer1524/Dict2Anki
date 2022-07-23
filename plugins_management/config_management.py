@@ -125,3 +125,23 @@ class LoadableConfig(Config):
     def save(self):
         with open(self._conf_file_path, "w", encoding=LoadableConfig.ENCODING) as conf_file:
             json.dump(self.data, conf_file, indent=4)
+
+
+class ChainConfig(Config):
+    def __init__(self, name_config_pairs: dict[str, LoadableConfig]):
+        self.name_config_pairs = name_config_pairs
+        validation_scheme = {}
+        data = {}
+        docs_list = []
+        for name, config in self.name_config_pairs.items():
+            data[name] = config.data
+            validation_scheme[name] = config.validation_scheme
+            docs_list.append("{}:\n{}".format(name, config.docs.replace('\n', '\n |\t')))
+        docs = "\n".join(docs_list)
+        super(ChainConfig, self).__init__(validation_scheme=validation_scheme,
+                                          docs=docs)
+
+    def save(self):
+        for name, config in self.name_config_pairs.items():
+            config.data = self[name]
+            config.save()

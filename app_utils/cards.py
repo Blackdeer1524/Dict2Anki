@@ -4,12 +4,11 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, Union, Any
 
-from plugins_management.parsers_return_types import SentenceGenerator
-
 from app_utils.storages import FrozenDictJSONEncoder
 from app_utils.storages import PointerList, FrozenDict
 from consts.card_fields import FIELDS
-from plugins_management.config_management import Config
+from plugins_management.config_management import LoadableConfig, ChainConfig
+from plugins_management.parsers_return_types import SentenceGenerator
 
 
 class Card(FrozenDict):
@@ -65,7 +64,7 @@ class CardGenerator(ABC):
     def __init__(self,
                  name: str,
                  item_converter: Callable[[str, dict], dict],
-                 config: Config,
+                 config: LoadableConfig,
                  scheme_docs: str):
         self.name = name
         self.item_converter = item_converter
@@ -108,7 +107,7 @@ class LocalCardGenerator(CardGenerator):
                  name: str,
                  local_dict_path: str,
                  item_converter: Callable[[(str, dict)], dict],
-                 config: Config,
+                 config: LoadableConfig,
                  scheme_docs: str):
         super(LocalCardGenerator, self).__init__(name=name,
                                                  item_converter=item_converter,
@@ -134,12 +133,8 @@ class WebCardGenerator(CardGenerator):
                  name: str,
                  parsing_function: Callable[[str], list[(str, dict)]],
                  item_converter: Callable[[(str, dict)], dict],
-                 config: Config,
+                 config: LoadableConfig,
                  scheme_docs: str):
-        """
-        parsing_function: Callable[[str], list[(str, dict)]]
-        item_converter: Callable[[(str, dict)], dict]
-        """
         super(WebCardGenerator, self).__init__(name=name,
                                                item_converter=item_converter,
                                                config=config,
@@ -157,9 +152,13 @@ class WebCardGenerator(CardGenerator):
 class CardGeneratorChain:
     def __init__(self, *card_generators: CardGenerator):
         self.card_generators = card_generators
-        card_generators[0].name
-        self.scheme_docs = "\n".join([generator.scheme_docs for generator in self.card_generators])
-
+        scheme_docs_list = []
+        name_config_pairs = {}
+        for generator in self.card_generators:
+            scheme_docs_list.append("{}:\n{}".format(generator.name, generator.scheme_docs.replace('\n', '\n |\t')))
+            name_config_pairs[generator.name] = generator.config
+        self.scheme_docs = "\n".join(scheme_docs_list)
+        self.config = ChainConfig(name_config_pairs=name_config_pairs)
 
     def get(self,
             query: str,
@@ -181,7 +180,7 @@ class Deck(PointerList):
         self.deck_path = deck_path
         if os.path.isfile(self.deck_path):
             with open(self.deck_path, "r", encoding="UTF-8") as f:
-                deck: list[dict[str, Union[str, dict]]] = json.load(f)
+                deck: list[dict[str, str | dict]] = json.load(f)
             super(Deck, self).__init__(data=deck,
                                        starting_position=min(current_deck_pointer, len(deck) - 1),
                                        default_return_value=Card())
@@ -241,8 +240,8 @@ class Deck(PointerList):
     def save(self):
         with open(self.deck_path, "w", encoding="utf-8") as deck_file:
             json.dump(self._data, deck_file, cls=FrozenDictJSONEncoder)
-    
-    
+
+
 class CardStatus(Enum):
     ADD = 0
     SKIP = 1
@@ -270,7 +269,7 @@ class SavedDataDeck(PointerList):
     def get_card_status_stats(self, status: CardStatus):
         return self._statistics[status.value]
 
-    def append(self, status: CardStatus, card_data: dict[str, Union[str, list[str]]] = None):
+    def append(self, status: CardStatus, card_data: dict[str, str | list[str]] = None):
         if card_data is None:
             card_data = {}
 

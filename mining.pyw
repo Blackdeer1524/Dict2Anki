@@ -19,7 +19,7 @@ from tkinterdnd2 import Tk
 
 from app_utils.audio_utils import AudioDownloader
 from app_utils.cards import Card
-from app_utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus
+from app_utils.cards import Deck, SentenceFetcher, SavedDataDeck, CardStatus, DataSourceType
 from app_utils.cards import WebCardGenerator, LocalCardGenerator
 from app_utils.error_handling import create_exception_message
 from app_utils.error_handling import error_handler
@@ -87,22 +87,13 @@ class App(Tk):
                                        option_submenu_cfg=self.theme.option_submenus_cfg)
 
         wp_name = self.configurations["scrappers"]["word"]["name"]
-        if (wp_type := self.configurations["scrappers"]["word"]["type"]) == "web":
-            self.word_parser = loaded_plugins.get_web_word_parser(wp_name)
-            self.card_generator = WebCardGenerator(
-                parsing_function=self.word_parser.define,
-                item_converter=self.word_parser.translate,
-                scheme_docs=self.word_parser.scheme_docs)
-
-        elif wp_type == "local":
-            self.word_parser = loaded_plugins.get_local_word_parser(wp_name)
-            self.card_generator = LocalCardGenerator(
-                local_dict_path=f"{LOCAL_MEDIA_DIR}/{self.word_parser.local_dict_name}.json",
-                item_converter=self.word_parser.translate,
-                scheme_docs=self.word_parser.scheme_docs)
-
+        if (wp_type := self.configurations["scrappers"]["word"]["type"]) == DataSourceType.WEB:
+            self.card_generator = loaded_plugins.get_web_card_generator(wp_name)
+        elif wp_type == DataSourceType.LOCAL:
+            self.card_generator = loaded_plugins.get_local_card_generator(wp_name)
         else:
-            raise NotImplemented("Unknown word_parser_type: {}!".format(self.configurations["scrappers"]["word"]["type"]))
+            raise NotImplemented("Unknown word_parser_type: {}!"
+                                 .format(self.configurations["scrappers"]["word"]["type"]))
         self.typed_word_parser_name = f"[{wp_type}] {wp_name}"
 
         self.deck = Deck(deck_path=self.configurations["directories"]["last_open_file"],
@@ -119,9 +110,9 @@ class App(Tk):
         self.image_parser = loaded_plugins.get_image_parser(self.configurations["scrappers"]["image"]["name"])
 
         if (local_audio_getter_name := self.configurations["scrappers"]["audio"]["name"]):
-            if self.configurations["scrappers"]["audio"]["type"] == "local":
+            if self.configurations["scrappers"]["audio"]["type"] == DataSourceType.LOCAL:
                 self.audio_getter = loaded_plugins.get_local_audio_getter(local_audio_getter_name)
-            elif self.configurations["scrappers"]["audio"]["type"] == "web":
+            elif self.configurations["scrappers"]["audio"]["type"] == DataSourceType.WEB:
                 self.audio_getter = loaded_plugins.get_web_audio_getter(local_audio_getter_name)
             else:
                 self.configurations["scrappers"]["audio"]["type"] = "default"
@@ -532,7 +523,7 @@ saving_image_height
         {
             "scrappers": {
                 "word": {
-                    "type": ("web", [str], ["web", "local"]),
+                    "type": (DataSourceType.WEB, [str], [DataSourceType.WEB, DataSourceType.LOCAL]),
                     "name": ("cambridge", [str], [])
                 },
                 "sentence": {
@@ -542,7 +533,7 @@ saving_image_height
                     "name": ("google", [str], [])
                 },
                 "audio": {
-                    "type": ("default", [str], ["default", "web", "local"]),
+                    "type": ("default", [str], ["default", DataSourceType.WEB, DataSourceType.LOCAL]),
                     "name": ("", [str], [])
                 }
             },
@@ -787,7 +778,7 @@ saving_image_height
 {FIELDS.audio_links}: {self.lang_pack.audio_links_field_help}
 {FIELDS.dict_tags}: {self.lang_pack.dict_tags_field_help}
 """
-        current_scheme = self.word_parser.scheme_docs
+        current_scheme = self.card_generator.scheme_docs
         lang_docs = self.lang_pack.query_language_docs
 
         self.show_window(self.lang_pack.query_language_window_title,
@@ -1165,35 +1156,27 @@ saving_image_height
 
     @error_handler(show_errors)
     def configure_dictionary(self):
-        WEB_PREF = "[web]"
-        LOCAL_PREF = "[local]"
+        WEB_PREF = f"[{DataSourceType.WEB}]"
+        LOCAL_PREF = f"[{DataSourceType.LOCAL}]"
         DEFAULT_AUDIO_SRC = "default"
 
         @error_handler(self.show_errors)
         def pick_word_parser(typed_parser: str):
             if typed_parser.startswith(WEB_PREF):
                 raw_name = typed_parser[len(WEB_PREF) + 1:]
-                self.word_parser = loaded_plugins.get_web_word_parser(raw_name)
-                self.card_generator = WebCardGenerator(
-                    parsing_function=self.word_parser.define,
-                    item_converter=self.word_parser.translate,
-                    scheme_docs=self.word_parser.scheme_docs)
-                self.configurations["scrappers"]["word"]["type"] = "web"
+                self.card_generator = loaded_plugins.get_web_card_generator(raw_name)
+                self.configurations["scrappers"]["word"]["type"] = self.card_generator.type
             else:
                 raw_name = typed_parser[len(LOCAL_PREF) + 1:]
-                self.word_parser = loaded_plugins.get_local_word_parser(raw_name)
-                self.card_generator = LocalCardGenerator(
-                    local_dict_path=f"{LOCAL_MEDIA_DIR}/{self.word_parser.local_dict_name}.json",
-                    item_converter=self.word_parser.translate,
-                    scheme_docs=self.word_parser.scheme_docs)
-                self.configurations["scrappers"]["word"]["type"] = "local"
+                self.card_generator = loaded_plugins.get_local_card_generator(raw_name)
+                self.configurations["scrappers"]["word"]["type"] = self.card_generator.type
             self.configurations["scrappers"]["word"]["name"] = raw_name
             self.typed_word_parser_name = typed_parser
             self.deck.update_card_generator(self.card_generator)
             configure_word_parser_button["command"] = \
                 lambda: self.call_configuration_window(
                     plugin_name=typed_parser,
-                    plugin_config=self.word_parser.config,
+                    plugin_config=self.card_generator.config,
                     saving_action=lambda conf: conf.save()
                     )
 
@@ -1216,8 +1199,8 @@ saving_image_height
         configure_word_parser_button = self.Button(dict_configuration_window,
                                                    text="</>",
                                                    command=lambda: self.call_configuration_window(
-                                                       plugin_name=self.word_parser.name,
-                                                       plugin_config=self.word_parser.config,
+                                                       plugin_name=self.card_generator.name,
+                                                       plugin_config=self.card_generator.config,
                                                        saving_action=lambda conf: conf.save()))
         configure_word_parser_button.grid(row=0, column=2, sticky="news")
 
@@ -1240,11 +1223,11 @@ saving_image_height
             if typed_getter.startswith(WEB_PREF):
                 raw_name = typed_getter[len(WEB_PREF) + 1:]
                 self.audio_getter = loaded_plugins.get_web_audio_getter(raw_name)
-                self.configurations["scrappers"]["audio"]["type"] = "web"
+                self.configurations["scrappers"]["audio"]["type"] = DataSourceType.WEB
             else:
                 raw_name = typed_getter[len(LOCAL_PREF) + 1:]
                 self.audio_getter = loaded_plugins.get_local_audio_getter(raw_name)
-                self.configurations["scrappers"]["audio"]["type"] = "local"
+                self.configurations["scrappers"]["audio"]["type"] = DataSourceType.LOCAL
 
             self.configurations["scrappers"]["audio"]["name"] = raw_name
             configure_audio_getter_button["state"] = "normal"
@@ -1347,11 +1330,11 @@ saving_image_height
             additional[SavedDataDeck.USER_TAGS] = user_tags
 
         if self.audio_getter is not None:
-            if self.configurations["scrappers"]["audio"]["type"] == "local" and \
+            if self.configurations["scrappers"]["audio"]["type"] == DataSourceType.LOCAL and \
                     (local_audios := self.audio_getter.get_local_audios(word, dict_tags)):
                 additional[SavedDataDeck.AUDIO_DATA] = {}
                 additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = local_audios
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_LOCAL
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = DataSourceType.LOCAL
                 additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
                     os.path.join(self.configurations["directories"]["media_dir"],
                                  self.card_processor
@@ -1363,12 +1346,12 @@ saving_image_height
                                                           dict_tags))
                     for i in range(len(local_audios))
                 ]
-            elif self.configurations["scrappers"]["audio"]["type"] == "web" and \
+            elif self.configurations["scrappers"]["audio"]["type"] == DataSourceType.WEB and \
                     not (web_audio_data := self.audio_getter.get_web_audios(word, dict_tags))[1]:
                 ((web_audio_links, additional_data), error_message) = web_audio_data
                 additional[SavedDataDeck.AUDIO_DATA] = {}
                 additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = [web_audio_links[0]]
-                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_WEB
+                additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = DataSourceType.WEB
                 additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
                     os.path.join(self.configurations["directories"]["media_dir"],
                                  self.card_processor
@@ -1383,7 +1366,7 @@ saving_image_height
         elif (web_audios := self.dict_card_data.get(FIELDS.audio_links, [])):
             additional[SavedDataDeck.AUDIO_DATA] = {}
             additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS] = web_audios
-            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = SavedDataDeck.AUDIO_SRC_TYPE_WEB
+            additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SRCS_TYPE] = DataSourceType.WEB
             additional[SavedDataDeck.AUDIO_DATA][SavedDataDeck.AUDIO_SAVING_PATHS] = [
                 os.path.join(self.configurations["directories"]["media_dir"],
                              self.card_processor.get_save_audio_name(word,
@@ -1475,11 +1458,11 @@ saving_image_height
         word = self.word
         dict_tags = self.dict_card_data.get(FIELDS.dict_tags, {})
         if self.audio_getter is not None:
-            if self.configurations["scrappers"]["audio"]["type"] == "local":
+            if self.configurations["scrappers"]["audio"]["type"] == DataSourceType.LOCAL:
                 audio_sources = self.audio_getter.get_local_audios(word, dict_tags)
                 playsound_function = local_playsound
                 additional_info = audio_sources
-            elif self.configurations["scrappers"]["audio"]["type"] == "web":
+            elif self.configurations["scrappers"]["audio"]["type"] == DataSourceType.WEB:
                 ((audio_sources, additional_info), error_message) = self.audio_getter.get_web_audios(word, dict_tags)
                 if error_message:
                     messagebox.showerror(title=self.lang_pack.error_title,

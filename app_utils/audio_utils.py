@@ -7,7 +7,7 @@ from tkinter import ttk
 
 import requests
 
-from app_utils.cards import SavedDataDeck
+from app_utils.cards import DataSourceType, SavedDataDeck
 from app_utils.storages import FrozenDict
 from app_utils.window_utils import spawn_window_in_center
 from plugins_loading.containers import LanguagePackageContainer
@@ -101,21 +101,13 @@ class AudioDownloader(Toplevel):
         length = len(item_gen)
 
         def iterate(src_type: str, src: str, dst: str, index: int = 1):
-            """
-            :param index:
-            :param word:
-            :param pos:
-            :param wp_name:
-            :param url:
-            :return:
-            """
             def write_to_dst(_src_type: str, _src: str, _dst: str) -> bool:
                 wait_flag = False
-                if _src_type == SavedDataDeck.AUDIO_SRC_TYPE_WEB:
+                if _src_type == DataSourceType.WEB:
                     wait_flag = self.fetch_audio(_src, _dst, self.headers, self.timeout,
                                                  self.catch_fetching_error)
 
-                elif _src_type == SavedDataDeck.AUDIO_SRC_TYPE_LOCAL:
+                elif _src_type == DataSourceType.LOCAL:
                     shutil.copy(src, _dst)
                 return wait_flag
 

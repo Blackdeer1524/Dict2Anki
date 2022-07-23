@@ -9,6 +9,7 @@ from plugins_management.parsers_return_types import SentenceGenerator
 from app_utils.storages import FrozenDictJSONEncoder
 from app_utils.storages import PointerList, FrozenDict
 from consts.card_fields import FIELDS
+from plugins_management.config_management import Config
 
 
 class Card(FrozenDict):
@@ -55,18 +56,34 @@ class Card(FrozenDict):
         return " ".join(tags_container)
 
 
+class DataSourceType:
+    LOCAL = "local"
+    WEB = "web"
+
+
 class CardGenerator(ABC):
     def __init__(self,
+                 name: str,
                  item_converter: Callable[[str, dict], dict],
+                 config: Config,
                  scheme_docs: str):
+        self.name = name
         self.item_converter = item_converter
+        self.config = config
         self.scheme_docs = scheme_docs
+
+    @property
+    @abstractmethod
+    def type(self):
+        pass
 
     @abstractmethod
     def _get_search_subset(self, query: str) -> list[tuple[str, dict]]:
         pass
 
-    def get(self, query: str, word_filter: Callable[[str], bool],
+    def get(self,
+            query: str,
+            word_filter: Callable[[str], bool],
             additional_filter: Callable[[Card], bool] = None) -> list[Card]:
         if additional_filter is None:
             additional_filter = lambda _: True
@@ -88,19 +105,25 @@ class CardGenerator(ABC):
 
 class LocalCardGenerator(CardGenerator):
     def __init__(self,
+                 name: str,
                  local_dict_path: str,
                  item_converter: Callable[[(str, dict)], dict],
+                 config: Config,
                  scheme_docs: str):
-        """
-        local_dict_path: str
-        item_converter: Callable[[(str, dict)], dict]
-        """
-        super(LocalCardGenerator, self).__init__(item_converter, scheme_docs)
+        super(LocalCardGenerator, self).__init__(name=name,
+                                                 item_converter=item_converter,
+                                                 config=config,
+                                                 scheme_docs=scheme_docs)
+
         if not os.path.isfile(local_dict_path):
             raise Exception(f"Local dictionary with path \"{local_dict_path}\" doesn't exist")
 
         with open(local_dict_path, "r", encoding="UTF-8") as f:
             self.local_dictionary: list[(str, dict)] = json.load(f)
+
+    @property
+    def type(self):
+        return DataSourceType.LOCAL
 
     def _get_search_subset(self, query: str) -> list[tuple[str, dict]]:
         return self.local_dictionary
@@ -108,18 +131,45 @@ class LocalCardGenerator(CardGenerator):
 
 class WebCardGenerator(CardGenerator):
     def __init__(self,
+                 name: str,
                  parsing_function: Callable[[str], list[(str, dict)]],
                  item_converter: Callable[[(str, dict)], dict],
+                 config: Config,
                  scheme_docs: str):
         """
         parsing_function: Callable[[str], list[(str, dict)]]
         item_converter: Callable[[(str, dict)], dict]
         """
-        super(WebCardGenerator, self).__init__(item_converter, scheme_docs)
+        super(WebCardGenerator, self).__init__(name=name,
+                                               item_converter=item_converter,
+                                               config=config,
+                                               scheme_docs=scheme_docs)
         self.parsing_function = parsing_function
+
+    @property
+    def type(self):
+        return DataSourceType.WEB
 
     def _get_search_subset(self, query: str) -> list[tuple[str, dict]]:
         return self.parsing_function(query)
+
+
+class CardGeneratorChain:
+    def __init__(self, *card_generators: CardGenerator):
+        self.card_generators = card_generators
+        card_generators[0].name
+        self.scheme_docs = "\n".join([generator.scheme_docs for generator in self.card_generators])
+
+
+    def get(self,
+            query: str,
+            word_filter: Callable[[str], bool],
+            additional_filter: Callable[[Card], bool] = None) -> list[Card]:
+        current_result = []
+        for generator in self.card_generators:
+            if (current_result := generator.get(query, word_filter, additional_filter)):
+                break
+        return current_result
 
 
 class Deck(PointerList):
@@ -210,9 +260,6 @@ class SavedDataDeck(PointerList):
     AUDIO_SRCS          = "audio_src"            # 2
     AUDIO_SRCS_TYPE     = "audio_src_type"       # 2
     AUDIO_SAVING_PATHS  = "audio_saving_paths"   # 2
-
-    AUDIO_SRC_TYPE_LOCAL = "local"
-    AUDIO_SRC_TYPE_WEB   = "web"
 
     __slots__ = "_statistics"
 

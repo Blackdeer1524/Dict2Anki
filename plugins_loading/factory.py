@@ -28,6 +28,8 @@ from plugins_loading.containers import WebSentenceParserContainer
 from plugins_loading.containers import WebWordParserContainer
 from plugins_loading.exceptions import LoaderError
 from plugins_loading.exceptions import UnknownPluginName
+from app_utils.cards import WebCardGenerator, LocalCardGenerator
+from consts.paths import LOCAL_MEDIA_DIR
 
 
 def parse_namespace(namespace, postfix: str = "") -> dict:
@@ -159,15 +161,33 @@ class PluginFactory:
             raise UnknownPluginName(f"Unknown theme: {name}")
         return theme
 
-    def get_web_word_parser(self, name: str) -> WebWordParserContainer:
-        if (web_parser := self.web_word_parsers.get(name)) is None:
-            raise UnknownPluginName(f"Unknown WebCardGenerator: {name}")
-        return web_parser
+    # def get_web_word_parser(self, name: str) -> WebWordParserContainer:
+    #     if (web_parser := self.web_word_parsers.get(name)) is None:
+    #         raise UnknownPluginName(f"Unknown WebCardGenerator: {name}")
+    #     return web_parser
+    #
+    # def get_local_word_parser(self, name: str) -> LocalWordParserContainer:
+    #     if (local_parser := self.local_word_parsers.get(name)) is None:
+    #         raise UnknownPluginName(f"Unknown LocalCardGenerator: {name}")
+    #     return local_parser
 
-    def get_local_word_parser(self, name: str) -> LocalWordParserContainer:
+    def get_web_card_generator(self, name: str) -> WebCardGenerator:
+        if (web_parser := self.web_word_parsers.get(name)) is None:
+            raise UnknownPluginName(f"Unknown web word parser: {name}")
+        return WebCardGenerator(name=web_parser.name,
+                                parsing_function=web_parser.define,
+                                item_converter=web_parser.translate,
+                                config=web_parser.config,
+                                scheme_docs=web_parser.scheme_docs)
+
+    def get_local_card_generator(self, name: str) -> LocalCardGenerator:
         if (local_parser := self.local_word_parsers.get(name)) is None:
-            raise UnknownPluginName(f"Unknown LocalCardGenerator: {name}")
-        return local_parser
+            raise UnknownPluginName(f"Unknown local word parser: {name}")
+        return LocalCardGenerator(name=local_parser.name,
+                                  local_dict_path=f"{LOCAL_MEDIA_DIR}/{local_parser.local_dict_name}.json",
+                                  item_converter=local_parser.translate,
+                                  config=local_parser.config,
+                                  scheme_docs=local_parser.scheme_docs)
 
     def get_sentence_parser(self, name: str) -> WebSentenceParserContainer:
         if (gen := self.web_sent_parsers.get(name)) is None:

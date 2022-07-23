@@ -44,20 +44,20 @@ class App(Tk):
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
 
-        if not os.path.exists("./temp/"):
-            os.makedirs("./temp")
+        if not os.path.exists(TEMP_DIR):
+            os.makedirs(TEMP_DIR)
 
         if not os.path.exists(LOCAL_MEDIA_DIR):
             os.makedirs(LOCAL_MEDIA_DIR)
 
-        if not os.path.exists("./Cards/"):
-            os.makedirs("./Cards")
+        if not os.path.exists(CARDS_DIR):
+            os.makedirs(CARDS_DIR)
 
-        if not os.path.exists("./Words/"):
-            os.makedirs("./Words")
+        if not os.path.exists(WORDS_DIR):
+            os.makedirs(WORDS_DIR)
 
-        if not os.path.exists("./Words/custom.json"):
-            with open("./Words/custom.json", "w", encoding="UTF-8") as custom_file:
+        if not os.path.exists(f"{WORDS_DIR}/custom.json"):
+            with open(f"{WORDS_DIR}/custom.json", "w", encoding="UTF-8") as custom_file:
                 json.dump([], custom_file)
 
         self.configurations, self.lang_pack, error_code = self.load_conf_file()
@@ -148,7 +148,7 @@ class App(Tk):
         filemenu.add_cascade(label=self.lang_pack.help_master_menu_label, menu=help_menu)
 
         filemenu.add_separator()
-        filemenu.add_command(label=self.lang_pack.download_audio_menu_label, 
+        filemenu.add_command(label=self.lang_pack.download_audio_menu_label,
                              command=partial(self.download_audio, choose_file=True))
         filemenu.add_separator()
         filemenu.add_command(label=self.lang_pack.change_media_folder_menu_label, command=self.change_media_dir)
@@ -595,7 +595,7 @@ saving_image_height
                 conf_file["directories"]["last_open_file"]):
             conf_file["directories"]["last_open_file"] = askopenfilename(title=lang_pack.choose_deck_file_message,
                                                                          filetypes=(("JSON", ".json"),),
-                                                                         initialdir="./")
+                                                                         initialdir=ROOT_DIR)
             if not conf_file["directories"]["last_open_file"]:
                 return (conf_file, lang_pack, True)
 
@@ -603,7 +603,7 @@ saving_image_height
                 conf_file["directories"]["last_save_dir"]):
             conf_file["directories"]["last_save_dir"] = askdirectory(title=lang_pack.choose_save_dir_message,
                                                                      mustexist=True,
-                                                                     initialdir="./")
+                                                                     initialdir=ROOT_DIR)
             if not conf_file["directories"]["last_save_dir"]:
                 return (conf_file, lang_pack, True)
 
@@ -636,12 +636,12 @@ saving_image_height
     def change_file(self):
         new_file_path = askopenfilename(title=self.lang_pack.choose_deck_file_message,
                                    filetypes=(("JSON", ".json"),),
-                                   initialdir="./")
+                                   initialdir=ROOT_DIR)
         if not new_file_path:
             return
 
         new_save_dir = askdirectory(title=self.lang_pack.choose_save_dir_message,
-                                    initialdir="./")
+                                    initialdir=ROOT_DIR)
         if not new_save_dir:
             return
 
@@ -703,7 +703,7 @@ saving_image_height
                 with open(new_file_path, "w", encoding="UTF-8") as new_file:
                     json.dump([], new_file)
 
-            new_save_dir = askdirectory(title=self.lang_pack.choose_save_dir_message, initialdir="./")
+            new_save_dir = askdirectory(title=self.lang_pack.choose_save_dir_message, initialdir=ROOT_DIR)
             if not new_save_dir:
                 return
 
@@ -721,7 +721,7 @@ saving_image_height
             self.saved_cards_data = SavedDataDeck()
             self.refresh()
 
-        new_file_dir = askdirectory(title=self.lang_pack.create_file_choose_dir_message, initialdir="./")
+        new_file_dir = askdirectory(title=self.lang_pack.create_file_choose_dir_message, initialdir=ROOT_DIR)
         if not new_file_dir:
             return
         create_file_win = self.Toplevel(self)
@@ -801,7 +801,7 @@ saving_image_height
             self.save_files()
             audio_file_name = askopenfilename(title=self.lang_pack.download_audio_choose_audio_file_title,
                                               filetypes=(("JSON", ".json"),),
-                                              initialdir="./")
+                                              initialdir=ROOT_DIR)
             if not audio_file_name:
                 return
             with open(audio_file_name, encoding="UTF-8") as audio_file:
@@ -812,7 +812,7 @@ saving_image_height
                                            headers=self.headers,
                                            timeout=1,
                                            request_delay=3_000,
-                                           temp_dir="./temp/",
+                                           temp_dir=TEMP_DIR,
                                            saving_dir=self.configurations["directories"]["media_dir"],
                                            toplevel_cfg=self.theme.toplevel_cfg,
                                            pb_cfg={"length": self.winfo_width()},

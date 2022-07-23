@@ -208,7 +208,7 @@ from functools import partial
 from functools import reduce
 from typing import Callable, Sized, ClassVar
 from typing import Iterable, Iterator, Generator
-from typing import Optional, Any, Union
+from typing import Optional, Any
 
 from app_utils.storages import FrozenDict
 from consts.card_fields import FIELDS
@@ -256,23 +256,24 @@ BIN_LOGIC_LOW = frozenset(("or", ))
 BIN_LOGIC_PRECEDENCE = (BIN_LOGIC_HIGH, BIN_LOGIC_MID, BIN_LOGIC_LOW)
 BIN_LOGIC_SET = reduce(lambda x, y: x | y, BIN_LOGIC_PRECEDENCE)
 
+T_unary_op =  Callable[[Iterable[Computable] | Computable, 
+                        Mapping], Iterator[bool] | bool]
+T_binary_op = Callable[[Iterable[Computable] | Computable,
+                        Iterable[Computable] | Computable,
+                        Mapping], Iterator[bool] | bool]
 
-def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], Computable],
-                                                   Mapping], bool],
-                                          Callable[[Union[Iterable[Computable], Computable],
-                                                   Union[Iterable[Computable], Computable],
-                                                   Mapping], bool]]:
+def logic_factory(operator: str) -> T_unary_op | T_binary_op:
     list_like_types = (list, tuple, Generator)
 
-    def operator_not(x: Union[Iterable[Computable], Computable],
+    def operator_not(x: Iterable[Computable] | Computable,
                       mapping: Mapping):
         x_computed = x.compute(mapping)
         if isinstance(x_computed, list_like_types):
             return (not item for item in x)
         return not x_computed
 
-    def operator_and(x: Union[Iterable[Computable], Computable],
-                     y: Union[Iterable[Computable], Computable],
+    def operator_and(x: Iterable[Computable] | Computable,
+                     y: Iterable[Computable] | Computable,
                      mapping: Mapping):
         x_computed = x.compute(mapping)
         y_computed = y.compute(mapping)
@@ -293,8 +294,8 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
             return False
         return y_computed
 
-    def operator_or(x: Union[Iterable[Computable], Computable],
-                    y: Union[Iterable[Computable], Computable],
+    def operator_or(x: Iterable[Computable] | Computable,
+                    y: Iterable[Computable] | Computable,
                     mapping: Mapping):
         x_computed = x.compute(mapping)
         y_computed = y.compute(mapping)
@@ -317,8 +318,8 @@ def logic_factory(operator: str) -> Union[Callable[[Union[Iterable[Computable], 
         return y_computed
 
 
-    def bin_op_template(x: Union[Iterable[Computable], Computable],
-                        y: Union[Iterable[Computable], Computable],
+    def bin_op_template(x: Iterable[Computable] | Computable,
+                        y: Iterable[Computable] | Computable,
                         mapping: Mapping,
                         _op: Callable[[Any, Any], bool]):
         x_computed = x.compute(mapping)
@@ -616,7 +617,7 @@ class FieldDataGetter(Computable):
         """query_chain: chain of keys"""
         result = []
 
-        def traverse_recursively(entry: Union[Mapping, Any], chain_index: int = 0) -> None:
+        def traverse_recursively(entry: Mapping | Any, chain_index: int = 0) -> None:
             nonlocal result
             if chain_index == len(self.query_chain):
                 result.append(list(entry.keys())) if isinstance(entry, Mapping) else result.append(entry)
@@ -657,7 +658,7 @@ class Method(Computable):
 
     method: Callable[[Any], int]
 
-    def compute(self, mapping: Mapping) -> Union[Iterator[int], int]:
+    def compute(self, mapping: Mapping) -> Iterator[int] | int:
         computed_operand = self.operand.compute(mapping)
         return self.method(computed_operand)
 
@@ -665,10 +666,9 @@ class Method(Computable):
 @dataclass(slots=True, frozen=True)
 class EvalNode(Computable):
     operator: str
-    left: Optional[Union[Computable, Token]] = None
-    right: Optional[Union[Computable, Token]] = None
-    operation: Union[Callable[[Computable, Mapping],             Any],
-                     Callable[[Computable, Computable, Mapping], Any]] = field(init=False, repr=False)
+    left: Optional[Computable | Token] = None
+    right: Optional[Computable | Token] = None
+    operation: T_unary_op | T_binary_op = field(init=False, repr=False)
 
     def __post_init__(self):
         object.__setattr__(self, "operation", logic_factory(self.operator))
@@ -761,7 +761,7 @@ class EvaluationTree:
                         self._expressions.pop(logic_start)  # operator
                         right_operand = self._expressions.pop(logic_start)
                         self._expressions.insert(logic_start, EvalNode(left=left_operand, right=right_operand,
-                                                                         operator=operator.value))
+                                                                       operator=operator.value))
                     else:
                         logic_start += 2
             if self._expressions[start_index + 1].t_type == Token_T.R_PARENTHESIS:

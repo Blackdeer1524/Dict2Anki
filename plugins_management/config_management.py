@@ -20,7 +20,7 @@ class Config(UserDict):
                    bool(self.missing_keys)
 
     def __init__(self,
-                 validation_scheme: dict[Any, tuple[Any, Sequence[Type], Sequence[Any]]],
+                 validation_scheme: dict[Any, dict | tuple[Any, Sequence[Type], Sequence[Any]]],
                  docs: str,
                  initial_value: Optional[dict] = None):
         self.default_scheme = {}

@@ -1,4 +1,5 @@
 import copy
+import itertools
 import json
 import re
 import webbrowser
@@ -127,23 +128,23 @@ class App(Tk):
         self.buried_saver = loaded_plugins.get_deck_saving_formats("json_deck_cards")
 
         main_menu = Menu(self)
-        filemenu = Menu(main_menu, tearoff=0)
-        filemenu.add_command(label=self.lang_pack.create_file_menu_label, command=self.create_file_dialog)
-        filemenu.add_command(label=self.lang_pack.open_file_menu_label, command=self.change_file)
-        filemenu.add_command(label=self.lang_pack.save_files_menu_label, command=self.save_button)
-        filemenu.add_separator()
+        file_menu = Menu(main_menu, tearoff=0)
+        file_menu.add_command(label=self.lang_pack.create_file_menu_label, command=self.create_file_dialog)
+        file_menu.add_command(label=self.lang_pack.open_file_menu_label, command=self.change_file)
+        file_menu.add_command(label=self.lang_pack.save_files_menu_label, command=self.save_button)
+        file_menu.add_separator()
 
-        help_menu = Menu(filemenu, tearoff=0)
+        help_menu = Menu(file_menu, tearoff=0)
         help_menu.add_command(label=self.lang_pack.hotkeys_and_buttons_help_menu_label, command=self.help_command)
         help_menu.add_command(label=self.lang_pack.query_settings_language_label_text, command=self.get_query_language_help)
-        filemenu.add_cascade(label=self.lang_pack.help_master_menu_label, menu=help_menu)
+        file_menu.add_cascade(label=self.lang_pack.help_master_menu_label, menu=help_menu)
 
-        filemenu.add_separator()
-        filemenu.add_command(label=self.lang_pack.download_audio_menu_label,
+        file_menu.add_separator()
+        file_menu.add_command(label=self.lang_pack.download_audio_menu_label,
                              command=partial(self.download_audio, choose_file=True))
-        filemenu.add_separator()
-        filemenu.add_command(label=self.lang_pack.change_media_folder_menu_label, command=self.change_media_dir)
-        main_menu.add_cascade(label=self.lang_pack.file_master_menu_label, menu=filemenu)
+        file_menu.add_separator()
+        file_menu.add_command(label=self.lang_pack.change_media_folder_menu_label, command=self.change_media_dir)
+        main_menu.add_cascade(label=self.lang_pack.file_master_menu_label, menu=file_menu)
 
         main_menu.add_command(label=self.lang_pack.add_card_menu_label, command=self.add_word_dialog)
         main_menu.add_command(label=self.lang_pack.search_inside_deck_menu_label, command=self.find_dialog)
@@ -304,6 +305,131 @@ saving_image_height
 
 
         main_menu.add_command(label=self.lang_pack.settings_menu_label, command=settings_dialog)
+
+        def chaining():
+            pady = 2
+
+            def reposition_choosing(ind: int):
+                choosing_widgets_data[ind][1].destroy()
+                choosing_widgets_data[ind][2].destroy()
+                removed_name = choosing_widgets_data.pop(ind)[0]
+
+                for i in range(ind, len(choosing_widgets_data)):
+                    choosing_widgets_data[i][1].grid_forget()
+                    choosing_widgets_data[i][2].grid_forget()
+                    choosing_widgets_data[i][1].grid(row=i, column=0, sticky="news", pady=pady)
+                    choosing_widgets_data[i][2].grid(row=i, column=1, sticky="news", pady=pady)
+                    choosing_widgets_data[i][2].configure(command=lambda ind=i: reposition_choosing(ind))
+
+                new_chain_ind = len(chain_data) * 3
+                a = self.Label(ordering_frame, text=removed_name, justify='center')
+
+                def place(item, next_3i: int):
+                    item[1].grid(row=next_3i, column=0, sticky="news", rowspan=3, pady=pady)
+                    item[2].grid(row=next_3i, column=1, sticky="news", pady=(pady, 0))
+                    if next_3i:
+                        item[2]["state"] = "normal"
+                        item[2].configure(
+                            command=lambda ind=next_3i: swap_places(current_ind=ind // 3,
+                                                                   direction=-3))
+                    else:
+                        item[2]["state"] = "disabled"
+
+                    item[3].grid(row=next_3i + 1, column=1, sticky="news", pady=0)
+                    item[3].configure(command=lambda ind=next_3i: return_back(ind // 3))
+                    item[4].grid(row=next_3i + 2, column=1, sticky="news", pady=(0, pady))
+
+                    if next_3i == 3 * (len(chain_data) - 1):
+                        item[4]["state"] = "disabled"
+                    else:
+                        item[4]["state"] = "normal"
+                        item[4].configure(
+                            command=lambda ind=next_3i: swap_places(current_ind=ind // 3,
+                                                                   direction=3))
+
+                def swap_places(current_ind: ind, direction: int):
+                    current = chain_data[current_ind]
+                    operand = chain_data[current_ind + direction // 3]
+
+                    for i in range(1, len(chain_data[current_ind])):
+                        current[i].grid_forget()
+                        operand[i].grid_forget()
+
+                    old_3 = 3 * current_ind
+                    new_3 = old_3 + direction
+                    place(current, new_3)
+                    place(operand, old_3)
+                    chain_data[old_3 // 3], chain_data[new_3 // 3] = chain_data[new_3 // 3], chain_data[old_3 // 3]
+
+
+                def return_back(ind: int):
+                    for i in range(1, len(chain_data[ind])):
+                        chain_data[ind][i].destroy()
+                    removed_name = chain_data.pop(ind)[0]
+
+                    for i in range(ind, len(chain_data)):
+                        chain_data[i][1].grid_forget()
+                        chain_data[i][1].grid(row=3 * i, column=0, sticky="news", pady=pady, rowspan=3)
+
+                        chain_data[i][2].grid_forget()
+                        chain_data[i][2].grid(row=3 * i, column=1, sticky="news", pady=(pady, 0))
+
+                        chain_data[i][3].grid_forget()
+                        chain_data[i][3].grid(row=3 * i + 1, column=1, sticky="news", pady=0)
+                        chain_data[i][3].configure(command=lambda ind=i: return_back(ind))
+
+                        chain_data[i][4].grid_forget()
+                        chain_data[i][4].grid(row=3 * i + 2, column=1, sticky="news", pady=(0, pady))
+
+
+                    new_choosing_ind = len(choosing_widgets_data)
+                    a = self.Label(choosing_frame, text=removed_name, justify='center')
+                    a.grid(row=new_choosing_ind, column=0, sticky="news", pady=pady)
+                    b = self.Button(choosing_frame, text=">", command=lambda ind=new_choosing_ind: reposition_choosing(ind))
+                    b.grid(row=new_choosing_ind, column=1, sticky="news", pady=pady)
+                    choosing_widgets_data.append((removed_name, a, b))
+
+                up = self.Button(ordering_frame, text="∧")
+                back = self.Button(ordering_frame, text="✕", command=lambda ind=new_chain_ind: return_back(ind // 3))
+                down = self.Button(ordering_frame, text="∨")
+
+                if chain_data:
+                    chain_data[-1][-1]["state"] = "normal"
+
+                g = (removed_name, a, up, back, down)
+                chain_data.append(g)
+                place(g, new_chain_ind)
+
+            chaining_window = self.Toplevel(self)
+            chaining_window.grid_columnconfigure(0, weight=1)
+            chaining_window.grid_columnconfigure(1, weight=1)
+            chaining_window.grid_rowconfigure(0, weight=1)
+
+            spawn_window_in_center(self, chaining_window,
+                                   desired_window_width=self.winfo_width(),
+                                   desired_window_height=self.winfo_height() * 2 // 3 )
+
+            choosing_frame: Frame = self.Frame(chaining_window, bg="blue")
+            choosing_frame.grid_columnconfigure(0, weight=1)
+            choosing_frame.grid(row=0, column=0, sticky="news", padx=10, pady=10)
+            choosing_widgets_data: list[tuple[str, Label, Button]] = []
+
+            chain_data: list[tuple[str, Label, Button, Button, Button]] = []
+
+            for i, parser_name in enumerate(itertools.chain(loaded_plugins.web_word_parsers.loaded,
+                                                            loaded_plugins.local_word_parsers.loaded)):
+                a = self.Label(choosing_frame, text=parser_name, justify='center')
+                a.grid(row=i, column=0, sticky="news", pady=pady)
+                b = self.Button(choosing_frame, text=">", command=lambda ind=i: reposition_choosing(ind))
+                b.grid(row=i, column=1, sticky="news", pady=pady)
+                choosing_widgets_data.append((parser_name, a, b))
+
+            ordering_frame: Frame = self.Frame(chaining_window, bg="red")
+            ordering_frame.grid_columnconfigure(0, weight=1)
+            ordering_frame.grid(row=0, column=1, sticky="news", padx=10, pady=10)
+
+
+        main_menu.add_command(label="asdf", command=chaining)
         main_menu.add_command(label=self.lang_pack.exit_menu_label, command=self.on_closing)
         self.config(menu=main_menu)
 
